@@ -63,6 +63,13 @@ async function viaNode(route) {
   }
 }
 
+// Schermafbeelding van de volledige pagina, bovenaan begonnen (anders schuift de vaste menubalk mee).
+async function shot(page, file) {
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: join(SHOTS, file), fullPage: true });
+}
+
 const browser = await chromium.launch();
 const problems = [];
 try {
@@ -92,16 +99,16 @@ try {
   await page.check("#a-risk");
   await page.check("#a-locked");
   await page.check("#a-demo");
-  await page.screenshot({ path: join(SHOTS, "investeren-klaar.png"), fullPage: true });
+  await shot(page, "investeren-klaar.png");
   await page.getByRole("button", { name: /Koop 2\.500 aandelen voor € 12,50/ }).click();
   await page.getByText("Welkom als mede-eigenaar").waitFor({ timeout: 60000 });
-  await page.screenshot({ path: join(SHOTS, "investeren-gelukt.png"), fullPage: true });
+  await shot(page, "investeren-gelukt.png");
   console.log("aankoop gelukt");
 
   await page.getByRole("link", { name: "Naar mijn portefeuille" }).click();
   await page.locator(".cert-amount").getByText("2.500").waitFor({ timeout: 30000 });
   await page.locator("td").getByText("€ 12,50").first().waitFor({ timeout: 30000 });
-  await page.screenshot({ path: join(SHOTS, "portefeuille.png"), fullPage: true });
+  await shot(page, "portefeuille.png");
   console.log("portefeuille toont 2.500 aandelen en de aankoop");
 
   for (const [name, path, vp] of [
@@ -115,7 +122,7 @@ try {
     await page.waitForTimeout(1500);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     if (overflow > 0) problems.push(`${name}: horizontale scroll van ${overflow}px`);
-    await page.screenshot({ path: join(SHOTS, `${name}.png`), fullPage: true });
+    await shot(page, `${name}.png`);
   }
 } finally {
   await browser.close();

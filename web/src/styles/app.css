@@ -506,8 +506,9 @@ td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 960px) { .trans-grid { grid-template-columns: minmax(0, 1fr); } }
 .donut-wrap { display: grid; gap: 1rem; justify-items: center; }
 .donut-wrap svg { width: min(100%, 18rem); height: auto; }
-.donut-center-big { font-family: var(--font-display); font-size: 1.15rem; fill: var(--ink); }
-.donut-center-small { font-size: 0.55rem; fill: var(--muted); }
+/* Tekst in de donut staat in eenheden van de viewBox (100 x 100), niet in rem. */
+.donut-center-big { font-family: var(--font-display); font-size: 8.5px; fill: var(--ink); }
+.donut-center-small { font-size: 4.4px; fill: var(--muted); }
 .addr-list { display: grid; gap: 0; }
 .addr-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.25rem 1rem; padding: 0.85rem 0; border-bottom: 1px solid var(--line); align-items: center; }
 .addr-row span:first-child { color: var(--ink-2); }
