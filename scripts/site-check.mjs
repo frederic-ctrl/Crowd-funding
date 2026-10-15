@@ -1,29 +1,22 @@
-// Controle vóór een deploy van de campagnesite.
-// - Zoekt invulvelden zoals [KBO-nummer] in de HTML.
-// - Controleert dat de deelafbeelding voor X bestaat.
+// Controle vóór een deploy van de site.
+// - Bedrijfsgegevens in shared/bedrijf.json (vennootschap, adres, ondernemingsnummer, privacy-e-mail).
+// - De deelafbeelding voor X en de token-afbeelding bestaan.
 // Bij een productie-deploy op Vercel (VERCEL_ENV=production) of met --strict faalt de build
-// zolang er invulvelden openstaan. Preview-deploys en lokale runs geven enkel een waarschuwing.
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+// zolang er iets ontbreekt. Preview-deploys en lokale builds geven enkel een waarschuwing.
+import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..", "site");
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const strict = process.argv.includes("--strict") || process.env.VERCEL_ENV === "production";
-
-const PLACEHOLDER = /\[(?:[A-Za-z][^\]\n]{2,60})\]/g;
 const problems = [];
 
-for (const file of readdirSync(root).filter((f) => f.endsWith(".html"))) {
-  const html = readFileSync(join(root, file), "utf8");
-  const text = html.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<style[\s\S]*?<\/style>/g, "");
-  for (const match of text.matchAll(PLACEHOLDER)) {
-    problems.push(`${file}: invulveld ${match[0]} staat nog open`);
-  }
-  if (!/<title>[^<]+<\/title>/.test(html)) problems.push(`${file}: geen <title>`);
+const company = JSON.parse(readFileSync(join(root, "shared", "bedrijf.json"), "utf8"));
+for (const field of ["vennootschap", "adres", "ondernemingsnummer", "privacyEmail"]) {
+  if (!company[field]) problems.push(`shared/bedrijf.json: "${field}" is nog niet ingevuld`);
 }
-
-if (!existsSync(join(root, "og-community.png"))) {
-  problems.push("og-community.png ontbreekt (npm run site:og)");
+for (const file of ["og-community.png", "token/mscan.png", "token/mscan.json", "icon.svg"]) {
+  if (!existsSync(join(root, "web", "public", file))) problems.push(`web/public/${file} ontbreekt`);
 }
 
 if (problems.length === 0) {
@@ -31,7 +24,7 @@ if (problems.length === 0) {
 } else {
   for (const p of problems) console.log(`${strict ? "FOUT" : "let op"}: ${p}`);
   if (strict) {
-    console.log("site-check: vul de velden in voor een productie-deploy.");
+    console.log("site-check: vul dit aan voor een productie-deploy.");
     process.exit(1);
   }
 }

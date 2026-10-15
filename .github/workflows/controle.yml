@@ -1,0 +1,61 @@
+name: Controle
+
+# Bij elke push en pull request: tests, typecontrole, bouwen van de site, X-kalender,
+# en een volledige test op een echte (lokale) Solana-keten.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  code:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Typecontrole site
+        run: npm run typecheck
+      - name: Site bouwen
+        run: npm run build
+      - name: X-kalender controleren
+        run: npm run x:lint
+
+  keten:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Solana-validator installeren
+        run: |
+          curl -sSfL https://release.anza.xyz/v4.3.0/solana-release-x86_64-unknown-linux-gnu.tar.bz2 | tar -xj
+          echo "$PWD/solana-release/bin" >> "$GITHUB_PATH"
+      - name: Lokale keten starten
+        run: |
+          solana-test-validator --ledger /tmp/ledger --reset --quiet > /tmp/validator.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -s http://127.0.0.1:8899 -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' | grep -q '"ok"'; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/validator.log
+          exit 1
+      - name: Token en verkoop opzetten
+        run: node scripts/solana/setup.mjs --network localnet --keys /tmp/keys --force
+      - name: Testen op de keten
+        run: node --test test/solana-e2e.test.js
+        env:
+          SOLANA_E2E_DEPLOYMENT: shared/deployments/localnet.json
+          SOLANA_E2E_AUTHORITY: /tmp/keys/authority.json

@@ -1,0 +1,56 @@
+// POST /api/testgeld  { wallet }
+// Enkel voor de demo op devnet: stuurt 50 test-euro (tEUR, zonder waarde) naar een wallet.
+import { PublicKey } from "@solana/web3.js";
+import { sendTestEuro, FaucetError } from "../server/faucet.js";
+import { loadDeployment, loadOffering, connectionFor, loadAuthority, json } from "../server/solana.js";
+
+export async function handle(request, env = process.env, deps = {}) {
+  if (request.method !== "POST") return json(405, { fout: "Gebruik POST." });
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json(400, { fout: "Ongeldige aanvraag." });
+  }
+
+  let recipient;
+  try {
+    recipient = new PublicKey(String(body?.wallet ?? ""));
+    if (!PublicKey.isOnCurve(recipient.toBytes())) throw new Error("niet ondertekenbaar");
+  } catch {
+    return json(400, { fout: "Ongeldig walletadres." });
+  }
+
+  const deployment = deps.deployment ?? loadDeployment(env.SOLANA_NETWORK || "devnet");
+  if (!deployment) return json(503, { fout: "De demo is nog niet geactiveerd." });
+  if (deployment.network === "mainnet-beta") return json(404, { fout: "Testgeld bestaat niet op mainnet." });
+
+  let authority;
+  try {
+    authority = deps.authority ?? loadAuthority(env);
+  } catch {
+    return json(503, { fout: "De demo is nog niet geactiveerd." });
+  }
+
+  try {
+    const result = await sendTestEuro({
+      connection: deps.connection ?? connectionFor(deployment, env.SOLANA_RPC_URL),
+      deployment,
+      offering: deps.offering ?? loadOffering(),
+      authority,
+      recipient,
+    });
+    return json(200, result);
+  } catch (err) {
+    if (err instanceof FaucetError) return json(400, { fout: err.message });
+    console.error("testgeld mislukt", err);
+    return json(500, { fout: "Testgeld sturen lukte niet. Probeer zo meteen opnieuw." });
+  }
+}
+
+export default {
+  fetch(request) {
+    return handle(request);
+  },
+};

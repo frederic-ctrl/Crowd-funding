@@ -74,11 +74,10 @@ Pas als de documenten gepubliceerd zijn en je advocaat akkoord is:
 2. Vanaf dan eist de controle in elke post over de ronde: "Je kan je volledige inleg verliezen", de link naar de documenten ({docs}) en de de-minimisvermelding.
 3. Pas de site aan: de wachtlijst wordt een inschrijving, met dezelfde vermeldingen.
 
-## De campagnesite
+## De website
 
-- Map `site/`: statische site in de huisstijl van Marketing Scan, met wachtlijst, fases, transparantie, risico's en veelgestelde vragen. Ze maakt nergens een aanbod en toont nergens een verwachte waardestijging.
-- `api/waitlist.js` bewaart inschrijvingen in Supabase (tabel uit `supabase/migrations/`). Enkel e-mail, taal en tijdstip van toestemming.
-- Hosting: Vercel (`vercel.json`, met strikte beveiligingsheaders). Zet in Vercel de omgevingsvariabelen `SUPABASE_URL` en `SUPABASE_SECRET_KEY`.
-- Domein: voorstel `community.marketingscan.be`. Pas het aan in `site/index.html` (meta-tags) en `marketing/x/config.json` als je een ander adres kiest.
-- **Voor de productie-deploy:** vul de velden tussen [haakjes] in `site/privacy.html` in (vennootschap, adres, ondernemingsnummer, e-mailadres). Een productie-build op Vercel faalt zolang die openstaan (`npm run site:check`).
-- De deelafbeelding voor X (`site/og-community.png`) maak je opnieuw met `npm run site:og` (vereist Playwright).
+- De site staat in `web/` (React) en wordt gebouwd met `npm run build`. Hosting: Vercel (`vercel.json`, met strikte beveiligingsheaders).
+- De wachtlijst (`api/waitlist.js`) bewaart enkel e-mail, taal en tijdstip van toestemming in Supabase (tabel uit `supabase/migrations/`). Zet in Vercel `SUPABASE_URL` en `SUPABASE_SECRET_KEY`.
+- Domein: voorstel `community.marketingscan.be`. Pas het aan in `web/index.html` (meta-tags) en `marketing/x/config.json` als je een ander adres kiest.
+- **Voor de productie-deploy:** vul `shared/bedrijf.json` in (vennootschap, adres, ondernemingsnummer, privacy-e-mail). Een productie-build op Vercel faalt zolang die ontbreken (`npm run site:check`).
+- De deelafbeelding voor X en het tokenlogo maak je opnieuw met `npm run site:og` (vereist Playwright).

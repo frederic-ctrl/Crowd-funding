@@ -28,7 +28,7 @@ posts:
     categorie: ronde
     status: concept
     tekst: |-
-      We bouwen Marketing Scan voor kmo's, en we willen het ook samen met hen bouwen. Daarom werken we aan een community-ronde: mede-eigenaar worden vanaf €1, in fases en volledig transparant.
+      We bouwen Marketing Scan voor kmo's, en we willen het ook samen met hen bouwen. Daarom werken we aan een community-ronde: mede-eigenaar worden vanaf €1, met je aandelen in je eigen wallet.
 
       Nog geen aanbod. Investeren houdt risico's in. Wachtlijst: {site}
 
@@ -37,7 +37,7 @@ posts:
     categorie: uitleg
     status: concept
     tekst: |-
-      Hoe maak je crowdfunding écht transparant? Bij onze community-ronde komt het geld op een geblokkeerde rekening. Haalt een fase haar minimumdoel niet, dan krijgt iedereen alles terug.
+      Hoe maak je crowdfunding écht transparant? Bij onze community-ronde staat je inleg in een escrow die iedereen live kan bekijken op de blockchain. Haalt een ronde haar minimumdoel niet, dan krijgt iedereen alles terug.
 
       Nog geen aanbod. Meer uitleg volgt.
 
@@ -100,9 +100,27 @@ posts:
     categorie: uitleg
     status: concept
     tekst: |-
-      Waarom maximaal 49%? Zo blijven de oprichters verantwoordelijk voor de richting van het bedrijf, en weet iedereen vooraf hoe de verdeling eruitziet na alle fases: 51% oprichters, max 49% community.
+      Waarom maximaal 49%? Zo blijft de oprichter verantwoordelijk voor de richting van het bedrijf, en weet iedereen vooraf hoe de verdeling eruitziet na beide rondes: 51% oprichter, max 49% community.
 
       Nog geen aanbod.
+
+  - id: 2026-12-01-je-deel-live
+    moment: 2026-12-01T10:00:00+01:00
+    categorie: uitleg
+    status: concept
+    tekst: |-
+      Je deel altijd in beeld: log in met je wallet en je ziet live hoeveel aandelen je hebt, welk deel van Marketing Scan dat is en de waarde volgens de laatste rondeprijs. Geen verkoopprijs, wel eerlijk.
+
+      Nog geen aanbod.
+
+  - id: 2026-12-03-demo-op-testnet
+    moment: 2026-12-03T10:00:00+01:00
+    categorie: ronde
+    status: concept
+    tekst: |-
+      Probeer onze community-ronde nu al uit op het Solana-testnet: inloggen met je wallet, test-euro ontvangen en instappen vanaf €1, zonder echt geld.
+
+      Nog geen aanbod. Investeren houdt risico's in. {site}
 
 # Sjablonen worden elke week automatisch ingevuld met de cijfers uit data/cijfers.json.
 # Ze posten enkel als die cijfers de voorbije 8 dagen bijgewerkt zijn ("bijgewerkt" in cijfers.json).

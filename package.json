@@ -2,12 +2,17 @@
   "name": "marketingscan-community",
   "private": true,
   "type": "module",
-  "description": "Community-ronde van Marketing Scan: campagnesite, wachtlijst en automatische X-promotie met compliance-controles.",
+  "description": "Community-ronde van Marketing Scan: investeerdersplatform op Solana, wachtlijst en automatische X-promotie met compliance-controles.",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
+    "dev": "vite --config web/vite.config.ts",
+    "build": "vite build --config web/vite.config.ts && node scripts/site-check.mjs",
+    "preview": "vite preview --config web/vite.config.ts",
+    "typecheck": "tsc -p web/tsconfig.json --noEmit",
     "test": "node --test",
+    "solana:setup": "node scripts/solana/setup.mjs",
     "x:lint": "node marketing/x/src/cli.js lint",
     "x:plan": "node marketing/x/src/cli.js plan",
     "x:post": "node marketing/x/src/cli.js post",
@@ -16,7 +21,25 @@
     "site:og": "node scripts/og/render.mjs"
   },
   "dependencies": {
+    "@solana/spl-token": "0.4.15",
+    "@solana/spl-token-metadata": "0.1.6",
+    "@solana/wallet-adapter-base": "0.9.28",
+    "@solana/wallet-adapter-react": "0.15.40",
+    "@solana/wallet-adapter-react-ui": "0.9.40",
+    "@solana/web3.js": "1.99.0",
+    "bs58": "6.0.0",
+    "buffer": "6.0.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router-dom": "7.18.4",
     "twitter-api-v2": "1.29.1",
     "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.1"
   }
 }

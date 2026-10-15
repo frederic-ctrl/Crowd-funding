@@ -1,206 +1,129 @@
-# Technisch ontwerp (v0.1, concept)
+# Technisch ontwerp (v0.2, werkt op testnet)
 
-Hoort bij [plan.md](plan.md). Dit document is bedoeld voor ontwikkelaars, de auditor en de advocaat: het beschrijft wat er on-chain en off-chain gebeurt, en welke regels in code afgedwongen worden.
-
-Uitgangspunt: **Optie A** uit het plan (rechtstreekse B-aandelen, token = digitale weergave, het officiële register blijft juridisch leidend). Bij Optie B (stichting en certificaten) blijft de techniek dezelfde; enkel de juridische betekenis van de token verandert.
+Hoort bij [plan.md](plan.md). Voor ontwikkelaars, de auditor en de advocaat: wat er on-chain en off-chain gebeurt, en welke regels waar afgedwongen worden.
 
 ---
 
-## 1. Componenten
+## 1. Overzicht
 
 ```mermaid
 flowchart LR
-  subgraph Investeerder
-    W[Wallet: Phantom / Solflare / e-mailwallet]
-  end
-  subgraph Offchain["Off-chain (EU-hosting)"]
-    P[Portaal + transparantiepagina]
-    B[Backend]
-    K[KYC-provider, bv. itsme]
-    BK[Bank: bijzondere rekening]
-    R[Officieel aandelenregister]
-    IX[Indexer + reconciliatie]
-  end
-  subgraph Solana
-    T[Token-2022 mint MSCAN-B]
-    S[Squads multisig: admin + treasury]
-    O[Escrow-programma, vanaf Fase 2]
-  end
-  W <--> P
-  P <--> B
-  B <--> K
-  B <--> BK
-  B <--> R
-  S -->|Fase 1: mint, freeze| T
-  O -->|Fase 2+: mint, freeze| T
-  W -->|Fase 2+: EURC| O
-  O -->|na akte| S
-  IX --> T
-  IX --> O
-  IX --> R
-  IX --> P
+  W[Wallet van de investeerder] -->|ondertekent| T[(Aankooptransactie)]
+  S[Server /api/koop] -->|bouwt en ondertekent mee| T
+  T -->|EURC / tEUR| E[Escrow]
+  K[Verkoopkluis ronde 1] -->|aandelen| A[Aandelenaccount investeerder]
+  T --> K
+  O[Oprichterswallet JPmY…8T6] --- F[51.000.000 vergrendeld]
+  R[Reserve ronde 2 offline] --- G[40.000.000 vergrendeld]
+  Site[Website] -->|leest live| Chain[(Solana)]
 ```
 
----
-
-## 2. De token (Token-2022)
-
-| Eigenschap | Waarde | Waarom |
+| Onderdeel | Waar | Wat |
 |---|---|---|
-| Programma | Token-2022 (SPL Token Extensions) | Geauditeerde standaard, ondersteunt de extensies hieronder |
-| Decimalen | 0 | 1 token = 1 aandeel, geen fracties |
-| Max aantal | 49.000.000 | 49% van 100.000.000 aandelen. Fase 1: bewaakt door de multisig en publieke reconciliatie. Vanaf Fase 2: afgedwongen in de code van het escrow-programma |
-| Mint authority | Fase 1: Squads-vault. Fase 2+: PDA van het escrow-programma. Na Fase 3: `None` (onomkeerbaar) | Geen stille bijmunting mogelijk |
-| Freeze authority | Fase 1: Squads-vault. Fase 2+: PDA van het escrow-programma (met admin-instructie voor herstel) | Nodig voor uitgifte in bevroren accounts en voor herstel |
-
-**Extensies, allemaal bij het aanmaken in te stellen** (achteraf toevoegen kan niet):
-
-- `MetadataPointer` + `TokenMetadata`: naam "Marketingscan B-aandeel", symbool `MSCAN-B`, `uri` naar een JSON met logo en documentlinks. Extra velden: ondernemingsnummer, aandelenklasse `B`, hash van de uitgiftevoorwaarden. Update authority: multisig.
-- `DefaultAccountState = Frozen`: elk nieuw token-account is bevroren. Overdrachten kunnen pas na een gecontroleerde procedure.
-- `PermanentDelegate = multisig`: herstel bij een verloren wallet, een erfenis of een rechterlijke beslissing. Elke inzet krijgt een publieke log met een hash van de reden.
-- `TransferHook` met `program_id = None` en authority = multisig: nu niets, maar zo kan er in Fase 3 een hook komen voor overdrachten tussen geverifieerde wallets, zonder een nieuwe token te moeten maken.
-- Optioneel: `ScaledUiAmount` (voor latere aandelensplitsingen) en `Pausable` (noodrem). Beslissen vóór het aanmaken.
-
-Let op: een permanent delegate kan geen tokens verplaatsen uit een bevroren account. Herstel = `thaw` (freeze authority), dan `transfer_checked` (permanent delegate), dan `freeze`, in één transactie.
+| Website | `web/` (React, Vite, TypeScript) | overzicht, investeren, portefeuille, transparantie, privacy |
+| Aankoop voorbereiden | `api/koop.js` → `server/purchase.js` | bouwt de atomaire aankooptransactie en ondertekent mee |
+| Testgeld | `api/testgeld.js` → `server/faucet.js` | 50 tEUR per keer, max 100 tEUR saldo, nooit op mainnet |
+| Wachtlijst | `api/waitlist.js` | e-mail met toestemming naar Supabase |
+| Rekenregels | `shared/offering.js`, `shared/aanbod.json` | gedeeld door site, server en scripts |
+| Adressen | `shared/deployments/<netwerk>.json` | aangemaakt door het setupscript |
+| Scripts | `scripts/solana/` | opzetten, demo-aankopen, terugbetalen, vrijgeven |
 
 ---
 
-## 3. Fase 1: lean, zonder eigen smart contract
+## 2. De token
 
-Enkel bestaande, geauditeerde programma's: Token-2022, Associated Token Account en Squads v4.
+| Eigenschap | Waarde |
+|---|---|
+| Programma | Token-2022 |
+| Decimalen | 0 (1 token = 1 aandeel) |
+| Voorraad | 100.000.000, muntrecht ingetrokken (`mintAuthority = null`) |
+| Extensies | `MetadataPointer` + `TokenMetadata` (naam, symbool, link, totaal, website), `DefaultAccountState = Frozen`, `PermanentDelegate` = herstelsleutel |
+| Freeze authority | serversleutel (nodig om bij aankoop even te ontdooien) |
 
-### 3.1 Inschrijven
+**Verdeling bij de start** (`scripts/solana/setup.mjs`):
 
-```mermaid
-sequenceDiagram
-  actor I as Investeerder
-  participant P as Portaal
-  participant K as KYC (itsme)
-  participant BK as Bank
-  participant S as Squads multisig
-  participant T as Token-2022
-  I->>P: wallet koppelen + bericht ondertekenen (Sign-In With Solana)
-  P->>K: identiteit verifiëren (18+, sancties/PEP, woonplaats BE)
-  K-->>P: OK + referentie
-  I->>P: documenten en risico's aanvaarden (tijdstip + documenthash bewaard)
-  I->>P: bedrag kiezen (≥ €1, max €5.000 per persoon)
-  P-->>I: IBAN bijzondere rekening + unieke gestructureerde mededeling
-  I->>BK: overschrijving
-  BK-->>P: betaling gematcht (CODA of bank-API)
-  Note over P: 4 dagen bedenktijd, annuleren = terugstorting
-  Note over P,S: einddatum: minimumdoel gehaald? dan notariële akte
-  S->>T: per investeerder: thaw, mint_to, freeze (batch)
-  T-->>I: MSCAN-B in eigen wallet
-```
+| Account | Eigenaar | Aantal | Toestand |
+|---|---|---|---|
+| Oprichter | `JPmYxhBGqt9GMe6kfozUce3EyQRAoQZD1hbLGWJR8T6` | 51.000.000 | bevroren |
+| Verkoopkluis ronde 1 | serversleutel | 9.000.000 | ontdooid |
+| Reserve ronde 2 | reservesleutel (offline) | 40.000.000 | bevroren |
 
-- **Aantal aandelen:** `aandelen = floor(bedrag / prijs)`, en de investeerder betaalt `aandelen x prijs`. Bij €0,01 per aandeel geeft €1 exact 100 aandelen. Bij een prijs die niet mooi deelt, toont het portaal bv. "€0,99 voor 33 aandelen".
-- **Rent sponsoren:** Marketingscan betaalt het aanmaken van het token-account (ca. 0,002 SOL), zodat €1 echt €1 is.
-- **Uitgifte in batches** via Squads (meerdere instructies per transactie, meerdere transacties per batch). Na elke batch vergelijkt de reconciliatie het register met de on-chain saldi.
+**Sleutels** (`.keys/<netwerk>/`, nooit in git):
 
-### 3.2 Overdracht (Fase 1 en 2)
-
-1. Verkoper en koper melden de overdracht via het portaal (de koper is geverifieerd).
-2. Controle volgens de statuten (bv. goedkeuringsclausule) en inschrijving in het register.
-3. Multisig: `thaw` verkoper en koper, `transfer_checked` via de permanent delegate, `freeze` beide. Eén transactie, publieke log.
-
-### 3.3 Herstel (verloren wallet, erfenis)
-
-Opnieuw identiteit verifiëren, nieuwe wallet koppelen, en dan dezelfde multisig-transactie als bij een overdracht, met een hash van het bewijsstuk (bv. attest van erfopvolging) in de log.
+| Sleutel | Kan | Kan niet | Bewaren |
+|---|---|---|---|
+| `authority.json` (server) | kosten betalen, verkopen uit kluis 1, accounts (ont)vriezen, escrow beheren | aandelen bijmaken, aandelen van investeerders verplaatsen, reserve 2 gebruiken | omgevingsvariabele `SALE_AUTHORITY_SECRET` |
+| `reserve.json` | reserve ronde 2 vrijmaken (samen met de server) | alleen niets | offline |
+| `herstel.json` (permanent delegate) | aandelen van een verloren wallet overzetten, terugbetalingen | geld verplaatsen, bijmaken | offline |
 
 ---
 
-## 4. Fase 2+: escrow-programma `msc_offering` (Anchor)
+## 3. De aankoop (atomair)
 
-### 4.1 Accounts
+`POST /api/koop { wallet, bedrag, ronde }`
 
-| Account | Seeds | Belangrijkste velden |
+1. Server controleert met `checkPurchase`: ronde open, minimum €1, maximum per persoon, genoeg aandelen in de kluis, genoeg saldo.
+2. Server bouwt één transactie:
+   1. aandelenaccount van de koper aanmaken als het niet bestaat (server betaalt de huur);
+   2. dat account ontdooien;
+   3. betaling: koper → escrow (`transferChecked`, ondertekend door de koper);
+   4. aandelen: kluis → koper (`transferChecked`, ondertekend door de server);
+   5. account opnieuw bevriezen;
+   6. memo: "Marketing Scan Ronde 1: 200 MSCAN voor 1,00 tEUR".
+3. Server is betaler van de kosten en ondertekent gedeeltelijk. De koper ziet in de eigen wallet exact wat er gebeurt en ondertekent.
+4. De site verstuurt en wacht op bevestiging (zonder websockets).
+
+Gevolgen: de koper betaalt enkel bij ontvangst van de aandelen; de koper heeft geen SOL nodig; een gewijzigde transactie is ongeldig, want de serverhandtekening klopt dan niet meer (getest).
+
+---
+
+## 4. Einde van een ronde
+
+| Situatie | Script | Wat het doet |
 |---|---|---|
-| `Offering` | `["offering", share_mint]` | `admin` (Squads-vault), `kyc_authority`, `share_mint`, `payment_mint` (EURC), `treasury`, `founder_shares` (51.000.000), `max_investor_shares` (49.000.000), `shares_issued`, `shares_reserved`, `phase_count`, `valuation_count`, `minting_closed` |
-| `Phase` | `["phase", offering, id]` | `price_per_share`, `min_purchase_amount`, `shares_for_sale` (hard cap), `soft_cap_shares`, `max_amount_per_person`, `start_ts`, `end_ts`, `cooling_off_secs`, `issuance_deadline_ts`, `shares_subscribed`, `amount_escrowed`, `status`, `terms_hash`, `deed_hash` |
-| `Identity` | `["identity", offering, identity_hash]` | `wallet`: maakt "1 persoon = 1 wallet" afdwingbaar |
-| `Investor` | `["investor", offering, wallet]` | `identity_hash`, `kyc_expires_ts`, `country`, `status` |
-| `Subscription` | `["subscription", phase, wallet]` | `shares`, `amount_paid`, `created_ts`, `status` (Active, Cancelled, Refunded, Claimed) |
-| `Valuation` | `["valuation", offering, seq]` | `price_per_share`, `report_hash`, `effective_date`, `published_ts` |
-| Escrow-vault | `["vault", phase]` | Token-account van `payment_mint`, authority = PDA |
+| Minimumdoel gehaald | `vrijgeven.mjs --naar <treasury>` | escrow naar de treasury (weigert zolang het doel niet gehaald is) |
+| Minimumdoel niet gehaald | `terugbetalen.mjs --uitvoeren` | per koper: volledige inleg terug en aandelen terug naar de kluis, met memo |
 
-Bedragen in basiseenheden van EURC (6 decimalen): €1 = `1_000_000`, €0,01 per aandeel = `10_000`. Alle rekenwerk met `checked_*`.
+Beide scripts tonen eerst een droogtest. Elke stap is een publieke transactie.
 
-`identity_hash` = HMAC-SHA256 met een geheime sleutel over de KYC-referentie. Een gewone hash van een rijksregisternummer is te raden (weinig mogelijke waarden); met een geheime sleutel niet. On-chain staan geen persoonsgegevens.
+---
 
-### 4.2 Instructies
+## 5. De website
 
-| Instructie | Wie tekent | Regels |
+- **Inloggen:** Wallet Standard via `@solana/wallet-adapter-react` (Phantom, Solflare, Backpack, ...), met een eigen Nederlandstalig venster. Op gsm: knop om de site in de Phantom- of Solflare-app te openen. Op testnet uitleg om de wallet op Devnet te zetten.
+- **Live gegevens:** `web/src/lib/chain.ts` leest token, kluizen, escrow, aantal investeerders (`getProgramAccounts` met filter op de token) en aankopen (geschiedenis van escrow of aandelenaccount). Ververst elke 15 tot 30 seconden zolang de pagina zichtbaar is.
+- **Waarde:** aantal aandelen × prijs van de laatste gestarte ronde, met bron en de vermelding dat het geen verkoopprijs is.
+- **Netwerk:** `VITE_SOLANA_NETWORK` (standaard `devnet`), optioneel `VITE_SOLANA_RPC_URL`. Zonder deployment toont de site nette "nog niet geactiveerd"-meldingen.
+
+---
+
+## 6. Testen
+
+| Soort | Commando | Wat |
 |---|---|---|
-| `initialize_offering` | admin | `shares_issued` = huidige supply uit Fase 1; mint en freeze authority daarna door de multisig overgedragen aan de PDA |
-| `create_phase` | admin | prijs > 0; soft cap ≤ hard cap; `start < end`; `shares_issued + shares_reserved + hard cap ≤ 49.000.000`; geen overlappende fase; `minting_closed == false` |
-| `register_investor` | kyc_authority **en** de investeerderswallet | maakt `Identity` + `Investor`; de wallet tekent mee, zodat de KYC-sleutel geen vreemde wallets kan koppelen |
-| `revoke_investor` / `update_kyc` | kyc_authority of admin | bv. bij verlopen KYC of sancties |
-| `subscribe(shares)` | investeerder | KYC geldig; `start ≤ nu < end`; `shares x prijs ≥ min_purchase_amount`; `≤ max_amount_per_person`; hard cap niet overschreden; één inschrijving per fase; EURC naar de vault |
-| `cancel_subscription` | investeerder | binnen `cooling_off_secs` na `created_ts` en fase nog niet afgesloten; volledige terugbetaling |
-| `finalize_phase` | iedereen | pas na `end_ts + cooling_off_secs`; `shares_subscribed ≥ soft_cap_shares` ? `Succeeded` : `Failed` |
-| `claim_refund` | iedereen (geld gaat altijd naar de inschrijver) | fase `Failed` |
-| `confirm_issuance(deed_hash)` | admin | fase `Succeeded` en `nu ≤ issuance_deadline_ts`; escrow naar treasury; `shares_reserved` wordt `shares_issued` |
-| `expire_issuance` | iedereen | `Succeeded` maar geen akte voor de deadline: fase wordt `Failed`, iedereen kan terugclaimen. **Geld kan nooit eeuwig vastzitten.** |
-| `claim_shares` | iedereen (tokens gaan altijd naar de inschrijver) | fase `Issued`; CPI: `thaw`, `mint_to`, `freeze` |
-| `publish_valuation` | admin | legt prijs per aandeel en rapporthash vast |
-| `admin_set_frozen(account, reason_hash)` | admin | voor overdracht en herstel; altijd met event |
-| `close_minting` | admin | geen fase open; mint authority wordt `None`; onomkeerbaar |
-| `propose_admin` / `accept_admin` | admin / nieuwe admin | wissel in twee stappen |
+| Unit en API | `npm test` | rekenregels, API-validatie, X-compliance, wachtlijst (77 tests) |
+| Keten | `SOLANA_E2E_DEPLOYMENT=… SOLANA_E2E_AUTHORITY=… node --test test/solana-e2e.test.js` | 7 tests op een echte (lokale) Solana-keten |
+| Browser | `node scripts/e2e/ui-koop.mjs` | inloggen met testwallet, testgeld, aankoop, portefeuille, schermafbeeldingen |
+| Typecontrole | `npm run typecheck` | TypeScript van de site |
 
-Elke instructie zendt een **event** uit. De indexer maakt daar de publieke transparantiepagina en de reconciliatie mee.
-
-### 4.3 Invarianten (voor tests en audit)
-
-1. `shares_issued + shares_reserved ≤ max_investor_shares` (49.000.000), altijd.
-2. Voor een fase in `Open` of `Succeeded`: saldo van de vault = `amount_escrowed` = som van `amount_paid` van de actieve inschrijvingen.
-3. `share_mint.supply ≤ shares_issued`. Gelijk zodra iedereen geclaimd heeft.
-4. `amount_paid == shares x price_per_share` voor elke inschrijving.
-5. Eén identiteit hoort bij max één wallet, en omgekeerd.
-6. Geld verlaat de vault enkel via (a) `cancel_subscription` naar de inschrijver, (b) `claim_refund` naar de inschrijver, of (c) `confirm_issuance` naar de treasury.
-7. Na `close_minting` is de mint authority `None`.
-
-### 4.4 Open juridische afhankelijkheid
-
-Een inbreng in geld moet bij een uitgifte van aandelen normaal op een bijzondere bankrekening staan vóór de notariële akte. Of en hoe EURC in de escrow daarvoor kan tellen, of eerst omgezet moet worden naar euro, beslist de notaris. Het ontwerp hierboven laat beide toe, maar **EURC wordt pas geactiveerd na schriftelijk akkoord van de notaris en de advocaat.**
+Lokale keten: `solana-test-validator`, dan `node scripts/solana/setup.mjs --network localnet` en eventueel `demo-aankopen.mjs`.
 
 ---
 
-## 5. Off-chain
+## 7. Op het testnet zetten (devnet)
 
-- **Portaal en transparantiepagina:** web (bv. Next.js), Solana wallet-standard (Phantom, Solflare, Backpack) en een e-mailwallet voor wie geen crypto heeft. Inloggen via Sign-In With Solana.
-- **Backend:** KYC-webhooks, inschrijvingen, bankreconciliatie (gestructureerde mededeling), export naar het aandelenregister, e-mails, tax-shelterattesten.
-- **Indexer:** leest token- en programma-events en publiceert een openbare JSON-API plus een dagelijks reconciliatierapport (register versus on-chain), waarvan de hash on-chain of publiek gepubliceerd wordt.
-- **Data:** persoonsgegevens enkel off-chain, in de EU, met een DPIA (GDPR).
-
----
-
-## 6. Beveiliging
-
-- Multisig-leden op **hardwarewallets**. 2 van 3 (later 3 van 5), met een onafhankelijke medeondertekenaar.
-- `kyc_authority` is een beperkte sleutel: kan enkel investeerders registreren of intrekken, nooit geld of tokens bewegen.
-- Upgrade authority van het programma = multisig met een **tijdsslot** (aankondiging minstens 7 dagen vooraf). Na Fase 3: onveranderbaar.
-- **Externe audit** met publiek rapport, plus een bug bounty.
-- **Verified build:** iedereen kan nagaan dat de code on-chain identiek is aan de broncode op GitHub.
-- **Monitoring:** alarm bij elke uitgaande transactie uit een vault, elke wijziging van een authority en elke inzet van de permanent delegate.
+1. Stuur 2 tot 5 devnet-SOL naar de serversleutel (via https://faucet.solana.com).
+2. `node scripts/solana/setup.mjs --network devnet` → schrijft `shared/deployments/devnet.json` (committen).
+3. Optioneel: `node scripts/solana/demo-aankopen.mjs --network devnet`.
+4. Vercel: omgevingsvariabelen `SOLANA_NETWORK=devnet`, `SALE_AUTHORITY_SECRET=<inhoud van .keys/devnet/authority.json>`, en voor de wachtlijst `SUPABASE_URL` en `SUPABASE_SECRET_KEY`.
 
 ---
 
-## 7. Bouwvolgorde
+## 8. Naar mainnet (pas na juridisch groen licht)
 
-| Sprint | Inhoud | Resultaat |
-|---|---|---|
-| 1 | Token aanmaken met alle extensies (script), Squads op devnet, uitgifte-batchscript | MSCAN-B op devnet in een testwallet |
-| 2 | Portaal: wallet koppelen, saldo, percentage, indicatieve waarde, documenten; publieke transparantiepagina | Klikbare versie op devnet |
-| 3 | KYC-sandbox, inschrijfflow, bankreconciliatie (test), registerexport | Volledige droogloop met testgebruikers |
-| Juridisch groen licht | Mainnet Fase 1 | Eerste echte inschrijvingen |
-| Voorbereiding Fase 2 | Escrow-programma (Anchor) + tests (LiteSVM) + audit + verified build | Klaar voor EURC |
-
-Voorgestelde mappenstructuur:
-
-```
-docs/                  plan en ontwerp
-app/                   portaal + transparantiepagina
-scripts/               token aanmaken, uitgifte-batches, reconciliatie
-programs/msc-offering/ escrow-programma (vanaf Fase 2)
-tests/
-```
+- Betaalmunt EURC in plaats van tEUR (`paymentMint` in de deployment), testgeld uit.
+- Treasury als Squads-multisig (2 van 3, met een onafhankelijke derde).
+- Verkoop via een geaudit escrow-programma, zodat terugbetalen bij een gemist minimumdoel niet van één serversleutel afhangt.
+- KYC vóór de aankoop (bv. itsme), met de limiet per geverifieerde persoon.
+- Eigen RPC-provider (bv. Helius) en een snelheidslimiet op de API.
+- Externe audit, verified build, monitoring op elke uitgaande transactie.

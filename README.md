@@ -1,35 +1,41 @@
-# Marketingscan.be crowdfunding
+# Marketing Scan: community-ronde
 
-Transparant investeren in Marketingscan.be vanaf €1, met je aandelen als token in je eigen Solana-wallet.
+Word mede-eigenaar van Marketing Scan vanaf €1. Je aandelen staan als token in je eigen Solana-wallet, en elke euro is live te volgen op de blockchain.
 
-Status: **concept**. Er wordt geen geld opgehaald en er staat niets op mainnet voor er juridisch groen licht is.
+Status: **werkende demo op het Solana-testnet.** Er wordt geen echt geld opgehaald voor er een vennootschap en juridisch groen licht is.
+
+## Wat het doet
+
+- **Twee rondes:** 9% voor max €45.000 (€0,005 per aandeel), daarna 40% voor €500.000. De oprichter houdt 51%, vergrendeld in de oprichterswallet.
+- **Inloggen met je wallet** (Phantom, Solflare, Backpack) en live je aandelen, je percentage, je waarde en je aankopen zien.
+- **Investeren vanaf €1:** betaling en aandelen in één transactie, geld in een publieke escrow, iedereen terugbetaald als het minimumdoel niet gehaald wordt.
+- **Transparantiepagina** die live controleert: vaste voorraad, ingetrokken muntrecht, vergrendelde oprichter, kluis, escrow en alle aankopen.
+- **Automatische promotie via X** met ingebouwde FSMA-controles.
 
 ## Documenten
 
-- [docs/plan.md](docs/plan.md): het plan (juridisch kader, structuur, fases, waarde, geldstroom, anti-scamgaranties, kosten, open beslissingen)
-- [docs/technisch-ontwerp.md](docs/technisch-ontwerp.md): token, multisig, escrow-programma, invarianten, beveiliging en bouwvolgorde
-- [docs/x-promotie.md](docs/x-promotie.md): automatische promotie via X en de campagnesite (installatie, gebruik, noodstop)
+- [docs/plan.md](docs/plan.md): rondes, juridisch kader, BV-advies, uitbetalen in crypto, risico's, volgende stappen
+- [docs/technisch-ontwerp.md](docs/technisch-ontwerp.md): token, sleutels, atomaire aankoop, terugbetalen, testen, naar devnet en mainnet
+- [docs/x-promotie.md](docs/x-promotie.md): automatische X-posts, goedkeuring, noodstop, de website
 
-## Wat er in de repo zit
+## Mappen
 
 | Map | Inhoud |
 |---|---|
-| `site/` | Campagnesite in de huisstijl van Marketing Scan, met wachtlijst (nog geen aanbod) |
-| `api/` | Wachtlijst-API (Vercel Function, opslag in Supabase) |
-| `supabase/` | Databasetabel voor de wachtlijst |
-| `marketing/x/` | Contentkalender, compliance-controle en automatisch posten op X |
-| `.github/workflows/` | Controle bij elke push, automatisch posten, goedkeuren vanuit GitHub |
+| `web/` | de website (React, Vite, TypeScript) |
+| `api/` | serverfuncties: aankoop voorbereiden, testgeld, wachtlijst |
+| `server/` | aankoop-, testgeld- en geschiedenislogica |
+| `shared/` | aanbieding (`aanbod.json`), rekenregels, bedrijfsgegevens, adressen per netwerk |
+| `scripts/solana/` | opzetten, demo-aankopen, terugbetalen, vrijgeven |
+| `marketing/x/` | contentkalender en automatisch posten op X |
+| `test/`, `marketing/x/test/` | automatische tests |
 
 ## Lokaal
 
 ```bash
 npm ci
-npm test            # alle tests
-npm run x:lint      # kalender controleren
-npm run x:plan      # planning en kostenraming
-npm run site:check  # openstaande invulvelden op de site
+npm test              # alle tests
+npm run typecheck     # TypeScript van de site
+npm run dev           # site op http://localhost:5173 (met /api)
+npm run x:lint        # X-kalender controleren
 ```
-
-## In één zin
-
-Max 49% van Marketingscan in drie fases, 1 token = 1 aandeel, het geld nooit naar een persoonlijke wallet, automatisch terug als een fase haar minimumdoel niet haalt, en alles publiek controleerbaar on-chain.

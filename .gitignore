@@ -4,3 +4,7 @@ node_modules/
 .env.*
 *.log
 .DS_Store
+# Geheime sleutels (nooit committen) en lokale bouwresultaten
+.keys/
+web/dist/
+shared/deployments/localnet.json

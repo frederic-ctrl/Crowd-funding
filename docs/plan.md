@@ -1,316 +1,174 @@
-# Marketingscan.be: transparante crowdfunding vanaf €1 op Solana
+# Marketing Scan: community-ronde op Solana
 
-Status: concept ter bespreking, oktober 2026.
-Dit is geen juridisch of fiscaal advies. Alles wat juridisch of fiscaal is, laat je bevestigen door een advocaat (financieel recht en vennootschapsrecht) en door je boekhouder.
+Status: werkende demo op het testnet, oktober 2026. Er wordt nog geen echt geld opgehaald.
+Dit is geen juridisch of fiscaal advies. Laat alles wat juridisch of fiscaal is bevestigen door een advocaat (financieel recht en vennootschapsrecht) en je boekhouder.
 
 ---
 
 ## In het kort
 
-- Je verkoopt in drie fases samen **maximaal 49%** van Marketingscan aan het publiek. Instappen kan **vanaf €1**.
-- Elke investeerder krijgt **per aandeel één token** (Solana, Token-2022) in zijn **eigen wallet**. Na de volledige ronde is 1 token = 1 aandeel = 1/100.000.000 van Marketingscan.
-- In de wallet zie je hoeveel aandelen je hebt. In het **investeerdersportaal** zie je je percentage en wat dat waard is volgens de **laatste onafhankelijke waardering**, niet volgens een speculatieve koers.
-- Het geld gaat **nooit naar een persoonlijke wallet**. In Fase 1 gaat het naar een geblokkeerde bankrekening van de BV. Vanaf Fase 2 kan er ook betaald worden in EURC via een **on-chain escrow** die automatisch terugbetaalt als het minimumdoel niet gehaald wordt.
-- **Fase 1 kan zonder prospectus en zonder informatienota** via de Belgische de-minimisregel (max €500.000 over 12 maanden en max €5.000 per persoon). Fase 2 en 3 met een informatienota bij de FSMA.
-- De tokens zijn in het begin **niet vrij verhandelbaar** (geen DEX-notering, geen hype). Dat is bewust: zo blijft het officiële aandelenregister kloppen en lijkt het niet op een crypto-scheme.
+- **Twee rondes, samen maximaal 49%.** Ronde 1: 9% voor maximaal €45.000. Ronde 2: 40% voor €500.000. De oprichter houdt 51%.
+- **Vanaf €1.** In ronde 1 kost een aandeel €0,005: voor €1 krijg je 200 aandelen.
+- **Je aandelen staan in je eigen wallet** als Solana-token (Token-2022). Er bestaan er exact 100.000.000, en dat is op de blockchain vastgelegd: niemand kan er nog bij maken.
+- **Inloggen met je wallet en je waarde zien.** In de portefeuille zie je je aantal aandelen, je percentage, de waarde volgens de laatste rondeprijs en al je aankopen, live van de blockchain.
+- **Betalen en ontvangen in één transactie.** Lukt één deel niet, dan gebeurt er niets. Het geld gaat naar een escrow die iedereen kan bekijken, niet naar een persoon.
+- **Minimumdoel niet gehaald? Iedereen krijgt alles terug.** Daar is een script voor, en elke terugbetaling is publiek.
+- **Jouw wallet** (`JPmY…8T6`) krijgt de 51% van de oprichter, vergrendeld. Zo is je wallet zichtbaar gekoppeld aan het bedrijf.
 
 ---
 
-## 1. Eerst de realiteit: dit is een aanbieding van beleggingsinstrumenten
+## 1. Waar je vandaag staat, eerlijk
 
-Je biedt aandelen (of certificaten van aandelen) van een vennootschap aan het publiek aan. Of je dat met een token doet of met een papieren bewijs, maakt juridisch niets uit: het blijven **beleggingsinstrumenten**. Concreet:
+- Marketing Scan is nog **geen vennootschap**. Er is niets officieel.
+- Het product werkt: een gratis scan, Semrush-achtige analyse, **10 wekelijkse gebruikers**, nog geen betalende klanten.
+- Je wil alles **crypto-first** opstarten, en later ook **uitbetalen in crypto**.
 
-- **MiCA** (de Europese crypto-verordening) is hier net *niet* van toepassing, want die geldt niet voor tokens die aandelen vertegenwoordigen.
-- **Wel van toepassing:** de Prospectuswet (wet van 11 juli 2018), het Wetboek van vennootschappen en verenigingen (WVV), de antiwitwasregels, de GDPR en de FSMA-regels voor reclame.
-- **Toezichthouder:** de FSMA.
+### Mijn advies: richt eerst een BV op, en doe al de rest in crypto
 
-Welke documenten je nodig hebt, hangt af van het totaalbedrag over 12 maanden (alle aanbiedingen samen opgeteld):
+Crypto-first en een BV gaan perfect samen: de BV is de juridische schil, de blockchain is de motor. Zonder vennootschap loop je drie grote risico's:
 
-| Totaal over 12 maanden | Wat je nodig hebt |
-|---|---|
-| Max €500.000 **en** max €5.000 per belegger | **De minimis-vrijstelling:** geen prospectus, geen informatienota, geen neerlegging bij de FSMA. Alle documenten moeten wel het totaalbedrag en het maximum per belegger vermelden. |
-| Tot €12.000.000 | **Informatienota:** max 15 A4-pagina's volgens een vast model (KB van 23 september 2018), uiterlijk bij de start neerleggen bij de FSMA en op je website publiceren. De FSMA keurt niet vooraf goed, maar controleert achteraf en kan sanctioneren. |
-| Meer dan €12.000.000 | Prospectus, goedgekeurd door de FSMA. Niet relevant voor jullie. |
+1. **Er is niets om een deel van te kopen.** "10% van Marketing Scan" moet ergens juridisch van zijn. Zonder BV koopt een investeerder hoogstens een belofte van jou persoonlijk.
+2. **Je bent persoonlijk aansprakelijk**, met je eigen vermogen.
+3. **Belastingen.** Geld dat je als privépersoon ophaalt, kan als inkomen belast worden, mogelijk tegen het hoogste tarief. In een BV is het een inbreng in het bedrijf.
 
-Let op:
+Daarnaast blijft het een aanbieding van beleggingsinstrumenten: of je in euro of in crypto werkt, de FSMA-regels gelden (zie 6). Een buitenlandse crypto-constructie (DAO, stichting in het buitenland) verandert dat niet als je Belgen aanspreekt, en kost meer vertrouwen dan ze oplevert.
 
-- De drempel van €12 miljoen geldt sinds 5 juni 2026 (EU Listing Act; vroeger was het €5 miljoen). Laat je advocaat bevestigen dat de de-minimisregel ongewijzigd blijft gelden.
-- Een aanbieding aan "minder dan 150 personen" is ook vrijgesteld, maar dat past niet bij een publieke €1-campagne.
-- **Reclame** (posts, ads, video's, mails, deze landingspagina) moet correct, evenwichtig en niet-misleidend zijn en de risico's vermelden. Geen rendementsbeloftes.
-- **Andere landen** (Nederland, Frankrijk, ...) hebben eigen regels. Start met België.
-- De FSMA heeft samen met de Nationale Bank een **Fintech-contactpunt**. Leg het project daar vooraf voor: dat is gratis, en het is het sterkste signaal dat je het correct wil doen.
-
-Wie dit zonder de juiste structuur lanceert, riskeert sancties en een publieke FSMA-waarschuwing. Dat is precies het scam-imago dat je wil vermijden.
+Een BV oprichten kost ongeveer €1.000 tot €2.000 bij de notaris en vraagt een financieel plan. Er is geen minimumkapitaal meer. Dat is klein tegenover een ronde van €45.000, en het is het sterkste vertrouwenssignaal dat je kan geven.
 
 ---
 
-## 2. Wat koopt de investeerder precies?
+## 2. De rondes
 
-### 2.1 Voorwaarde: Marketingscan als aparte BV
+| | Oprichter | Ronde 1 · Community | Ronde 2 · Groei |
+|---|---|---|---|
+| Deel van het bedrijf | 51% | 9% | 40% |
+| Aandelen | 51.000.000 | 9.000.000 | 40.000.000 |
+| Prijs per aandeel | - | €0,005 | €0,0125 |
+| Op te halen (max) | - | €45.000 | €500.000 |
+| Waardering van het hele bedrijf | - | €500.000 | €1.250.000 |
+| Voor €1 krijg je | - | 200 aandelen | 80 aandelen |
+| Minimumdoel | - | €5.000 | nog te bepalen |
+| Max per persoon | - | €5.000 | €5.000 (of geen, zie 6) |
+| Status | vergrendeld | open op testnet | gepland |
 
-Investeerders moeten exact weten waar ze 49% van kopen. Dus:
+Alle cijfers staan in één bestand: `shared/aanbod.json`. Wil je ronde 1 op €40.000 voor 9% (zoals je ook noemde), dan wordt de prijs €0,00444 per aandeel. Mijn voorstel blijft €45.000: dezelfde waardering als 10% voor €50.000, en een ronde prijs per aandeel.
 
-- **Marketingscan BV** met een eigen ondernemingsnummer en een eigen bankrekening.
-- De **software, merknaam, domeinnaam, klantcontracten en data** zitten in die BV (niet in Vicar Agency en niet op persoonlijke naam).
-- Afspraken tussen Marketingscan en Vicar Agency (diensten, lonen, gedeelde mensen) staan op papier, zijn marktconform en worden publiek gemeld als belangenconflict.
+**Over de waardering:** €500.000 voor een product met 10 wekelijkse gebruikers en nog geen omzet is ambitieus. Investeerders, en de FSMA, letten op een evenwichtige voorstelling. Laat de waardering onafhankelijk bevestigen, en toon je cijfers eerlijk (de site doet dat al: "We zijn vroeg. Daarom is de instap laag, en het risico hoog.").
 
-Als Marketingscan vandaag nog onder Vicar Agency of op persoonlijke naam zit, is dit stap één. Bonus: een jonge BV (max 4 jaar) maakt de tax shelter mogelijk (zie 2.3).
-
-### 2.2 Twee mogelijke structuren
-
-**Optie A: rechtstreekse aandelen (mijn voorkeur, als de advocaat ze werkbaar vindt)**
-
-- Marketingscan BV krijgt twee soorten aandelen:
-  - **A-aandelen** voor de oprichters: 51%.
-  - **B-aandelen** voor investeerders: max 49%, met **dezelfde rechten op winst en verkoopopbrengst** als A, maar beperkt stemrecht (exacte afspraken in de statuten).
-- De token is de **digitale weergave** van je B-aandelen. Het officiële, elektronische aandelenregister blijft de juridische bron en wordt automatisch gesynchroniseerd met de blockchain.
-- Voordelen: je bent echt aandeelhouder (sterkste positie, meeste vertrouwen), de **tax shelter** is mogelijk, en VVPR-bis (lagere belasting op dividend) ook.
-- Nadelen: veel aandeelhouders in het register, oproepingen voor de algemene vergadering (kan elektronisch), en elke overdracht moet in het register.
-
-**Optie B: certificaten via een stichting**
-
-- Een stichting (administratiekantoor) houdt de 49% aandelen en geeft certificaten uit. Elk certificaat is een token met dezelfde economische rechten.
-- Voordelen: maar één extra aandeelhouder in de BV, schaalt beter voor duizenden kleine tickets, later eenvoudiger voor professionele investeerders.
-- Nadelen: de tax shelter is dan waarschijnlijk niet mogelijk (die vraagt rechtstreekse aandelen of een erkend platform), er komt een extra entiteit bij met een eigen bestuur (met een onafhankelijke bestuurder) en eigen kosten, en investeerders moeten de stichting vertrouwen.
-
-**Waarom ik Optie A verkies:** "echte aandeelhouder" is het sterkste anti-scamsignaal, en een belastingvermindering van 30% tot 45% is het sterkste verkoopargument dat je hebt. Optie B is het vangnet als de advocaat het register met duizenden aandeelhouders onwerkbaar vindt.
-
-### 2.3 Fiscaal (laten checken door je boekhouder)
-
-- **Tax shelter voor startende ondernemingen:** particuliere investeerders krijgen 45% (microvennootschap) of 30% (kleine vennootschap) belastingvermindering op nieuwe aandelen in een vennootschap van max 4 jaar oud. Voorwaarden: aandelen min. 4 jaar houden, max €100.000 per investeerder per jaar, en de vennootschap kan via deze maatregel in totaal max €500.000 ophalen. De voorwaarden zijn strikt (o.a. inbreng in geld): laat ze per fase controleren.
-- **Dividend:** standaard 30% roerende voorheffing. VVPR-bis kan dat verlagen voor nieuwe aandelen in kmo's.
-- **Betalen in EURC (stablecoin):** dat telt mogelijk niet als "inbreng in geld" en kan de tax shelter en de gewone uitgifteprocedure in de weg staan. Daarom start Fase 1 in euro. Laat de notaris dit bevestigen voor je EURC toelaat.
+**Ronde 2** start pas als de mijlpalen van ronde 1 gehaald zijn (voorstel: betalende klanten, terugkerende omzet en de eerste nieuwe modules live), publiek gerapporteerd.
 
 ---
 
-## 3. De token: jouw mini-deel in je wallet
+## 3. De token: je aandelen in je wallet
 
-### 3.1 De rekensom
-
-- De oprichters houden **51.000.000 A-aandelen** (na een aandelensplitsing; in een BV mag dat).
-- Over drie fases worden **max 49.000.000 B-aandelen** uitgegeven. 1 B-aandeel = 1 token.
-- Na alle fases zijn er **100.000.000 aandelen**. Eén token is dan 0,000001% van Marketingscan.
-- Voorbeeld: €1 in Fase 1 aan €0,01 per aandeel = **100 tokens** = 0,0001% van Marketingscan na de volledige ronde.
-
-Je percentage daalt licht bij elke nieuwe fase (verwatering), maar dat is vooraf vastgelegd: **je eindpercentage na alle fases ken je vanaf dag één.**
-
-### 3.2 Technische keuzes (voor wie meeleest)
-
-- Standaard: **Solana Token-2022** (SPL Token Extensions), **0 decimalen** (enkel hele aandelen).
-- **Metadata:** naam "Marketingscan B-aandeel", symbool bv. `MSCAN-B`, logo en een link naar de documenten. Wallets tonen het netjes.
-- **Standaard bevroren:** de tokens staan in jouw wallet en niemand anders heeft je sleutels, maar ze zijn niet vrij overdraagbaar. Een overdracht verloopt via een gecontroleerde procedure, zodat het officiële register meevolgt.
-- **Harde limiet:** er kunnen nooit meer dan 49.000.000 B-tokens bestaan. Na de laatste fase wordt het recht om tokens bij te maken **definitief verwijderd**. Iedereen kan dat on-chain nakijken.
-- **Herstelrecht (permanent delegate)** bij de multisig: om tokens te verplaatsen bij een verloren wallet, een erfenis of een rechterlijke beslissing. Elke inzet wordt publiek gemeld met de reden. In crypto klinkt dat eng, maar bij aandelen is het nodig: het register is de wet, niet de wallet. Het is ook goed nieuws voor investeerders: **een verloren wallet betekent geen verloren aandeel.**
-- **Optioneel:** de 51% A-aandelen ook als (bevroren) token in de wallet van de oprichters. Dan staat de volledige verdeling 51/49 publiek on-chain, en is "jouw Solana-wallet" zichtbaar gekoppeld aan het bedrijf.
-
-### 3.3 Wat je in Phantom of Solflare ziet
-
-"100 MSCAN-B" met het logo. **Geen eurokoers**, omdat er bewust geen beursnotering is. De waarde zie je in het portaal.
+- **Token-2022** (Solana Token Extensions), symbool `MSCAN`, 0 decimalen: 1 token = 1 aandeel.
+- **Vaste voorraad:** 100.000.000. Na het aanmaken is het muntrecht definitief ingetrokken.
+- **Vergrendeld:** aandelen zijn niet vrij overdraagbaar. Zo belanden ze niet op speculatieve markten en blijft het aandelenregister kloppen. Een overdracht kan via een gecontroleerde procedure.
+- **Oprichter:** 51.000.000 aandelen in jouw wallet `JPmYxhBGqt9GMe6kfozUce3EyQRAoQZD1hbLGWJR8T6`, vergrendeld (lock-up).
+- **Reserve ronde 2:** 40.000.000 aandelen achter een aparte, offline sleutel, ook vergrendeld.
+- **Herstelsleutel (offline):** kan aandelen van een verloren wallet na een identiteitscontrole overzetten. Elke inzet is publiek.
+- **In Phantom of Solflare** zie je "Marketing Scan Aandeel" met het logo en het aantal. Geen eurokoers, want er is bewust geen beursnotering.
 
 ---
 
-## 4. De fases
-
-### 4.1 Overzicht (rekenvoorbeeld, de echte prijzen komen uit een onafhankelijke waardering)
-
-| | Fase 0: Fundament | Fase 1: Community | Fase 2: Publiek | Fase 3: Groei |
-|---|---|---|---|---|
-| Doel | Alles juridisch en technisch klaarzetten | Eerste community-investeerders | Opschalen na bewezen mijlpalen | Groei financieren |
-| Te koop | niets | 10.000.000 aandelen (10%) | 15.000.000 (15%) | 24.000.000 (24%) |
-| Prijs per aandeel (vb.) | - | €0,01 | €0,02 | €0,04 |
-| Waardering vóór de ronde (vb.) | - | €510.000 | €1.220.000 | €3.040.000 |
-| Max op te halen (vb.) | - | €100.000 | €300.000 | €960.000 |
-| Wat krijg je voor €1 | - | 100 aandelen | 50 aandelen | 25 aandelen |
-| Juridisch kader | voorbereiden + FSMA-contact | de minimis | informatienota (of de minimis als het totaal over 12 maanden ≤ €500.000 blijft) | informatienota |
-| Betalen in | - | euro | euro + EURC (escrow) | euro + EURC (escrow) |
-| Poort naar volgende fase | alles klaar + audit | mijlpalen M1 + nieuwe waardering | mijlpalen M2 + nieuwe waardering | einde: uitgifte definitief gesloten |
-| Timing (indicatief) | maand 0-3 | maand 3-5 | ca. maand 12-15 | ca. maand 24 |
-
-Totaal in dit voorbeeld: €1.360.000 voor 49%. Het voorbeeld zegt niets over de echte waarde van Marketingscan: dat bepaalt een onafhankelijke waardering.
-
-### 4.2 Spelregels die voor elke fase gelden
-
-- **Looptijd** van max 6 tot 8 weken.
-- **Minimumdoel (soft cap)**, bijvoorbeeld 30% van het maximum. Niet gehaald? Dan krijgt iedereen alles terug en worden er geen aandelen uitgegeven.
-- **Maximum (hard cap).** Vol is vol.
-- **Minimum €1 per persoon**, en in de de-minimisfase **max €5.000 per persoon**. Dat maximum geldt per geverifieerde persoon, niet per wallet.
-- **4 dagen bedenktijd:** kosteloos annuleren (naar het voorbeeld van de Europese crowdfundingregels).
-- **Iedereen in dezelfde fase betaalt dezelfde prijs.** Geen geheime deals, ook niet voor vrienden of familie.
-- **Use of funds:** per fase een gepubliceerd budget (bv. 50% ontwikkeling, 30% marketing, 20% werking), en achteraf begroot versus werkelijk.
-
-### 4.3 Mijlpalen (jij bepaalt ze, voorbeelden)
-
-- **M1 (voor Fase 2):** het betalende platform is live, X betalende klanten, een maandelijks terugkerende omzet (MRR) van €Y, aanwezig in 4 talen.
-- **M2 (voor Fase 3):** MRR van €Z, klantverloop onder een afgesproken percentage, een duidelijk pad naar break-even.
-
-Als een mijlpaal niet gehaald wordt, volgt er geen volgende fase aan een hogere prijs. Een fase aan een lagere prijs kan, maar dan eerlijk gecommuniceerd en met voorrang voor de bestaande investeerders.
-
----
-
-## 5. "Zien wat het waard is"
-
-**In de wallet:** het aantal aandelen (tokens).
-
-**In het investeerdersportaal** (inloggen met je wallet):
-
-- Je aantal aandelen en je **percentage van Marketingscan**, live berekend als jouw tokens gedeeld door het totale aantal aandelen.
-- Je **indicatieve waarde** = jouw aandelen x de meest recente referentieprijs, altijd met **bron en datum** erbij:
-  1. de prijs van de laatste fase, of
-  2. de laatste **onafhankelijke waardering** (jaarlijks, door een bedrijfsrevisor of erkend boekhouder).
-- Een grafiek van de referentieprijs over de tijd. Valt een waardering lager uit, dan toont het portaal dat ook.
-- De bedrijfscijfers per kwartaal (omzet, klanten, kosten, runway) en alle documenten.
-- Een duidelijke vermelding: "indicatieve waarde, geen verkoopprijs. Je kan je volledige inleg verliezen."
-
-**Elke waardering wordt on-chain vastgelegd**, met een hash (vingerafdruk) van het waarderingsrapport. Niemand kan het rapport achteraf ongemerkt aanpassen.
-
-**Waarom geen notering op een DEX (Raydium, Orca, Jupiter):**
-
-- Een handelsplatform voor aandelen uitbaten of faciliteren vraagt een vergunning.
-- Een dunne crypto-markt geeft geen echte waarde weer en trekt speculanten aan (pump-and-dump-imago).
-- Het officiële register zou niet meer kloppen.
-
-**Hoe kan een investeerder later uitstappen?**
-
-1. Bij een verkoop van het bedrijf: dankzij een **meeverkoopsrecht (tag-along)** aan dezelfde prijs als de oprichters.
-2. Via **dividenden**, als er winst is en de algemene vergadering daartoe beslist.
-3. Via een periodiek **inkoopvenster** (bv. jaarlijks), als het bedrijf dat kan betalen.
-4. Via een **onderhandse overdracht** aan een andere geverifieerde investeerder, via het portaal (vanaf Fase 3).
-
----
-
-## 6. Waar staat het geld?
-
-**Jouw Solana-wallet wordt beheerder, niet ontvanger.** Investeerders betalen nooit naar een persoonlijk adres.
+## 4. De geldstroom
 
 ```
-FASE 1 (euro)
-Investeerder --SEPA/Bancontact--> bijzondere bankrekening Marketingscan BV (geblokkeerd)
-     |                                       |
-     |                         minimumdoel gehaald?
-     |                          ja |                 | nee
-     |              notariële akte uitgifte     iedereen terugbetaald
-     |                             |
-     +<-- tokens in eigen wallet --+--> geld vrij voor de BV, uitgaven publiek gerapporteerd
+Investeerder ──(EURC, of tEUR op testnet)──► escrow op de blockchain (publiek zichtbaar)
+     ▲                                              │
+     └──── aandelen uit de verkoopkluis ◄───────────┘   (in dezelfde transactie)
 
-FASE 2+ (ook EURC)
-Investeerder --EURC--> escrow-programma (code, geen persoon)
-                          |
-              minimumdoel gehaald na einddatum?
-               ja |                         | nee
-     akte + aandelen uitgegeven     investeerder haalt zelf zijn EURC terug
-               |                    (zonder iemands toestemming)
-     tokens claimbaar + geld naar treasury (multisig)
+Einde ronde:
+  minimumdoel gehaald     → escrow vrijgegeven aan de treasury   (scripts/solana/vrijgeven.mjs)
+  minimumdoel niet gehaald → iedereen terugbetaald, aandelen terug (scripts/solana/terugbetalen.mjs)
 ```
 
-- **Treasury:** een Squads-multisig (2 van 3 handtekeningen): jij, een medeoprichter of CFO, en een **onafhankelijke derde** (bv. je boekhouder). Elke uitgave is publiek zichtbaar en wordt maandelijks verantwoord tegenover het budget.
-- **Geen SOL als betaalmiddel:** te volatiel, en een inbreng in crypto telt juridisch als inbreng in natura (met een revisorverslag). Euro en eventueel EURC (de euro-stablecoin van Circle, 1:1 inwisselbaar voor euro) zijn eenvoudiger.
+- De investeerder heeft **geen SOL** nodig: de transactiekosten betaalt het platform.
+- **Treasury:** voor de echte ronde een Squads-multisig (2 van 3 handtekeningen), met jouw wallet als een van de ondertekenaars en een onafhankelijke derde. Nooit je persoonlijke wallet.
+- **Betaalmunt:** EURC, de euro-stablecoin van Circle (1:1 inwisselbaar voor euro). Op het testnet: tEUR zonder waarde.
 
 ---
 
-## 7. Anti-scam: de garanties, en hoe iedereen ze kan controleren
+## 5. Uitbetalen in crypto
 
-| # | Garantie | Hoe controleer je het? |
+Als er winst is en de algemene vergadering beslist uit te keren:
+
+1. **Momentopname** van alle tokenhouders op een vaste datum (publiek, met de lijst als bestand).
+2. **Berekening** per houder: aandelen × bedrag per aandeel. Bij een BV wordt de roerende voorheffing (standaard 30%) ingehouden en afgedragen.
+3. **Uitbetaling** in EURC rechtstreeks naar elke wallet, in batches vanuit de treasury-multisig.
+4. **Bewijs:** elke uitbetaling heeft een publieke transactie. In de portefeuille verschijnt ze onder "Uitkeringen".
+
+Voorwaarde: de houders zijn geïdentificeerd (KYC), want uitkeringen en belastingen moeten aan een persoon gekoppeld kunnen worden.
+
+---
+
+## 6. Juridisch kader (België)
+
+| Totaal over 12 maanden | Wat nodig is | Ronde |
 |---|---|---|
-| 1 | Echte BV met naam en gezicht van het team | KBO, jaarrekening bij de Nationale Bank, LinkedIn |
-| 2 | Wettelijk kader gerespecteerd | de-minimisvermelding in elk document; informatienota op de FSMA-website (vanaf Fase 2) |
-| 3 | Geld nooit naar een persoonlijke wallet | bankattest van de bijzondere rekening; escrow-adres on-chain |
-| 4 | Automatisch geld terug als het minimumdoel niet gehaald wordt | escrow-code (open source) en on-chain status per fase |
-| 5 | Max 49%, nooit meer tokens | token-supply en mint-authority on-chain (Solana Explorer, Solscan) |
-| 6 | Treasury met onafhankelijke medeondertekenaar | Squads-adres en ondertekenaars publiek |
-| 7 | Budget per fase en maandelijkse verantwoording | rapporten in het portaal, transacties on-chain |
-| 8 | Onafhankelijke waardering per fase | rapport en hash on-chain |
-| 9 | Open-source code, externe audit, verified build | GitHub, auditrapport, controle dat de on-chain code identiek is aan de broncode |
-| 10 | Code kan niet stiekem gewijzigd worden | upgrade enkel via multisig met aankondiging vooraf, later definitief vergrendeld |
-| 11 | Geen rendementsbeloftes, duidelijke risicowaarschuwing | elke communicatie |
-| 12 | Oprichters gebonden (lock-up van bv. 3 jaar, geen verkoop) | statuten of aandeelhoudersovereenkomst, publiek |
-| 13 | Investeerdersbescherming: voorkeurrecht bij nieuwe uitgiftes, tag-along, informatierecht | statuten en uitgiftevoorwaarden, publiek |
-| 14 | Lonen en vergoedingen van de oprichters publiek | kwartaalrapport |
-| 15 | 1 persoon = 1 identiteit, met een limiet per persoon | KYC (bv. itsme), on-chain enkel een anonieme verificatievlag |
+| Max €500.000 **en** max €5.000 per belegger | De minimis: geen prospectus, geen informatienota. Totaalbedrag en maximum per persoon in elk document vermelden. | Ronde 1 (€45.000) |
+| Tot €12.000.000 | Informatienota (max 15 A4-pagina's), uiterlijk bij de start neergelegd bij de FSMA. | Ronde 2 (€500.000), tenzij ze meer dan 12 maanden na ronde 1 valt én max €5.000 per persoon vraagt |
+| Meer dan €12.000.000 | Prospectus | n.v.t. |
+
+- Ronde 2 brengt het totaal over 12 maanden boven €500.000 (€45.000 + €500.000). Dan is een informatienota nodig, maar mag het maximum per persoon weg.
+- **Tax shelter** (30 tot 45% belastingvermindering voor investeerders) vraagt rechtstreekse nieuwe aandelen in een BV, betaald in geld. Met betaling in crypto is dat waarschijnlijk uitgesloten. Laat je boekhouder dit bekijken.
+- **Reclame** (posts, site, mails) moet evenwichtig zijn en de risico's tonen. Het X-systeem dwingt dat af (zie `docs/x-promotie.md`).
+- **KYC:** voor de echte ronde moet je weten wie je aandeelhouders zijn (bv. via itsme). Dat is ook nodig om de limiet "per persoon" te handhaven en om uit te keren.
+- De FSMA heeft een gratis **FinTech-contactpunt**. Leg het project daar vóór de start voor.
 
 ---
 
-## 8. De €1-instap: kan het, en wat kost het?
+## 7. Wat we bouwen met het geld
 
-**Het kan.** Een Solana-transactie kost een fractie van een eurocent. Maar:
-
-- Een token-account aanmaken kost ongeveer **0,002 SOL** (borg, terugvorderbaar). Laat Marketingscan dat **sponsoren**, zodat €1 echt €1 is.
-- **Identiteitscontrole (KYC)** kost per persoon meestal meer dan €1. Voor Belgen is **itsme** het gebruiksvriendelijkst. Eén keer verifiëren, daarna herbruikbaar voor alle fases.
-- Elke investeerder moet in het register, krijgt documenten en (eventueel) een tax-shelterattest.
-
-**Conclusie:** een investeerder van €1 kost je meer dan hij opbrengt. Zie het als **marketing- en communitybudget**: elke €1-investeerder is een ambassadeur en mogelijk een klant. Reken het bewust in.
-
-**Voor wie geen crypto heeft:** een wallet aanmaken met e-mail (embedded wallet). De investeerder houdt zelf de controle, maar hoeft niets van seed phrases te weten. Wie al Phantom of Solflare heeft, koppelt gewoon die wallet.
-
----
-
-## 9. Technische architectuur (samenvatting)
-
-Details: zie [technisch-ontwerp.md](technisch-ontwerp.md).
-
-- **Fase 1 (lean):** enkel bewezen, geauditeerde bouwstenen. Token-2022 (token), Squads (multisig), betalingen in euro via de bank. **Geen eigen smart contract**, dus geen auditkosten in Fase 1 en minder risico.
-- **Fase 2+:** een eigen **escrow-programma** (Anchor) voor EURC: fases, minimum- en maximumdoel, limiet per persoon, bedenktijd, automatische terugbetaling, uitgifte na de akte, waarderingen on-chain. Open source, extern geaudit, verified build.
-- **Off-chain:** investeerdersportaal en publieke transparantiepagina (web), KYC-koppeling, bankkoppeling (gestructureerde mededeling), synchronisatie met het aandelenregister, rapportering.
-- **Privacy:** persoonsgegevens blijven off-chain (EU-hosting). On-chain staat enkel een anonieme verificatievlag per wallet.
-
----
-
-## 10. Kosten en doorlooptijd (ruwe orde van grootte, vraag offertes)
-
-| Post | Ruwe schatting |
+| Module | Status |
 |---|---|
-| Advocaat (structuur, statuten, uitgiftevoorwaarden, later de informatienota) | €5.000 - €25.000 |
-| Notaris (per uitgifte van aandelen) | €1.000 - €3.000 per fase |
-| Onafhankelijke waardering | €2.000 - €10.000 per keer |
-| Audit van het escrow-programma (pas vanaf Fase 2) | €10.000 - €40.000 |
-| KYC | per verificatie, afhankelijk van de leverancier |
-| Bankkosten, hosting, Solana-kosten | beperkt |
-| Ontwikkeling | eigen team of extern |
+| Marketingscan en SEO-analyse (30+ controlepunten, zichtbaarheid in Google en AI-assistenten) | live |
+| Volledige SEO-suite (zoekwoorden, posities, concurrenten, backlinks) | gepland |
+| E-mailmarketing (nieuwsbrieven, automatische mails) | gepland |
+| Social posting (plannen en publiceren op alle kanalen) | gepland |
 
-**Eerlijk:** een correcte opzet kost al snel enkele tienduizenden euro's vóór je de eerste euro ophaalt. Daarom is Fase 1 lean (geen eigen smart contract) en financier je Fase 0 best zelf.
+Publiceer vóór de start een bestedingsplan per ronde, en rapporteer elk kwartaal begroot versus werkelijk.
 
 ---
 
-## 11. Risico's (eerlijk benoemd)
+## 8. Wat er al werkt
 
-- **Juridisch:** de advocaat of notaris kan bepaalde onderdelen anders zien (bv. EURC, het register). Dat geeft vertraging, geen ramp, zolang je niet te vroeg lanceert.
-- **Waardering:** te hoog voelt als uitbuiting van de community, te laag geeft te veel weg. Laat ze onafhankelijk bepalen.
-- **49% aan het publiek** laat weinig ruimte voor latere professionele investeerders. Denk na of je alle 49% echt wil verkopen. De fases laten toe om vroeger te stoppen.
-- **Administratie** van honderden of duizenden kleine aandeelhouders. Automatiseer van bij de start.
-- **Technisch:** bugs (daarom audit en een lean Fase 1) en sleutelverlies (daarom multisig met hardwarewallets).
-- **Reputatie:** crypto roept bij veel mensen "scam" op. Daarom de garanties uit hoofdstuk 7, en een toon zonder hype.
-- **Ondernemingsrisico:** Marketingscan kan mislukken. Investeerders kunnen dan alles verliezen. Zeg dat overal duidelijk.
-
----
-
-## 12. Beslissingen die ik van je nodig heb
-
-1. **Het wallet-adres** dat je bedoelt (het publieke adres, nooit de seed phrase). Is het een hardwarewallet?
-2. **Is Marketingscan al een aparte BV?** Wie zijn vandaag de aandeelhouders?
-3. **Hoeveel wil je ophalen in Fase 1, en waarvoor** (use of funds)?
-4. **Doelpubliek:** enkel België, of ook Nederland of de rest van de EU?
-5. **Betalen:** enkel euro, of op termijn ook EURC (of USDC)?
-6. **Stemrecht voor investeerders:** geen, beperkt of volwaardig?
-7. **Budget voor Fase 0** (advocaat, notaris, waardering)?
+- **Website** met overzicht, investeren, portefeuille, transparantie en privacy, in de huisstijl van Marketing Scan. Zie `web/`.
+- **Inloggen met je wallet** (Phantom, Solflare, Backpack, ...). Op gsm met een link om de site in de Phantom-app te openen.
+- **Portefeuille:** aantal aandelen, percentage, indicatieve waarde, status, aankopen met link naar de blockchain. Elk adres is ook alleen-lezen te bekijken.
+- **Investeren vanaf €1** met live controle van minimum, maximum per persoon, saldo en beschikbare aandelen.
+- **Transparantiepagina** die live controleert: vaste voorraad, ingetrokken muntrecht, vergrendelde oprichter en reserve, kluis, escrow, laatste aankopen en alle adressen.
+- **Getest:** 84 automatische tests, waarvan 7 op een echte Solana-keten, plus een browsertest die de volledige aankoop doorloopt.
 
 ---
 
-## 13. Volgende stappen (eerste twee weken)
+## 9. Risico's
 
-1. Bovenstaande beslissingen nemen.
-2. Afspraak met een advocaat (financieel recht en vennootschapsrecht) en met je boekhouder (tax shelter, VVPR-bis).
-3. Het FSMA Fintech-contactpunt contacteren met een korte projectbeschrijving.
-4. Parallel kan de technische basis gebouwd worden op **devnet** (testnet, nep-geld): token, investeerdersportaal en transparantiepagina. **Niets op mainnet en geen echt geld voor er juridisch groen licht is.**
+- **Ondernemingsrisico:** zonder betalende klanten kan het mislukken. Investeerders kunnen alles verliezen.
+- **Juridisch:** zonder BV en zonder de juiste documenten mag de echte ronde niet starten.
+- **Waardering:** ambitieus voor de huidige cijfers.
+- **Technisch:** de serversleutel betaalt kosten en beheert de verkoopkluis. Ze kan geen aandelen bijmaken en geen aandelen van investeerders wegnemen, maar ze moet goed beveiligd worden. Voor de echte ronde: een geaudit escrow-programma of een multisig, zodat terugbetalen niet van één sleutel afhangt.
+- **Reputatie:** crypto roept bij veel mensen "scam" op. Daarom de live controles en een toon zonder hype.
+
+---
+
+## 10. Volgende stappen
+
+1. **Testnet online zetten:** test-SOL naar de serversleutel, daarna zet ik de token op devnet en de site op Vercel.
+2. **BV oprichten** (notaris, financieel plan) en de bedrijfsgegevens invullen in `shared/bedrijf.json`.
+3. **Advocaat en boekhouder:** structuur, rechten van tokenhouders, uitkeringen, belastingen, de-minimisdocumenten.
+4. **Onafhankelijke waardering** voor de prijs van ronde 1.
+5. **KYC** kiezen (bv. itsme) en inbouwen.
+6. **Treasury** als Squads-multisig met een onafhankelijke medeondertekenaar.
+7. **Mainnet:** pas na groen licht van de advocaat, met EURC als betaalmunt.
 
 ---
 
 ## Bronnen
 
 - FSMA, [Wanneer een prospectus en wanneer een informatienota?](https://www.fsma.be/nl/faq/1-welke-gevallen-moet-er-een-prospectus-worden-gepubliceerd-en-welke-gevallen-een)
-- FSMA, [Vragen en antwoorden over aanbiedingen aan het publiek van beleggingsinstrumenten](https://www.fsma.be/nl/faq/vragen-en-antwoorden-regels-over-de-aanbiedingen-aan-het-publiek-van-beleggingsinstrumenten)
-- FSMA, [New prospectus threshold for offers of securities to the public](https://www.fsma.be/en/news/new-prospectus-threshold-offers-securities-public) (27/05/2026)
+- FSMA, [Vragen en antwoorden over aanbiedingen aan het publiek](https://www.fsma.be/nl/faq/vragen-en-antwoorden-regels-over-de-aanbiedingen-aan-het-publiek-van-beleggingsinstrumenten)
+- FSMA, [Nieuwe prospectusdrempel](https://www.fsma.be/en/news/new-prospectus-threshold-offers-securities-public) (27/05/2026)
 - FSMA, [FinTech-contactpunt](https://www.fsma.be/en/node/7520)
-- FSMA, [Praktijkgids informatienota (FSMA_2023_10)](https://www.fsma.be/sites/default/files/media/files/2023-05/fsma_2023_10_nl.pdf)
 - VLAIO, [Tax Shelter voor startende ondernemingen](https://www.vlaio.be/nl/subsidies-financiering/subsidiedatabank/tax-shelter-voor-startende-ondernemingen)
-- CMS, [Expert guide to security token offerings: Belgium](https://cms.law/en/int/expert-guides/cms-expert-guide-to-security-token-offerings/belgium)
-- Circle, [EURC launches on Solana](https://circle.com/pressroom/eurc-launches-on-solana)
-- Eurocrowd, [Licensed crowdfunding service providers in the EU](https://eurocrowd.org/platforms-under-ecspr/) (voor het alternatief via een erkend platform)
+- Circle, [EURC op Solana](https://circle.com/pressroom/eurc-launches-on-solana)
