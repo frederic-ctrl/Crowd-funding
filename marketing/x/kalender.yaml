@@ -1,0 +1,118 @@
+# Contentkalender voor X (community-ronde en product).
+#
+# Zo werkt het:
+# - Elke post heeft een id, een moment (met tijdzone), een categorie, een status en de tekst.
+# - Placeholders: {site} = community-site, {scan} = marketingscan.be, {docs} = documenten (pas als het aanbod live is).
+# - Categorieën:
+#     product        over het product. Mag niet over investeren gaan.
+#     ronde          over de community-ronde. Moet "Nog geen aanbod" en "Investeren houdt risico's in" bevatten.
+#     uitleg         hoe de ronde werkt. Moet "Nog geen aanbod" bevatten.
+#     transparantie  stand van zaken en cijfers. Moet "Nog geen aanbod" bevatten.
+#     aanbod         enkel als het aanbod live is (zie config.json).
+# - Status "concept" wordt nooit gepost. Goedkeuren gebeurt via GitHub: Actions > "X: post goedkeuren".
+#   De goedkeuring is gekoppeld aan de exacte tekst: pas je de tekst nadien aan, dan vervalt ze.
+# - Lengte: max 280 tekens, een link telt als 23. Een post met link kost $0.20, zonder link $0.015.
+
+posts:
+  - id: 2026-10-27-gratis-scan
+    moment: 2026-10-27T10:00:00+01:00
+    categorie: product
+    status: concept
+    tekst: |-
+      Hoe zichtbaar is jouw bedrijf écht online? Marketing Scan checkt je website, Google, reviews, social media, tracking, e-mail en beveiliging. Meer dan 30 controlepunten, resultaat in 60 seconden. Gratis, zonder account.
+
+      {scan}
+
+  - id: 2026-10-29-community-ronde
+    moment: 2026-10-29T10:00:00+01:00
+    categorie: ronde
+    status: concept
+    tekst: |-
+      We bouwen Marketing Scan voor kmo's, en we willen het ook samen met hen bouwen. Daarom werken we aan een community-ronde: mede-eigenaar worden vanaf €1, in fases en volledig transparant.
+
+      Nog geen aanbod. Investeren houdt risico's in. Wachtlijst: {site}
+
+  - id: 2026-11-03-geld-geblokkeerd
+    moment: 2026-11-03T10:00:00+01:00
+    categorie: uitleg
+    status: concept
+    tekst: |-
+      Hoe maak je crowdfunding écht transparant? Bij onze community-ronde komt het geld op een geblokkeerde rekening. Haalt een fase haar minimumdoel niet, dan krijgt iedereen alles terug.
+
+      Nog geen aanbod. Meer uitleg volgt.
+
+  - id: 2026-11-05-google-bedrijfsprofiel
+    moment: 2026-11-05T10:00:00+01:00
+    categorie: product
+    status: concept
+    tekst: |-
+      Je Google Bedrijfsprofiel is vaak het eerste wat een klant van je ziet. Kloppen je openingsuren, foto's en reviews? Marketing Scan checkt het mee in je gratis scan.
+
+      {scan}
+
+  - id: 2026-11-10-token-is-aandeel
+    moment: 2026-11-10T10:00:00+01:00
+    categorie: uitleg
+    status: concept
+    tekst: |-
+      1 token = 1 aandeel. Bij onze community-ronde komen je aandelen als token in je eigen Solana-wallet. Er komt geen beursnotering: het officiële aandelenregister blijft juridisch leidend.
+
+      Nog geen aanbod.
+
+  - id: 2026-11-12-ai-zichtbaarheid
+    moment: 2026-11-12T10:00:00+01:00
+    categorie: product
+    status: concept
+    tekst: |-
+      Noemen ChatGPT, Gemini en Perplexity jouw bedrijf als iemand een aanrader zoekt? Marketing Scan checkt ook je zichtbaarheid in AI-assistenten. Gratis, resultaat in 60 seconden.
+
+      {scan}
+
+  - id: 2026-11-17-wallet-kwijt
+    moment: 2026-11-17T10:00:00+01:00
+    categorie: uitleg
+    status: concept
+    tekst: |-
+      Wat als je je wallet verliest? Dan ben je je aandelen niet kwijt. Het aandelenregister is leidend: na een nieuwe identiteitscontrole zetten we je aandelen over naar een nieuwe wallet, publiek gelogd.
+
+      Nog geen aanbod.
+
+  - id: 2026-11-19-correct-voor-snel
+    moment: 2026-11-19T10:00:00+01:00
+    categorie: ronde
+    status: concept
+    tekst: |-
+      Ons plan voor de community-ronde: eerst een onafhankelijke waardering, een advocaat en contact met de FSMA. Pas daarna openen de inschrijvingen. Liever correct dan snel.
+
+      Nog geen aanbod. Investeren houdt risico's in. {site}
+
+  - id: 2026-11-24-snelle-website
+    moment: 2026-11-24T10:00:00+01:00
+    categorie: product
+    status: concept
+    tekst: |-
+      Een trage website kost je klanten nog voor ze zien wat je doet. Marketing Scan meet de snelheid van je site en zegt wat je eerst moet aanpakken. Gratis, resultaat in 60 seconden.
+
+      {scan}
+
+  - id: 2026-11-26-waarom-49-procent
+    moment: 2026-11-26T10:00:00+01:00
+    categorie: uitleg
+    status: concept
+    tekst: |-
+      Waarom maximaal 49%? Zo blijven de oprichters verantwoordelijk voor de richting van het bedrijf, en weet iedereen vooraf hoe de verdeling eruitziet na alle fases: 51% oprichters, max 49% community.
+
+      Nog geen aanbod.
+
+# Sjablonen worden elke week automatisch ingevuld met de cijfers uit data/cijfers.json.
+# Ze posten enkel als die cijfers de voorbije 8 dagen bijgewerkt zijn ("bijgewerkt" in cijfers.json).
+sjablonen:
+  - id: transparantie-wekelijks
+    categorie: transparantie
+    elke: maandag
+    om: "10:00"
+    status: concept
+    tekst: |-
+      Transparantie-update week {week}: {wachtlijst} mensen op de wachtlijst voor onze community-ronde. Juridisch: {juridisch}. Volgende stap: {volgende_stap}.
+
+      Nog geen aanbod.

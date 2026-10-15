@@ -1,0 +1,39 @@
+{
+  "account": "@marketingscan",
+  "timezone": "Europe/Brussels",
+  "paused": false,
+  "offer": {
+    "status": "pre-launch",
+    "legalReviewDone": false,
+    "noticeWhenNotLive": "Nog geen aanbod",
+    "riskShort": "Investeren houdt risico's in",
+    "riskLive": "Je kan je volledige inleg verliezen",
+    "documentsUrl": "",
+    "deMinimisNotice": ""
+  },
+  "links": {
+    "site": "https://community.marketingscan.be",
+    "scan": "https://www.marketingscan.be",
+    "allowedDomains": [
+      "marketingscan.be",
+      "fsma.be",
+      "explorer.solana.com",
+      "solscan.io"
+    ]
+  },
+  "schedule": {
+    "postingWindow": {
+      "from": "08:00",
+      "to": "21:00"
+    },
+    "maxDelayHours": 12,
+    "minGapMinutes": 120,
+    "maxPostsPerRun": 1,
+    "maxPostsPerDay": 2
+  },
+  "pricingUsd": {
+    "post": 0.015,
+    "postWithUrl": 0.2
+  },
+  "maxHashtags": 2
+}

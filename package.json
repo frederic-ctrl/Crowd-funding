@@ -1,0 +1,22 @@
+{
+  "name": "marketingscan-community",
+  "private": true,
+  "type": "module",
+  "description": "Community-ronde van Marketing Scan: campagnesite, wachtlijst en automatische X-promotie met compliance-controles.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "x:lint": "node marketing/x/src/cli.js lint",
+    "x:plan": "node marketing/x/src/cli.js plan",
+    "x:post": "node marketing/x/src/cli.js post",
+    "x:approve": "node marketing/x/src/cli.js approve",
+    "site:check": "node scripts/site-check.mjs",
+    "site:og": "node scripts/og/render.mjs"
+  },
+  "dependencies": {
+    "twitter-api-v2": "1.29.1",
+    "yaml": "2.9.1"
+  }
+}

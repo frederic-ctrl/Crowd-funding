@@ -1,0 +1,65 @@
+name: "X: post goedkeuren"
+
+# Keur een post of sjabloon goed (of trek de goedkeuring in) vanuit GitHub:
+# Actions > "X: post goedkeuren" > Run workflow. Enkel wie schrijfrechten heeft op de repository
+# kan dit starten. De goedkeuring wordt gekoppeld aan de exacte tekst en aan jouw GitHub-naam.
+
+on:
+  workflow_dispatch:
+    inputs:
+      id:
+        description: "Id van de post of het sjabloon (zie marketing/x/kalender.yaml)"
+        required: true
+        type: string
+      actie:
+        description: "Wat wil je doen?"
+        required: true
+        type: choice
+        default: goedkeuren
+        options:
+          - goedkeuren
+          - intrekken
+
+permissions:
+  contents: write
+
+concurrency:
+  group: x-kalender
+  cancel-in-progress: false
+
+jobs:
+  goedkeuren:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Kalender bijwerken
+        env:
+          POST_ID: ${{ inputs.id }}
+          ACTIE: ${{ inputs.actie }}
+          DOOR: ${{ github.actor }}
+        run: |
+          if [ "$ACTIE" = "goedkeuren" ]; then
+            node marketing/x/src/cli.js approve "$POST_ID" --door "$DOOR"
+          else
+            node marketing/x/src/cli.js revoke "$POST_ID"
+          fi
+      - name: Kalender controleren
+        run: npm run x:lint
+      - name: Wijziging bewaren
+        env:
+          POST_ID: ${{ inputs.id }}
+          ACTIE: ${{ inputs.actie }}
+          DOOR: ${{ github.actor }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add marketing/x/kalender.yaml
+          git commit -m "X: $POST_ID $ACTIE door $DOOR"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"

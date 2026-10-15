@@ -1,0 +1,51 @@
+name: "X: automatisch posten"
+
+# Elk uur tussen 07:17 en 22:17 (Brusselse tijd schuift met het zomeruur; het postvenster in
+# marketing/x/config.json beslist). Posten gebeurt enkel als de repository-variabele
+# X_POSTING_ENABLED op "true" staat; anders is het een droogtest. Geplaatste posts worden
+# vastgelegd in marketing/x/state/geplaatst.json.
+
+on:
+  schedule:
+    - cron: "17 6-20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: x-post
+  cancel-in-progress: false
+
+jobs:
+  posten:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Posten wat klaar is
+        run: npm run x:post
+        env:
+          X_POSTING_ENABLED: ${{ vars.X_POSTING_ENABLED }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      - name: Geplaatste posts vastleggen
+        if: always()
+        run: |
+          if [ -n "$(git status --porcelain marketing/x/state)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add marketing/x/state/geplaatst.json
+            git commit -m "X: geplaatste post vastgelegd"
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
