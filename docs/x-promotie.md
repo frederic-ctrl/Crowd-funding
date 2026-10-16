@@ -149,6 +149,8 @@ Er wordt enkel gepost tussen 08:00 en 21:00 (Brusselse tijd), met minstens 2 uur
 
 Elke ochtend om 06:59 (Brussel) start een Claude-routine een nieuwe sessie op deze repository. Die schrijft drie Engelse posts voor die dag (10:00, 15:00 en 20:00), gebruikt een conceptpost die al op die dag staat, vermijdt herhaling met `state/geplaatst.json`, laat `lint` slagen, keurt de posts goed als `claude-routine` en zet ze op `master`. De workflow "X: automatisch posten" plaatst ze daarna op het juiste uur. Posts over Genesis blijven wachten zolang `offer.legalReviewDone` niet `true` is; productposts gaan meteen.
 
+De routine moet kunnen pushen naar deze repository: koppel `frederic-ctrl/Crowd-funding` eenmalig als repository bij de routine (claude.ai > Code > Routines > "Genesis X-posts"). Zonder die koppeling schrijft ze de posts wel, maar weigert GitHub de push en wordt er niets gepost.
+
 De routine stopzetten of aanpassen: claude.ai > Code > Routines, "Genesis X-posts".
 
 ### Noodstop
