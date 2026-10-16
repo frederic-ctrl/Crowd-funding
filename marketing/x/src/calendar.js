@@ -1,5 +1,7 @@
 // De contentkalender (kalender.yaml): inlezen, controleren, sjablonen invullen en goedkeuren.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, statSync } from "node:fs";
+import { dirname, join, extname } from "node:path";
+import { fileURLToPath } from "node:url";
 import YAML from "yaml";
 import { normalize, approvalHash } from "./text.js";
 import { CATEGORIES, checkPost, postLang, defaultLang, DEFAULT_LANG } from "./compliance.js";
@@ -9,11 +11,35 @@ export const STATUSES = ["concept", "goedgekeurd"];
 const WEEKDAYS = ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"];
 const ID_RE = /^[a-z0-9][a-z0-9-]{2,80}$/;
 const MOMENT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)$/;
-const LINK_KEYS = ["site", "scan", "genesis", "transparantie", "voorwaarden"];
+const LINK_KEYS = ["site", "scan", "genesis", "transparantie", "voorwaarden", "steun"];
 // Links naar de community-site krijgen ?lang=<taal van de post>, zodat de site meteen in die taal opent.
 // {scan} (marketingscan.be) heeft per taal een eigen adres (links.scan in config.json, bv. /en voor
 // Engels), zodat de linkvoorvertoning op X in de taal van de post staat.
-const LANG_LINK_KEYS = new Set(["site", "genesis", "transparantie", "voorwaarden"]);
+const LANG_LINK_KEYS = new Set(["site", "genesis", "transparantie", "voorwaarden", "steun"]);
+// Afbeeldingen bij een post: pad ten opzichte van marketing/x (bv. media/steun-1.png). X aanvaardt tot 5 MB.
+const DEFAULT_BASE = fileURLToPath(new URL("..", import.meta.url));
+const IMAGE_TYPES = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp" };
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+/** Het mediatype van een afbeelding, of null als X het niet aanvaardt. */
+export function imageType(path) {
+  return IMAGE_TYPES[extname(String(path)).toLowerCase()] ?? null;
+}
+
+/** Waarop een goedkeuring slaat: de tekst, en de afbeelding als die er is. Een andere afbeelding is een nieuwe post. */
+export function approvalSubject(tekst, afbeelding) {
+  return afbeelding ? `${tekst}\n[afbeelding: ${afbeelding}]` : tekst;
+}
+
+function imageIssue(afbeelding, baseDir) {
+  if (afbeelding === undefined || afbeelding === null) return null;
+  if (typeof afbeelding !== "string" || !afbeelding.trim()) return "Afbeelding: geef een pad zoals media/steun-1.png.";
+  if (!imageType(afbeelding)) return `Afbeelding "${afbeelding}": enkel png, jpg, gif of webp.`;
+  const path = join(baseDir, afbeelding);
+  if (!existsSync(path)) return `Afbeelding "${afbeelding}" bestaat niet in marketing/x.`;
+  if (statSync(path).size > MAX_IMAGE_BYTES) return `Afbeelding "${afbeelding}" is groter dan 5 MB.`;
+  return null;
+}
 // Hoe oud de cijfers voor een sjabloonpost maximaal mogen zijn.
 const MAX_DATA_AGE_DAYS = 8;
 
@@ -60,7 +86,7 @@ export function loadCalendar(path) {
     throw new Error(`kalender.yaml is geen geldige YAML: ${doc.errors[0].message}`);
   }
   const data = doc.toJS() ?? {};
-  return { doc, posts: data.posts ?? [], templates: data.sjablonen ?? [] };
+  return { doc, posts: data.posts ?? [], templates: data.sjablonen ?? [], baseDir: dirname(path) };
 }
 
 export function saveCalendar(path, doc) {
@@ -97,6 +123,7 @@ export function renderText(text, config, vars = {}, lang = defaultLang(config)) 
     scan: localizedLink(config.links?.scan, lang),
     genesis: config.links?.genesis ?? (site ? `${site}/genesis` : ""),
     transparantie: config.links?.transparantie ?? (site ? `${site}/transparantie` : ""),
+    steun: config.links?.steun ?? (site ? `${site}/steun` : ""),
     voorwaarden: config.offer?.voorwaardenUrl ?? "",
   };
   return normalize(
@@ -146,7 +173,7 @@ function approvalIssue(entry, rendered) {
   if (entry.status !== "goedgekeurd") return null;
   const hash = entry.goedkeuring?.hash;
   if (!hash) return "Status is goedgekeurd, maar er is geen goedkeuringshash. Keur goed via de workflow.";
-  if (hash !== approvalHash(rendered)) return "Goedkeuring vervallen: de tekst is gewijzigd na de goedkeuring.";
+  if (hash !== approvalHash(approvalSubject(rendered, entry.afbeelding))) return "Goedkeuring vervallen: de tekst of de afbeelding is gewijzigd na de goedkeuring.";
   return null;
 }
 
@@ -154,7 +181,7 @@ function approvalIssue(entry, rendered) {
  * Controleert de hele kalender. Geeft per post de ingevulde tekst en alle problemen terug.
  * @returns {{ id: string, soort: "post" | "sjabloon", categorie: string, status: string, moment: Date | null, tekst: string, issues: object[] }[]}
  */
-export function reviewCalendar({ posts, templates }, config) {
+export function reviewCalendar({ posts, templates, baseDir = DEFAULT_BASE }, config) {
   const reviewed = [];
   const seenIds = new Set();
   const seenTexts = new Map();
@@ -187,11 +214,24 @@ export function reviewCalendar({ posts, templates }, config) {
     const tekst = renderText(tv.selected, config, {}, tv.lang);
     const approval = approvalIssue(post, tekst);
     if (approval) add("fout", "goedkeuring", approval);
+    const image = imageIssue(post.afbeelding, baseDir);
+    if (image) add("fout", "afbeelding", image);
     const key = tekst.toLowerCase();
     if (tekst && seenTexts.has(key)) add("fout", "dubbel", `Zelfde tekst als "${seenTexts.get(key)}". X weigert dubbele posts.`);
     seenTexts.set(key, post.id);
     issues.push(...checkVariants(post, tv, config));
-    reviewed.push({ id: post.id, soort: "post", categorie: post.categorie, status: post.status, lang: tv.lang, moment, tekst, issues });
+    reviewed.push({
+      id: post.id,
+      soort: "post",
+      categorie: post.categorie,
+      status: post.status,
+      lang: tv.lang,
+      moment,
+      tekst,
+      issues,
+      ...(post.afbeelding ? { afbeelding: join(baseDir, post.afbeelding) } : {}),
+      ...(post.test ? { test: String(post.test), variant: String(post.variant ?? "") } : {}),
+    });
   }
 
   for (const template of templates) {
@@ -308,7 +348,7 @@ function findEntry(doc, id) {
 }
 
 /** Zet een post of sjabloon op goedgekeurd, gekoppeld aan exact deze tekst. */
-export function approve(doc, id, { door, now, config }) {
+export function approve(doc, id, { door, now, config, baseDir = DEFAULT_BASE }) {
   const found = findEntry(doc, id);
   if (!found) throw new Error(`Geen post of sjabloon met id "${id}".`);
   const entry = found.map.toJSON();
@@ -316,12 +356,15 @@ export function approve(doc, id, { door, now, config }) {
   const tekst = renderText(tv.selected, config, {}, tv.lang);
   const errors = checkVariants(entry, tv, config, found.soort === "post" ? undefined : sampleVars).filter((i) => i.niveau === "fout");
   if (tv.perTaal && typeof tv.selected !== "string") errors.unshift({ bericht: missingVariant(tv) });
+  const image = imageIssue(entry.afbeelding, baseDir);
+  if (image) errors.push({ bericht: image });
   if (errors.length > 0) {
     throw new Error(`Kan "${id}" niet goedkeuren:\n- ${errors.map((e) => e.bericht).join("\n- ")}`);
   }
   found.map.set("status", "goedgekeurd");
-  found.map.set("goedkeuring", doc.createNode({ door, op: now.toISOString(), hash: approvalHash(tekst) }));
-  return { id, hash: approvalHash(tekst) };
+  const hash = approvalHash(approvalSubject(tekst, entry.afbeelding));
+  found.map.set("goedkeuring", doc.createNode({ door, op: now.toISOString(), hash }));
+  return { id, hash };
 }
 
 export function revoke(doc, id) {

@@ -1,0 +1,47 @@
+name: "X: resultaten ophalen"
+
+# Elke avond om 23:47 (Brusselse zomertijd) de weergaven en linkklikken van de testposts van de
+# laatste 7 dagen ophalen en vastleggen in marketing/x/state/statistieken.json. Elke gelezen post
+# kost $0.005, daarom enkel testposts (veld "test" in de kalender).
+
+on:
+  schedule:
+    - cron: "47 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: x-post
+  cancel-in-progress: false
+
+jobs:
+  resultaten:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Resultaten ophalen
+        run: node marketing/x/src/cli.js stats
+        env:
+          X_POSTING_ENABLED: ${{ vars.X_POSTING_ENABLED }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+      - name: Vastleggen
+        run: |
+          if [ -n "$(git status --porcelain marketing/x/state)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add marketing/x/state/statistieken.json
+            git commit -m "X: resultaten van de testposts"
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi

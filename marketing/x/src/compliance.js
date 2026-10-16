@@ -6,9 +6,11 @@
 // Dit vervangt geen juridisch nazicht: het vangt de klassieke fouten op voor een mens goedkeurt.
 import { normalize, weightedLength, extractLinks, linkHost, MAX_WEIGHTED_LENGTH } from "./text.js";
 
-export const CATEGORIES = ["product", "genesis", "uitleg", "transparantie", "verkoop"];
-// Categorieën over Genesis: verplichte vermeldingen en wachten op juridisch nazicht.
-export const ABOUT_GENESIS = new Set(["genesis", "uitleg", "transparantie", "verkoop"]);
+export const CATEGORIES = ["product", "genesis", "uitleg", "transparantie", "verkoop", "steun"];
+// Categorieën over Genesis of crypto: verplichte vermeldingen en wachten op juridisch nazicht.
+// "steun" is een oproep tot een gift in crypto via de steunpagina (/steun): geen verkoop, dus in
+// plaats van "Not on sale yet" de vermelding dat het een gift is zonder iets terug.
+export const ABOUT_GENESIS = new Set(["genesis", "uitleg", "transparantie", "verkoop", "steun"]);
 
 // Talen. Een post kiest zijn taal met het veld `lang`, anders geldt `defaultLang` uit config.json.
 export const LANGS = ["en", "nl"];
@@ -17,6 +19,7 @@ export const DEFAULT_LANG = "en";
 // Vaste standaardteksten per taal, zodat een vergeten sleutel in config.json nooit een vermelding uitschakelt.
 export const DEFAULT_REQUIRED = { en: "Not an investment", nl: "Geen investering" };
 export const DEFAULT_NOTICE = { en: "Not on sale yet", nl: "Nog geen verkoop" };
+export const DEFAULT_GIFT = { en: "A gift, nothing in return", nl: "Een gift, zonder iets terug" };
 
 export function defaultLang(config) {
   return config?.defaultLang ?? DEFAULT_LANG;
@@ -35,12 +38,16 @@ function localized(value, lang, defaults) {
   return typeof text === "string" && text.trim() ? text.trim() : defaults[lang];
 }
 
-/** De verplichte vermeldingen in een taal: `required` (altijd) en `notice` (zolang de verkoop niet live is). */
+/**
+ * De verplichte vermeldingen in een taal: `required` (altijd), `notice` (zolang de verkoop niet
+ * live is) en `gift` (in categorie steun, in plaats van `notice`).
+ */
 export function offerTexts(config, lang) {
   const offer = config?.offer ?? {};
   return {
     required: localized(offer.required, lang, DEFAULT_REQUIRED),
     notice: localized(offer.noticeWhenNotLive, lang, DEFAULT_NOTICE),
+    gift: localized(offer.giftNotice, lang, DEFAULT_GIFT),
   };
 }
 
@@ -102,7 +109,7 @@ const BANNED = [
     negatable: true,
   },
   {
-    re: /\brendement\w*|\breturns?\b|\broi\b|\bapy\b|\bapr\b|\byield\w*|\bwinst\w*|\bprofit\w*|\bdividend\w*|\brevenue[- ]?shar\w*|\bstaking\b|\binterest rates?\b|\brente\b/g,
+    re: /\brendement\w*|(?<!\bin )\breturns?\b|\broi\b|\bapy\b|\bapr\b|\byield\w*|\bwinst\w*|\bprofit\w*|\bdividend\w*|\brevenue[- ]?shar\w*|\bstaking\b|\binterest rates?\b|\brente\b/g,
     msg: "Geen rendement, winst of dividend: een pass is een abonnement.",
     negatable: true,
   },
@@ -228,7 +235,8 @@ export function checkPost(post, config) {
     add("fout", "taal", `Onbekende taal "${lang}". Kies uit: ${LANGS.join(", ")} (veld lang, of defaultLang in config.json).`);
   }
   const textLang = LANGS.includes(lang) ? lang : DEFAULT_LANG;
-  const { required, notice } = offerTexts(config, textLang);
+  const { required, notice, gift } = offerTexts(config, textLang);
+  const isGift = post.categorie === "steun";
 
   if (!original) add("fout", "leeg", "De post heeft geen tekst.");
   if (!CATEGORIES.includes(post.categorie)) {
@@ -278,8 +286,15 @@ export function checkPost(post, config) {
     else if (post.categorie !== "verkoop") add("fout", "koopoproep", `"${phrase}": koopoproepen horen in categorie "verkoop".`);
   }
 
+  if (isGift) {
+    if (!includesPhrase(text, gift)) add("fout", "gift-ontbreekt", `Vermeld letterlijk "${gift}" (taal van de post: ${textLang}).`);
+    const site = String(config.links?.site ?? "").replace(/\/+$/, "").toLowerCase();
+    if (site && !text.includes(`${normalize(site).toLowerCase()}/steun`) && !/\blink in (?:bio|profile)\b|\blink in (?:mijn|ons) profiel\b/.test(text)) {
+      add("fout", "steun-link", "Een steunpost linkt naar de steunpagina ({steun}) of verwijst naar de link in het profiel.");
+    }
+  }
   if (!live) {
-    if (needsNotices && !includesPhrase(text, notice)) {
+    if (needsNotices && !isGift && !includesPhrase(text, notice)) {
       add("fout", "vermelding-ontbreekt", `Vermeld letterlijk "${notice}" (taal van de post: ${textLang}).`);
     }
   } else {

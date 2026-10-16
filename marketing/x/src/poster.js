@@ -1,5 +1,9 @@
-// Plaatst posts op X via de officiële API (POST /2/tweets, OAuth 1.0a user context).
+// Plaatst posts op X via de officiële API (POST /2/tweets, OAuth 1.0a user context), met een
+// afbeelding als de post er een heeft (POST /2/media/upload), en leest de resultaten van eigen posts.
+import { readFileSync } from "node:fs";
+import { basename } from "node:path";
 import { approvalHash } from "./text.js";
+import { imageType } from "./calendar.js";
 
 export function createXClient(env = process.env) {
   const { X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET } = env;
@@ -23,10 +27,37 @@ export function createXClient(env = process.env) {
     return clientPromise;
   };
   return {
-    async post(text) {
+    async post(text, { afbeelding } = {}) {
       const api = await client();
-      const { data } = await api.v2.tweet(text);
+      if (!afbeelding) {
+        const { data } = await api.v2.tweet(text);
+        return { id: data.id };
+      }
+      const mediaId = await api.v2.uploadMedia(readFileSync(afbeelding), { media_type: imageType(afbeelding), media_category: "tweet_image" });
+      const { data } = await api.v2.tweet({ text, media: { media_ids: [mediaId] } });
       return { id: data.id };
+    },
+    /** Resultaten van eigen posts: weergaven, reacties, en (tot 30 dagen) klikken op de link en het profiel. */
+    async metrics(ids) {
+      const api = await client();
+      const read = (fields) => api.v2.tweets(ids, { "tweet.fields": fields });
+      let res;
+      try {
+        res = await read(["public_metrics", "non_public_metrics"]);
+      } catch {
+        res = await read(["public_metrics"]);
+      }
+      return (res.data ?? []).map((t) => ({
+        tweetId: t.id,
+        weergaven: t.public_metrics?.impression_count ?? null,
+        likes: t.public_metrics?.like_count ?? 0,
+        reposts: t.public_metrics?.retweet_count ?? 0,
+        reacties: t.public_metrics?.reply_count ?? 0,
+        citaten: t.public_metrics?.quote_count ?? 0,
+        bladwijzers: t.public_metrics?.bookmark_count ?? 0,
+        linkklikken: t.non_public_metrics?.url_link_clicks ?? null,
+        profielklikken: t.non_public_metrics?.user_profile_clicks ?? null,
+      }));
     },
   };
 }
@@ -40,11 +71,11 @@ export async function publish({ toPost, state, client, enabled, now, log = conso
   const fouten = [];
   for (const item of toPost) {
     if (!enabled) {
-      log(`[droogtest] zou nu posten: ${item.id}\n${item.tekst}\n`);
+      log(`[droogtest] zou nu posten: ${item.id}${item.afbeelding ? ` (met afbeelding ${basename(item.afbeelding)})` : ""}\n${item.tekst}\n`);
       continue;
     }
     try {
-      const { id } = await client.post(item.tekst);
+      const { id } = await client.post(item.tekst, item.afbeelding ? { afbeelding: item.afbeelding } : {});
       const record = {
         id: item.id,
         hash: approvalHash(item.tekst),
@@ -52,6 +83,8 @@ export async function publish({ toPost, state, client, enabled, now, log = conso
         url: `https://x.com/i/web/status/${id}`,
         geplaatstOp: now.toISOString(),
         kostUsd: item.kostUsd,
+        ...(item.afbeelding ? { afbeelding: basename(item.afbeelding) } : {}),
+        ...(item.test ? { test: item.test, variant: item.variant } : {}),
       };
       state.posts.push(record);
       geplaatst.push(record);

@@ -4,8 +4,8 @@
 # - Elke post heeft een id, een moment (met tijdzone), een categorie, een status en de tekst.
 # - Taal: posts zijn Engels (defaultLang "en" in config.json). Een Nederlandse post krijgt "lang: nl".
 #   De verplichte vermeldingen moeten in de taal van de post staan; de verboden woorden gelden in beide talen.
-# - Placeholders: {site} = community-site, {scan} = marketingscan.be, {genesis} = {site}/genesis,
-#   {transparantie} = {site}/transparantie, {voorwaarden} = offer.voorwaardenUrl uit config.json.
+# - Placeholders: {site} = community-site, {scan} = marketingscan.be (Engels: /en), {genesis} = {site}/genesis,
+#   {transparantie} = {site}/transparantie, {steun} = {site}/steun, {voorwaarden} = offer.voorwaardenUrl uit config.json.
 #   {site}, {genesis}, {transparantie} en {voorwaarden} krijgen automatisch ?lang=en of ?lang=nl,
 #   zodat de site in de taal van de post opent. {scan} blijft zoals hij is.
 # - Categorieën:
@@ -14,6 +14,8 @@
 #     uitleg         hoe het werkt: wallet, soulbound, geld terug, de demo.
 #     transparantie  cijfers en stand van zaken.
 #     verkoop        directe koopoproepen. Kan pas als de verkoop live is (verkoopActief en legalReviewDone).
+#     steun          oproep tot een gift in crypto via de steunpagina ({steun}). Vermeldt letterlijk
+#                    "A gift, nothing in return" en "Not an investment"; linkt naar {steun} of zegt "Link in bio".
 # - Elke post in genesis, uitleg, transparantie en verkoop vermeldt letterlijk "Not an investment"
 #   (Nederlands: "Geen investering"). Zolang de verkoop niet live is ook "Not on sale yet"
 #   (Nederlands: "Nog geen verkoop"), en geen koopoproepen ("buy now", "claim your pass", "koop nu", ...).
@@ -21,6 +23,10 @@
 # - Status "concept" wordt nooit gepost. Goedkeuren gebeurt via GitHub: Actions > "X: post goedkeuren".
 #   De goedkeuring is gekoppeld aan de exacte tekst: pas je de tekst nadien aan, dan vervalt ze.
 # - Lengte: max 280 tekens, een link telt als 23. Een post met link kost $0.20, zonder link $0.015.
+# - Afbeelding (optioneel): "afbeelding: media/naam.png" (png, jpg, gif of webp, max 5 MB, in marketing/x/media).
+#   De goedkeuring hangt ook aan de afbeelding. Zonder afbeelding toont X bij een link de linkkaart van die pagina.
+# - Test (optioneel): "test: <naam>" en "variant: <naam>". De workflow "X: resultaten ophalen" haalt elke
+#   avond weergaven en linkklikken van testposts op (state/statistieken.json), aan $0.005 per post.
 # - Engelse posts staan om 15:00 (Brussel): dan lezen Europa en de Amerikaanse oostkust allebei mee.
 #   De dagelijkse routine voegt elke dag drie Engelse posts toe, om 10:00, 15:00 en 20:00 (max 3 per dag).
 
@@ -39,38 +45,23 @@ posts:
       door: claude
       op: 2026-10-16T11:02:31.430Z
       hash: 5d84c2f6ec17a87a
-
-  - id: 2026-10-16-hard-cap
-    moment: 2026-10-16T15:00:00+02:00
-    categorie: genesis
-    status: goedgekeurd
-    tekst: |-
-      Genesis has a hard cap: 250 Genesis Passes and 25 Genesis Agency passes. No extra batch later.
-
-      One wallet can claim at most 3 Genesis Passes, so it stays a community of founding members.
-
-      Not an investment. Not on sale yet.
-      {genesis}
-    goedkeuring:
-      door: claude
-      op: 2026-10-16T10:08:43.599Z
-      hash: 66b21be4bfa17dfc
-
-  - id: 2026-10-16-where-we-stand
+  - id: 2026-10-16-steun-a-info
     moment: 2026-10-16T20:00:00+02:00
-    categorie: transparantie
+    categorie: steun
     status: goedgekeurd
+    test: steun-1
+    variant: info-kaart
     tekst: |-
-      Where we stand today: 0 passes, 0 agency passes, 0 supporters, €0 raised. About 10 weekly users on Marketing Scan.
+      Marketing Scan checks your website, Google profile, reviews and email security for free, in 60 seconds.
 
-      Genesis runs as a demo on Solana devnet, payable in test USDC or test EURC.
+      Built in public by one founder. If it helped you, back the build with SOL, ETH, USDC, USDT or BTC:
+      {steun}
 
-      Not an investment. Not on sale yet.
-      {transparantie}
+      A gift, nothing in return. Not an investment.
     goedkeuring:
       door: claude
-      op: 2026-10-16T10:08:43.744Z
-      hash: ce6f505cd853300d
+      op: 2026-10-16T12:31:01.408Z
+      hash: b390bcb00c995d93
 
   - id: 2026-10-17-security-check
     moment: 2026-10-17T10:00:00+02:00
@@ -86,9 +77,128 @@ posts:
       door: claude
       op: 2026-10-16T11:02:31.548Z
       hash: dd93f6c9050d9e67
+  - id: 2026-10-17-steun-b-opinion-image
+    moment: 2026-10-17T15:00:00+02:00
+    categorie: steun
+    status: goedgekeurd
+    test: steun-1
+    variant: mening-beeld
+    afbeelding: media/steun-mening.png
+    tekst: |-
+      Hot take: small businesses shouldn't need an agency to find out what's broken in their marketing.
+
+      That's why Marketing Scan is free. If you agree, back the build:
+      {steun}
+
+      A gift, nothing in return. Not an investment.
+    goedkeuring:
+      door: claude
+      op: 2026-10-16T12:31:01.562Z
+      hash: 43c78f54f70eb227
+  - id: 2026-10-17-steun-c-story
+    moment: 2026-10-17T20:00:00+02:00
+    categorie: steun
+    status: goedgekeurd
+    test: steun-1
+    variant: verhaal-kaart
+    tekst: |-
+      One founder, about 10 weekly users, no investors. That's Marketing Scan today, and every number is shared in public.
+
+      If you want to see where this goes, back the build:
+      {steun}
+
+      A gift, nothing in return. Not an investment. #buildinpublic
+    goedkeuring:
+      door: claude
+      op: 2026-10-16T12:31:01.707Z
+      hash: d31028bc771a4f9e
+  - id: 2026-10-18-steun-d-info-image
+    moment: 2026-10-18T15:00:00+02:00
+    categorie: steun
+    status: goedgekeurd
+    test: steun-1
+    variant: info-beeld
+    afbeelding: media/steun-info.png
+    tekst: |-
+      Marketing Scan checks 30+ things small businesses often get wrong online: site speed, Google profile, reviews, tracking, email setup. Free.
+
+      Help one founder build the next part:
+      {steun}
+
+      A gift, nothing in return. Not an investment.
+    goedkeuring:
+      door: claude
+      op: 2026-10-16T12:31:01.860Z
+      hash: 2b86c2d25dd12a9c
+  - id: 2026-10-18-steun-e-opinion
+    moment: 2026-10-18T20:00:00+02:00
+    categorie: steun
+    status: goedgekeurd
+    test: steun-1
+    variant: mening-kaart
+    tekst: |-
+      Unpopular opinion: most marketing audits sold to small businesses are expensive PDFs nobody acts on.
+
+      Marketing Scan runs 30+ checks for free in 60 seconds and shows what to fix first. Agree? Back the build:
+      {steun}
+
+      A gift, nothing in return. Not an investment.
+    goedkeuring:
+      door: claude
+      op: 2026-10-16T12:31:02.012Z
+      hash: b5019d1c6828e52b
+  - id: 2026-10-19-steun-f-no-link
+    moment: 2026-10-19T15:00:00+02:00
+    categorie: steun
+    status: goedgekeurd
+    test: steun-1
+    variant: zonder-link
+    afbeelding: media/steun-info.png
+    tekst: |-
+      A free marketing scan for small businesses, built in public by one founder.
+
+      Want to support it? Send SOL, ETH, USDC, USDT or BTC. Link in bio.
+
+      A gift, nothing in return. Not an investment.
+    goedkeuring:
+      door: claude
+      op: 2026-10-16T12:31:02.142Z
+      hash: a9aeb3a166cfd0e8
+
+  - id: 2026-10-16-hard-cap
+    moment: 2026-10-21T15:00:00+02:00
+    categorie: genesis
+    status: goedgekeurd
+    tekst: |-
+      Genesis has a hard cap: 250 Genesis Passes and 25 Genesis Agency passes. No extra batch later.
+
+      One wallet can claim at most 3 Genesis Passes, so it stays a community of founding members.
+
+      Not an investment. Not on sale yet.
+      {genesis}
+    goedkeuring:
+      door: claude
+      op: 2026-10-16T10:08:43.599Z
+      hash: 66b21be4bfa17dfc
+
+  - id: 2026-10-16-where-we-stand
+    moment: 2026-10-22T15:00:00+02:00
+    categorie: transparantie
+    status: goedgekeurd
+    tekst: |-
+      Where we stand today: 0 passes, 0 agency passes, 0 supporters, €0 raised. About 10 weekly users on Marketing Scan.
+
+      Genesis runs as a demo on Solana devnet, payable in test USDC or test EURC.
+
+      Not an investment. Not on sale yet.
+      {transparantie}
+    goedkeuring:
+      door: claude
+      op: 2026-10-16T10:08:43.744Z
+      hash: ce6f505cd853300d
 
   - id: 2026-10-17-pay-usdc-eurc
-    moment: 2026-10-17T15:00:00+02:00
+    moment: 2026-10-23T15:00:00+02:00
     categorie: genesis
     status: goedgekeurd
     tekst: |-
@@ -102,7 +212,7 @@ posts:
       hash: bc3fa29cb78c50ce
 
   - id: 2026-10-17-what-the-goal-is-for
-    moment: 2026-10-17T20:00:00+02:00
+    moment: 2026-10-24T15:00:00+02:00
     categorie: transparantie
     status: goedgekeurd
     tekst: |-

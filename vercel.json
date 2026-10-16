@@ -11,6 +11,10 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/steun",
+      "destination": "/steun.html"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

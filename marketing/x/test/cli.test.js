@@ -12,7 +12,7 @@ const cli = join(base, "src", "cli.js");
 
 function workspace() {
   const dir = mkdtempSync(join(tmpdir(), "x-promo-"));
-  for (const f of ["config.json", "kalender.yaml", "data", "state"]) cpSync(join(base, f), join(dir, f), { recursive: true });
+  for (const f of ["config.json", "kalender.yaml", "data", "state", "media"]) cpSync(join(base, f), join(dir, f), { recursive: true });
   return dir;
 }
 

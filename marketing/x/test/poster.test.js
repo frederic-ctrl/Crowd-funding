@@ -39,3 +39,18 @@ test("zonder sleutels geen client", () => {
   assert.throws(() => createXClient({}), /X-sleutels ontbreken: X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET/);
   assert.ok(createXClient({ X_API_KEY: "a", X_API_SECRET: "b", X_ACCESS_TOKEN: "c", X_ACCESS_SECRET: "d" }).post);
 });
+
+test("een post met afbeelding stuurt de afbeelding mee en legt test en variant vast", async () => {
+  const state = { posts: [] };
+  const sent = [];
+  const client = { post: async (t, opts) => { sent.push([t, opts]); return { id: "77" }; } };
+  const withImage = { ...item, afbeelding: "/x/media/steun-1.png", test: "steun-1", variant: "A" };
+  await publish({ toPost: [withImage], state, client, enabled: true, now, log: () => {} });
+  assert.deepEqual(sent, [["Hallo", { afbeelding: "/x/media/steun-1.png" }]]);
+  assert.equal(state.posts[0].afbeelding, "steun-1.png");
+  assert.equal(state.posts[0].test, "steun-1");
+  assert.equal(state.posts[0].variant, "A");
+  const lines = [];
+  await publish({ toPost: [withImage], state: { posts: [] }, client, enabled: false, now, log: (l) => lines.push(l) });
+  assert.match(lines[0], /met afbeelding steun-1\.png/);
+});

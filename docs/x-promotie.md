@@ -153,6 +153,23 @@ De routine moet kunnen pushen naar deze repository: koppel `frederic-ctrl/Crowd-
 
 De routine stopzetten of aanpassen: claude.ai > Code > Routines, "Genesis X-posts".
 
+### Steuntest (welke post brengt de meeste giften op?)
+
+Posts in categorie `steun` vragen om een gift in crypto via de steunpagina (`{steun}`). Test `steun-1` loopt van 16 tot 19 oktober, met zes varianten om 15:00 en 20:00:
+
+| Variant | Wat |
+|---|---|
+| `info-kaart` | informatief, link met de linkkaart van /steun |
+| `mening-beeld` | uitgesproken mening, met eigen afbeelding |
+| `verhaal-kaart` | verhaal van de oprichter, linkkaart |
+| `info-beeld` | informatief, met eigen afbeelding |
+| `mening-kaart` | uitgesproken mening, linkkaart |
+| `zonder-link` | afbeelding, "Link in bio" (zet de link in je X-profiel op /steun), kost $0.015 in plaats van $0.20 |
+
+Elke avond haalt de workflow "X: resultaten ophalen" de weergaven, likes, reposts, reacties en linkklikken op en zet ze in `marketing/x/state/statistieken.json` (ook als tabel in de samenvatting van de run). Vergelijk dat met wat er in de wallets binnenkomt. Met zes posts is het een eerste indruk, geen bewijs: herhaal wat werkt.
+
+Kosten: een post met link $0.20, zonder link $0.015, een gelezen post $0.005. Of X extra rekent voor het uploaden van een afbeelding, zie je bij Usage in de developer-console.
+
 ### Noodstop
 
 - Alles meteen stilleggen: zet de variabele `X_POSTING_ENABLED` op `false`, of zet `"paused": true` in `marketing/x/config.json`.

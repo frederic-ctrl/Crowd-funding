@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Steun-afbeeldingen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  /* Afbeeldingen voor de steunpagina: de linkkaart (1200 x 630) en beelden bij posts op X (1200 x 675).
+     Variant via ?v=og|info|mening, maat via ?h=630|675. */
+  html, body { margin: 0; }
+  body { width: 1200px; background: #000; color: #f5f5f7; font-family: "Inter", system-ui, sans-serif; overflow: hidden; letter-spacing: -0.02em; }
+  .wrap { box-sizing: border-box; width: 1200px; padding: 72px 80px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .glow { position: absolute; right: -220px; top: -260px; width: 760px; height: 760px; border-radius: 50%; background: radial-gradient(circle, rgba(47,91,234,.45), transparent 62%); }
+  .brand { position: relative; display: flex; align-items: center; gap: 14px; font-size: 26px; font-weight: 600; color: #f5f5f7; }
+  h1 { position: relative; margin: 44px 0 0; font-size: 96px; font-weight: 600; line-height: 1.0; letter-spacing: -0.05em; max-width: 980px; }
+  h1.quote { font-size: 74px; line-height: 1.06; }
+  .sub { position: relative; margin-top: 28px; font-size: 30px; color: #c7c7cc; line-height: 1.3; max-width: 900px; }
+  .coins { position: relative; display: flex; gap: 12px; margin-top: 34px; }
+  .coins span { border: 1px solid rgba(255,255,255,.22); border-radius: 980px; padding: 10px 22px; font-size: 24px; font-weight: 600; }
+  .bottom { position: relative; margin-top: auto; display: flex; justify-content: space-between; font-size: 22px; color: #a1a1a6; }
+</style>
+</head>
+<body>
+  <div class="wrap" id="wrap">
+    <div class="glow"></div>
+    <div class="brand"><svg width="36" height="36" viewBox="0 0 24 24"><rect width="24" height="24" rx="7" fill="#2f5bea"/><path d="M6 12 H 18" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M6 8 H 13" stroke="#fff" stroke-opacity="0.5" stroke-width="2" stroke-linecap="round"/><path d="M6 16 H 15" stroke="#fff" stroke-opacity="0.5" stroke-width="2" stroke-linecap="round"/></svg>Marketing Scan</div>
+    <h1 id="h1"></h1>
+    <div class="sub" id="sub"></div>
+    <div class="coins" id="coins"></div>
+    <div class="bottom"><span id="left"></span><span>funding.marketingscan.be/steun</span></div>
+  </div>
+  <script>
+    const q = new URLSearchParams(location.search);
+    const v = q.get("v") || "og";
+    const h = Number(q.get("h") || 630);
+    document.getElementById("wrap").style.height = `${h}px`;
+    document.body.style.height = `${h}px`;
+    const conf = {
+      og: ["Back the build.", "Send crypto straight to the founder of Marketing Scan. Built in public, one founder, real numbers.", true],
+      info: ["Back the build.", "Marketing Scan is a free marketing check for small businesses. Help one founder build the next part.", true],
+      mening: ["Small businesses shouldn’t need an agency to know what’s broken in their marketing.", "That’s why Marketing Scan is free. If you agree, back the build.", false],
+    }[v];
+    const h1 = document.getElementById("h1");
+    h1.textContent = conf[0];
+    if (v === "mening") h1.className = "quote";
+    document.getElementById("sub").textContent = conf[1];
+    if (conf[2]) document.getElementById("coins").innerHTML = ["SOL", "ETH", "USDC", "USDT", "BTC"].map((c) => `<span>${c}</span>`).join("");
+    document.getElementById("left").textContent = "A gift, nothing in return · Not an investment";
+  </script>
+</body>
+</html>

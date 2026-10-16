@@ -4,6 +4,8 @@
 //   web/public/token/agency.png   (512 x 512, Genesis Agency)
 //   web/public/token/steun.png    (512 x 512, supporter-badge)
 //   web/public/token/teur.png, tusd.png (512 x 512, testmunten van de demo)
+//   web/public/og-steun.png         (1200 x 630, linkkaart van de steunpagina /steun)
+//   marketing/x/media/steun-*.png   (1200 x 675, beelden bij posts op X)
 // Vereist Playwright met Chromium op de machine: npm i -D playwright && npx playwright install chromium
 import { createRequire } from "node:module";
 import { join, dirname } from "node:path";
@@ -22,6 +24,9 @@ for (const [file, query, target, width, height, transparent] of [
   ["pass.html", "?v=steun", "token/steun.png", 512, 512, true],
   ["pass.html", "?v=teur", "token/teur.png", 512, 512, true],
   ["pass.html", "?v=tusd", "token/tusd.png", 512, 512, true],
+  ["steun.html", "?v=og&h=630", "og-steun.png", 1200, 630, false],
+  ["steun.html", "?v=info&h=675", "../../marketing/x/media/steun-info.png", 1200, 675, false],
+  ["steun.html", "?v=mening&h=675", "../../marketing/x/media/steun-mening.png", 1200, 675, false],
 ]) {
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
   await page.goto(pathToFileURL(join(here, file)).href + query, { waitUntil: "networkidle" });

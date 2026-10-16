@@ -19,7 +19,7 @@ const company = JSON.parse(readFileSync(join(root, "shared", "bedrijf.json"), "u
 for (const field of ["vennootschap", "adres", "ondernemingsnummer", "privacyEmail"]) {
   if (!company[field]) problems.push(`shared/bedrijf.json: "${field}" is nog niet ingevuld`);
 }
-for (const file of ["og-genesis.png", "icon.svg", ...["pass", "agency", "steun"].flatMap((v) => [`token/${v}.png`, `token/${v}.json`])]) {
+for (const file of ["og-genesis.png", "og-steun.png", "icon.svg", ...["pass", "agency", "steun"].flatMap((v) => [`token/${v}.png`, `token/${v}.json`])]) {
   if (!existsSync(join(root, "web", "public", file))) problems.push(`web/public/${file} ontbreekt`);
 }
 

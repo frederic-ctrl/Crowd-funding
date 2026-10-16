@@ -6,6 +6,7 @@
 //   approve <id> --door <naam>  keur een post of sjabloon goed (gekoppeld aan de exacte tekst)
 //   revoke <id>               trek een goedkeuring in
 //   cijfers                   werk data/cijfers.json bij met de stand van Genesis op de site
+//   stats [--dagen 7] [--alles]  haal weergaven en klikken op van geplaatste testposts (state/statistieken.json)
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,6 +24,7 @@ const PATHS = {
   calendar: join(BASE, "kalender.yaml"),
   data: join(BASE, "data", "cijfers.json"),
   state: join(BASE, "state", "geplaatst.json"),
+  stats: join(BASE, "state", "statistieken.json"),
 };
 
 const readJson = (path, fallback) => (existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : fallback);
@@ -158,8 +160,8 @@ function cmdApprove(args) {
   const door = option(args, "door");
   if (!id || !door) throw new Error("Gebruik: approve <id> --door <naam>");
   const config = readJson(PATHS.config);
-  const { doc } = loadCalendar(PATHS.calendar);
-  const res = approve(doc, id, { door, now: new Date(), config });
+  const { doc, baseDir } = loadCalendar(PATHS.calendar);
+  const res = approve(doc, id, { door, now: new Date(), config, baseDir });
   saveCalendar(PATHS.calendar, doc);
   console.log(`Goedgekeurd: ${res.id} (hash ${res.hash}) door ${door}.`);
   summary(`### Goedgekeurd\n\`${res.id}\` door ${door} (hash \`${res.hash}\`).`);
@@ -186,12 +188,51 @@ async function cmdCijfers() {
   return 0;
 }
 
+/**
+ * Haalt de resultaten op van geplaatste posts van de laatste dagen. Standaard enkel posts uit een
+ * test (veld `test` in de kalender): elke gelezen post kost geld ($0.005), dus niet alles elke dag.
+ */
+async function cmdStats(args) {
+  const days = Number(option(args, "dagen") ?? 7);
+  const all = args.includes("--alles");
+  const state = readJson(PATHS.state, { posts: [] });
+  const since = Date.now() - days * 86400000;
+  const posts = state.posts.filter((p) => p.tweetId && new Date(p.geplaatstOp).getTime() >= since && (all || p.test));
+  if (posts.length === 0) {
+    console.log(`Geen ${all ? "" : "testposts "}van de laatste ${days} dagen om op te halen.`);
+    return 0;
+  }
+  if (process.env.X_POSTING_ENABLED !== "true") {
+    console.log(`Droogtest: zou de resultaten van ${posts.length} post(s) ophalen (kost ongeveer $${(posts.length * 0.005).toFixed(3)}).`);
+    return 0;
+  }
+  const metrics = await createXClient().metrics(posts.map((p) => p.tweetId));
+  const byTweet = new Map(metrics.map((m) => [m.tweetId, m]));
+  const stats = readJson(PATHS.stats, { posts: [] });
+  const keep = new Map(stats.posts.map((s) => [s.tweetId, s]));
+  const nu = new Date().toISOString();
+  for (const p of posts) {
+    const m = byTweet.get(p.tweetId);
+    if (m) keep.set(p.tweetId, { id: p.id, test: p.test ?? null, variant: p.variant ?? null, afbeelding: p.afbeelding ?? null, geplaatstOp: p.geplaatstOp, gemeten: nu, ...m });
+  }
+  const rows = [...keep.values()].sort((a, b) => (a.test ?? "").localeCompare(b.test ?? "") || (a.variant ?? "").localeCompare(b.variant ?? ""));
+  writeFileSync(PATHS.stats, `${JSON.stringify({ bijgewerkt: nu, posts: rows }, null, 2)}\n`, "utf8");
+  const pct = (a, b) => (a === null || !b ? "-" : `${((a / b) * 100).toFixed(1)}%`);
+  const lines = ["| Test | Variant | Post | Weergaven | Likes | Reposts | Reacties | Linkklikken | Klikratio |", "|---|---|---|---|---|---|---|---|---|"];
+  for (const r of rows) {
+    lines.push(`| ${r.test ?? ""} | ${r.variant ?? ""} | ${r.id} | ${r.weergaven ?? "-"} | ${r.likes} | ${r.reposts} | ${r.reacties} | ${r.linkklikken ?? "-"} | ${pct(r.linkklikken, r.weergaven)} |`);
+  }
+  console.log(lines.join("\n"));
+  summary(`### Resultaten op X\n${lines.join("\n")}`);
+  return 0;
+}
+
 const [command, ...rest] = process.argv.slice(2);
-const commands = { lint: cmdLint, plan: cmdPlan, post: cmdPost, approve: cmdApprove, revoke: cmdRevoke, cijfers: cmdCijfers };
+const commands = { lint: cmdLint, plan: cmdPlan, post: cmdPost, approve: cmdApprove, revoke: cmdRevoke, cijfers: cmdCijfers, stats: cmdStats };
 
 try {
   if (!commands[command]) {
-    console.log("Gebruik: cli.js <lint|plan|post|approve|revoke|cijfers> [opties]");
+    console.log("Gebruik: cli.js <lint|plan|post|approve|revoke|cijfers|stats> [opties]");
     process.exit(2);
   }
   process.exitCode = await commands[command](rest);

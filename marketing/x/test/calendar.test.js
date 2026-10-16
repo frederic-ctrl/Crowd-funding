@@ -33,9 +33,11 @@ test("de meegeleverde kalender: Genesis-posts met beide vermeldingen in hun taal
     assert.ok(["concept", "goedgekeurd"].includes(r.status), r.id);
     assert.ok(weightedLength(r.tekst) <= MAX_WEIGHTED_LENGTH, r.id);
     if (ABOUT_GENESIS.has(r.categorie)) {
-      const { required, notice } = offerTexts(config, r.lang);
+      const { required, notice, gift } = offerTexts(config, r.lang);
       assert.ok(r.tekst.includes(required), `${r.id}: ${required}`);
-      assert.ok(r.tekst.includes(notice), `${r.id}: ${notice}`);
+      // Een steunpost is geen verkoop: daar staat de gift-vermelding in plaats van "Not on sale yet".
+      const expected = r.categorie === "steun" ? gift : notice;
+      assert.ok(r.tekst.includes(expected), `${r.id}: ${expected}`);
     }
     assert.ok(!r.tekst.includes("\u2014"), `${r.id} bevat een lang streepje`);
     assert.doesNotMatch(r.tekst, /pre-?sale/i, r.id);
@@ -347,4 +349,35 @@ test("{scan} linkt naar de marketingscan.be-pagina in de taal van de post", asyn
   assert.equal(renderText("Free scan: {scan}", cfg, {}, "en"), "Free scan: https://www.marketingscan.be/en");
   assert.equal(renderText("Gratis scan: {scan}", cfg, {}, "nl"), "Gratis scan: https://www.marketingscan.be");
   assert.equal(renderText("{scan}", { links: { scan: "https://x.be" } }, {}, "en"), "https://x.be", "een gewone string blijft werken");
+});
+
+test("afbeeldingen: bestaand bestand, toegelaten type, en de goedkeuring hangt ook aan de afbeelding", async () => {
+  const { reviewCalendar, approve, approvalSubject } = await import("../src/calendar.js");
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const YAMLmod = (await import("yaml")).default;
+  const dir = mkdtempSync(join(tmpdir(), "x-media-"));
+  try {
+    mkdirSync(join(dir, "media"));
+    writeFileSync(join(dir, "media", "a.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    writeFileSync(join(dir, "media", "b.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0]));
+    const base = { id: "2026-11-02-beeld", moment: "2026-11-02T15:00:00+01:00", categorie: "product", status: "concept", tekst: "Free scan, 60 seconds. https://www.marketingscan.be/en" };
+    const check = (post) => reviewCalendar({ posts: [post], templates: [], baseDir: dir }, config)[0];
+    assert.deepEqual(check({ ...base, afbeelding: "media/a.png" }).issues, []);
+    assert.equal(check({ ...base, afbeelding: "media/a.png" }).afbeelding, join(dir, "media", "a.png"));
+    assert.ok(check({ ...base, afbeelding: "media/c.png" }).issues.some((i) => i.regel === "afbeelding"));
+    assert.ok(check({ ...base, afbeelding: "media/a.bmp" }).issues.some((i) => i.regel === "afbeelding"));
+    const doc = YAMLmod.parseDocument(YAMLmod.stringify({ posts: [{ ...base, afbeelding: "media/a.png", test: "t1", variant: "A" }] }));
+    approve(doc, base.id, { door: "test", now: new Date(), config, baseDir: dir });
+    const approved = doc.toJS().posts[0];
+    assert.deepEqual(check(approved).issues, []);
+    assert.equal(check(approved).test, "t1");
+    const swapped = { ...approved, afbeelding: "media/b.png" };
+    assert.ok(check(swapped).issues.some((i) => i.regel === "goedkeuring"), "een andere afbeelding vraagt een nieuwe goedkeuring");
+    assert.notEqual(approvalSubject("x", "media/a.png"), approvalSubject("x", "media/b.png"));
+    assert.equal(approvalSubject("x"), "x", "zonder afbeelding blijft de goedkeuring gelijk aan vroeger");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

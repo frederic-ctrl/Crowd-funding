@@ -34,8 +34,8 @@ const rules = (issues) => issues.filter((i) => i.niveau === "fout").map((i) => i
 const OK = " Geen investering. Nog geen verkoop.";
 
 test("categorieën", () => {
-  assert.deepEqual(CATEGORIES, ["product", "genesis", "uitleg", "transparantie", "verkoop"]);
-  assert.deepEqual([...ABOUT_GENESIS], ["genesis", "uitleg", "transparantie", "verkoop"]);
+  assert.deepEqual(CATEGORIES, ["product", "genesis", "uitleg", "transparantie", "verkoop", "steun"]);
+  assert.deepEqual([...ABOUT_GENESIS], ["genesis", "uitleg", "transparantie", "verkoop", "steun"]);
 });
 
 test("een nette productpost gaat door", () => {
@@ -287,8 +287,8 @@ test("talen: en en nl, Engels is de standaard", () => {
   assert.equal(postLang({}, {}), "en");
   assert.equal(postLang({}, { defaultLang: "nl" }), "nl");
   assert.equal(postLang({ lang: "nl" }, { defaultLang: "en" }), "nl");
-  assert.deepEqual(offerTexts(en, "en"), { required: "Not an investment", notice: "Not on sale yet" });
-  assert.deepEqual(offerTexts(en, "nl"), { required: "Geen investering", notice: "Nog geen verkoop" });
+  assert.deepEqual(offerTexts(en, "en"), { required: "Not an investment", notice: "Not on sale yet", gift: "A gift, nothing in return" });
+  assert.deepEqual(offerTexts(en, "nl"), { required: "Geen investering", notice: "Nog geen verkoop", gift: "Een gift, zonder iets terug" });
 });
 
 test("de meegeleverde config.json is Engels eerst, met vermeldingen per taal", async () => {
@@ -348,8 +348,8 @@ test("oude config met gewone strings blijft werken: de string telt als Nederland
     defaultLang: undefined,
     offer: { ...config.offer, required: "Dit is geen investering", noticeWhenNotLive: "Verkoop nog niet open" },
   };
-  assert.deepEqual(offerTexts(old, "nl"), { required: "Dit is geen investering", notice: "Verkoop nog niet open" });
-  assert.deepEqual(offerTexts(old, "en"), { required: "Not an investment", notice: "Not on sale yet" });
+  assert.deepEqual(offerTexts(old, "nl"), { required: "Dit is geen investering", notice: "Verkoop nog niet open", gift: "Een gift, zonder iets terug" });
+  assert.deepEqual(offerTexts(old, "en"), { required: "Not an investment", notice: "Not on sale yet", gift: "A gift, nothing in return" });
   const nl = (tekst) => rules(checkPost({ categorie: "genesis", lang: "nl", tekst }, old));
   assert.deepEqual(nl("De Genesis Pass. Dit is geen investering. Verkoop nog niet open."), []);
   assert.ok(nl(`De Genesis Pass.${OK}`).includes("disclaimer-ontbreekt"));
@@ -533,4 +533,24 @@ test("Engelse Genesis-woorden worden herkend, ook in een productpost", () => {
     assert.ok(rules(checkPost({ categorie: "product", tekst }, en)).includes("categorie"), tekst);
   }
   assert.equal(aboutGenesis("How visible is your business online? Free scan, results in 60 seconds."), false);
+});
+
+test("categorie steun: een gift via de steunpagina, met gift-vermelding in plaats van 'Not on sale yet'", () => {
+  const cfg = { ...config, defaultLang: "en", links: { ...config.links, site: "https://funding.marketingscan.be" } };
+  const ok = "Building Marketing Scan in public. If it helps you, back the build: https://funding.marketingscan.be/steun?lang=en\n\nA gift, nothing in return. Not an investment.";
+  assert.deepEqual(checkPost({ categorie: "steun", tekst: ok }, cfg), []);
+  assert.ok(rules(checkPost({ categorie: "steun", tekst: ok.replace("A gift, nothing in return. ", "") }, cfg)).includes("gift-ontbreekt"));
+  assert.ok(rules(checkPost({ categorie: "steun", tekst: ok.replace(" Not an investment.", "") }, cfg)).includes("disclaimer-ontbreekt"));
+  const noLink = "Back the build with crypto. A gift, nothing in return. Not an investment.";
+  assert.ok(rules(checkPost({ categorie: "steun", tekst: noLink }, cfg)).includes("steun-link"));
+  assert.deepEqual(checkPost({ categorie: "steun", tekst: `${noLink} Link in bio.` }, cfg), [], "verwijzen naar de link in het profiel mag");
+  assert.ok(rules(checkPost({ categorie: "steun", tekst: `${ok} To the moon.` }, cfg)).includes("verboden-taal"), "de taalregels blijven gelden");
+  assert.ok(rules(checkPost({ categorie: "steun", tekst: `Claim your Genesis Pass now. ${ok}` }, cfg)).includes("koopoproep"), "geen koopoproep voor passes");
+});
+
+test("'in return' (in ruil) is geen rendement, 'returns' wel", () => {
+  const cfg = { ...config, defaultLang: "en" };
+  assert.ok(!rules(checkPost({ categorie: "product", tekst: "Free scan, nothing in return. https://www.marketingscan.be" }, cfg)).includes("verboden-taal"));
+  assert.ok(rules(checkPost({ categorie: "product", tekst: "Free scan with great returns. https://www.marketingscan.be" }, cfg)).includes("verboden-taal"));
+  assert.ok(rules(checkPost({ categorie: "product", tekst: "In return for nothing, huge return on your money. https://www.marketingscan.be" }, cfg)).includes("verboden-taal"));
 });
