@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { AGENCY, PASS, SYMBOL, company, deployment, genesis, isTestnet, network } from "../config";
+import { AGENCY, COINS, PASS, coinOf, company, deployment, genesis, isTestnet, network, type Coin, type CoinId } from "../config";
 import { checkPassPurchase, checkSupport, cleanName, formatNumber, parseEuro } from "../../../shared/genesis.js";
-import { useBalance, useGenesis } from "../lib/hooks";
+import { toCoinMicro } from "../../../shared/munten.js";
+import { useBalances, useGenesis } from "../lib/hooks";
 import { confirmSignature, decodeTransaction, explainError } from "../lib/chain";
-import { ApiError, preparePass, prepareSupport, requestTestEuro } from "../lib/api";
-import { euro } from "../lib/format";
+import { ApiError, preparePass, prepareSupport, requestTestCoin } from "../lib/api";
+import { coinAmount, euro } from "../lib/format";
 import { explorerTx } from "../lib/explorer";
 import { useWalletUi } from "../components/Wallet";
 import { PassBack, PassCard, view } from "../components/genesis";
@@ -15,7 +16,7 @@ import { useLang, useT } from "../i18n";
 
 type Choice = "pass" | "agency" | "steun";
 type Phase = "idle" | "preparing" | "signing" | "sending" | "done";
-type Result = { choice: Choice; number: number | null; label: string; amountMicro: number; signature: string };
+type Result = { choice: Choice; number: number | null; label: string; paid: string; signature: string };
 
 const CHOICES: Choice[] = ["pass", "agency", "steun"];
 
@@ -38,10 +39,16 @@ const T = {
     signInText: "Phantom, Solflare or Backpack. Your wallet is your login.",
     signInBtn: "Sign in with wallet",
     signedIn: "Signed in",
-    funds: "Test euros.",
+    payWith: "Pay with.",
+    payWithHint: "USDC or EURC.",
+    coinDesc: isTestnet ? { EUR: "Test euro, stands in for EURC", USD: "Test dollar, stands in for USDC" } : { EUR: "Euro stablecoin by Circle", USD: "Dollar stablecoin by Circle" },
+    balanceOf: (b: string) => `Balance ${b}`,
+    rateNote: (rate: string, date: string | null) => `Prices are in euro. In dollars: €1 = $${rate}, the ECB reference rate${date ? ` of ${date}` : ""}, rounded up to the cent. Your wallet shows the exact amount.`,
+    rateMissing: "The euro-dollar rate isn’t available right now. Pay with EURC or try again shortly.",
+    funds: "Test money.",
     fundsHint: "Free, no value.",
-    fundsText: (b: string) => `On devnet you pay with test euros (${SYMBOL}). We pay the network fees. Balance: ${b}.`,
-    fundsBtn: `Get 1,000 ${SYMBOL}`,
+    fundsText: (sym: string, b: string) => `On devnet you pay with ${sym}, a test coin without value. We pay the network fees. Balance: ${b}.`,
+    fundsBtn: (sym: string) => `Get 1,000 ${sym}`,
     got: (a: string) => `You received ${a}.`,
     amount: "Amount.",
     amountHint: "From €1.",
@@ -54,7 +61,7 @@ const T = {
     naturePass: "I understand this is not an investment: I’m buying a lifetime subscription, and my pass is non-transferable and earns nothing.",
     natureSupport: "I understand support is a voluntary contribution, without a subscription and without refunds.",
     demo: "I understand this is a demo on devnet, with no real money and no real subscription.",
-    rows: { number: "Your number", plan: "Plan", sites: "Websites", refund: "Refund", fees: "Network fees", badge: "Badge" },
+    rows: { number: "Your number", plan: "Plan", sites: "Websites", refund: "Refund", fees: "Network fees", badge: "Badge", pay: "You pay" },
     planValue: "Pro, for life",
     refundValue: `${genesis.bedenktijdDagen} days, one click`,
     feesValue: "On us",
@@ -66,12 +73,12 @@ const T = {
     claim: (n: string, p: string) => `Claim ${n} for ${p}`,
     support: (p: string) => `Support with ${p}`,
     soldOutBtn: "Sold out",
-    explainPass: (p: string) => `Your wallet shows exactly what happens: ${p} ${SYMBOL} from you to the treasury, your pass to you, in one transaction. If someone beats you to this number, you get the next one.`,
-    explainSupport: (p: string) => `Your wallet shows exactly what happens: ${p} ${SYMBOL} from you to the treasury, and a supporter badge the first time.`,
+    explainPass: (p: string) => `Your wallet shows exactly what happens: ${p} from you to the treasury, your pass to you, in one transaction. If someone beats you to this number, you get the next one.`,
+    explainSupport: (p: string) => `Your wallet shows exactly what happens: ${p} from you to the treasury, and a supporter badge the first time.`,
     welcome: (n: string) => `Welcome to Genesis, ${n}.`,
     thanks: "Thank you for your support.",
-    welcomeText: (label: string, a: string) => `Your ${label} is in your wallet. You paid ${a} (${SYMBOL}). Activate it now in My pass to link Pro to your account.`,
-    thanksText: (a: string) => `You supported Marketing Scan with ${a} (${SYMBOL}). Your badge is in your wallet and you’re on the Genesis wall.`,
+    welcomeText: (label: string, a: string) => `Your ${label} is in your wallet. You paid ${a}. Activate it now in My pass to link Pro to your account.`,
+    thanksText: (a: string) => `You supported Marketing Scan with ${a}. Your badge is in your wallet and you’re on the Genesis wall.`,
     activate: "Activate my pass",
     myPass: "Go to my pass",
     share: "Share on X",
@@ -98,10 +105,16 @@ const T = {
     signInText: "Phantom, Solflare of Backpack. Je wallet is je login.",
     signInBtn: "Inloggen met wallet",
     signedIn: "Ingelogd",
-    funds: "Test-euro.",
+    payWith: "Betaal met.",
+    payWithHint: "USDC of EURC.",
+    coinDesc: isTestnet ? { EUR: "Test-euro, in de plaats van EURC", USD: "Test-dollar, in de plaats van USDC" } : { EUR: "Euro-stablecoin van Circle", USD: "Dollar-stablecoin van Circle" },
+    balanceOf: (b: string) => `Saldo ${b}`,
+    rateNote: (rate: string, date: string | null) => `De prijzen staan in euro. In dollar: €1 = $${rate}, de referentiekoers van de ECB${date ? ` van ${date}` : ""}, naar boven afgerond op een cent. Je wallet toont het exacte bedrag.`,
+    rateMissing: "De wisselkoers euro-dollar is even niet beschikbaar. Betaal met EURC of probeer zo meteen opnieuw.",
+    funds: "Testgeld.",
     fundsHint: "Gratis, zonder waarde.",
-    fundsText: (b: string) => `Op het testnet betaal je met test-euro (${SYMBOL}). De transactiekosten betalen wij. Saldo: ${b}.`,
-    fundsBtn: `Ontvang 1.000 ${SYMBOL}`,
+    fundsText: (sym: string, b: string) => `Op het testnet betaal je met ${sym}, een testmunt zonder waarde. De transactiekosten betalen wij. Saldo: ${b}.`,
+    fundsBtn: (sym: string) => `Ontvang 1.000 ${sym}`,
     got: (a: string) => `Je kreeg ${a}.`,
     amount: "Bedrag.",
     amountHint: "Vanaf €1.",
@@ -114,7 +127,7 @@ const T = {
     naturePass: "Ik begrijp dat dit geen investering is: ik koop een levenslang abonnement, en mijn pass is niet overdraagbaar en levert niets op.",
     natureSupport: "Ik begrijp dat steun een vrijwillige bijdrage is, zonder abonnement en zonder terugbetaling.",
     demo: "Ik begrijp dat dit een demo op het testnet is, zonder echt geld en zonder echt abonnement.",
-    rows: { number: "Je nummer", plan: "Abonnement", sites: "Websites", refund: "Geld terug", fees: "Transactiekosten", badge: "Badge" },
+    rows: { number: "Je nummer", plan: "Abonnement", sites: "Websites", refund: "Geld terug", fees: "Transactiekosten", badge: "Badge", pay: "Je betaalt" },
     planValue: "Pro, levenslang",
     refundValue: `${genesis.bedenktijdDagen} dagen, één klik`,
     feesValue: "Betalen wij",
@@ -126,12 +139,12 @@ const T = {
     claim: (n: string, p: string) => `Claim ${n} voor ${p}`,
     support: (p: string) => `Steun met ${p}`,
     soldOutBtn: "Uitverkocht",
-    explainPass: (p: string) => `Je wallet toont exact wat er gebeurt: ${p} ${SYMBOL} van jou naar de kas, je pass naar jou, in één transactie. Was iemand je voor met dit nummer, dan krijg je het volgende.`,
-    explainSupport: (p: string) => `Je wallet toont exact wat er gebeurt: ${p} ${SYMBOL} van jou naar de kas, en de eerste keer een supporter-badge.`,
+    explainPass: (p: string) => `Je wallet toont exact wat er gebeurt: ${p} van jou naar de kas, je pass naar jou, in één transactie. Was iemand je voor met dit nummer, dan krijg je het volgende.`,
+    explainSupport: (p: string) => `Je wallet toont exact wat er gebeurt: ${p} van jou naar de kas, en de eerste keer een supporter-badge.`,
     welcome: (n: string) => `Welkom bij Genesis, ${n}.`,
     thanks: "Bedankt voor je steun.",
-    welcomeText: (label: string, a: string) => `Je ${label} staat in je wallet. Je betaalde ${a} (${SYMBOL}). Activeer hem nu in Mijn pass, dan hangt Pro aan je account.`,
-    thanksText: (a: string) => `Je steunde Marketing Scan met ${a} (${SYMBOL}). Je badge staat in je wallet en je staat op de Genesis-muur.`,
+    welcomeText: (label: string, a: string) => `Je ${label} staat in je wallet. Je betaalde ${a}. Activeer hem nu in Mijn pass, dan hangt Pro aan je account.`,
+    thanksText: (a: string) => `Je steunde Marketing Scan met ${a}. Je badge staat in je wallet en je staat op de Genesis-muur.`,
     activate: "Activeer mijn pass",
     myPass: "Naar mijn pass",
     share: "Deel op X",
@@ -154,7 +167,9 @@ export default function Claim() {
 
   const wallet = publicKey?.toBase58() ?? null;
   const state = useGenesis(10_000);
-  const balance = useBalance(wallet, 15_000);
+  const balances = useBalances(wallet, 15_000);
+  const coin: Coin = coinOf(params.get("munt")) ?? COINS[0];
+  const rate = state.data?.koers?.eurUsd ?? null;
   const v = view(state.data);
   const next = choice === "agency" ? v.agency : v.pass;
 
@@ -172,33 +187,51 @@ export default function Claim() {
   );
   const eurMicro = parseEuro(amount);
   const costMicro = product ? (next.price ?? 0) : Number.isFinite(eurMicro) ? eurMicro : 0;
+  /** Wat je betaalt in een munt: EURC hetzelfde bedrag, USDC aan de koers van vandaag. Null zonder koers. */
+  const costIn = (c: Coin): number | null => (costMicro > 0 ? toCoinMicro(costMicro, c, rate) : 0);
+  const coinCost = costIn(coin);
+  const balance = balances.data?.[coin.id];
   const nameCheck = cleanName(name, lang);
   const live: string[] = useMemo(() => {
-    const bal = balance.data ?? undefined;
+    const coinLabel = coin.valuta === "EUR" || coinCost === null ? undefined : coinAmount(coinCost, coin);
     const errs: string[] = product
-      ? checkPassPurchase({ cfg: genesis, product, nextNumber: next.next, held, balanceMicro: bal, network, lang })
-      : checkSupport({ cfg: genesis, eurMicro, balanceMicro: bal, network, lang });
+      ? checkPassPurchase({ cfg: genesis, product, nextNumber: next.next, held, balanceMicro: balance, coinPriceMicro: coinCost ?? undefined, coinLabel, network, lang })
+      : checkSupport({ cfg: genesis, eurMicro, balanceMicro: balance, coinMicro: coinCost ?? undefined, network, lang });
+    if (coinCost === null && costMicro > 0) errs.push(t.rateMissing);
     return nameCheck.fout ? [...errs, nameCheck.fout] : errs;
-  }, [product, next.next, held, balance.data, eurMicro, nameCheck.fout, lang]);
+  }, [product, next.next, held, balance, coin, coinCost, costMicro, eurMicro, nameCheck.fout, lang, t]);
 
-  const needsFunds = balance.data !== null && balance.data < costMicro;
+  const needsFunds = balance !== undefined && coinCost !== null && balance < coinCost;
   const allAgreed = agreed.terms && agreed.nature && agreed.demo;
   const busy = phase === "preparing" || phase === "signing" || phase === "sending";
   const canBuy = Boolean(wallet && signTransaction && deployment && state.data) && live.length === 0 && allAgreed && !busy;
 
+  function setParam(key: string, value: string | null) {
+    const next = new URLSearchParams(params);
+    if (value === null) next.delete(key);
+    else next.set(key, value);
+    setParams(next, { replace: true });
+  }
+
   function choose(c: Choice) {
-    setParams(c === "pass" ? {} : { product: c }, { replace: true });
+    setParam("product", c === "pass" ? null : c);
     setErrors([]);
     setAgreed((a) => ({ ...a, nature: false }));
   }
 
-  async function getTestEuro() {
+  function pay(id: CoinId) {
+    setParam("munt", id === COINS[0]?.id ? null : id);
+    setErrors([]);
+    setFaucet({ busy: false, msg: "" });
+  }
+
+  async function getTestCoin() {
     if (!wallet) return;
     setFaucet({ busy: true, msg: "" });
     try {
-      const res = await requestTestEuro(wallet);
-      setFaucet({ busy: false, msg: t.got(`${euro(res.amountMicro, { whole: true })} ${SYMBOL}`) });
-      balance.refresh();
+      const res = await requestTestCoin(wallet, coin.id);
+      setFaucet({ busy: false, msg: t.got(coinAmount(res.amountMicro, coin)) });
+      balances.refresh();
     } catch (err) {
       setFaucet({ busy: false, msg: err instanceof Error ? err.message : "" });
     }
@@ -209,20 +242,23 @@ export default function Claim() {
     setErrors([]);
     setPhase("preparing");
     try {
-      const prepared = product ? await preparePass(wallet, product.id, nameCheck.naam ?? "") : await prepareSupport(wallet, amount, nameCheck.naam ?? "");
+      const prepared = product ? await preparePass(wallet, product.id, nameCheck.naam ?? "", coin.id) : await prepareSupport(wallet, amount, nameCheck.naam ?? "", coin.id);
       setPhase("signing");
       const signed = await signTransaction(decodeTransaction(prepared.transaction));
       setPhase("sending");
       const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
       await confirmSignature(connection, signature, lang);
+      const eur = "number" in prepared ? prepared.priceMicro : prepared.eurMicro;
+      const inCoin = coinAmount(prepared.amountMicro, coin);
+      const paid = coin.valuta === "EUR" ? inCoin : `${inCoin} (${euro(eur)})`;
       setResult(
         "number" in prepared
-          ? { choice, number: prepared.number, label: `${product!.naam} ${prepared.label}`, amountMicro: prepared.priceMicro, signature }
-          : { choice, number: null, label: "Supporter", amountMicro: prepared.amountMicro, signature },
+          ? { choice, number: prepared.number, label: `${product!.naam} ${prepared.label}`, paid, signature }
+          : { choice, number: null, label: "Supporter", paid, signature },
       );
       setPhase("done");
       state.refresh();
-      balance.refresh();
+      balances.refresh();
     } catch (err) {
       setPhase("idle");
       state.refresh();
@@ -251,7 +287,7 @@ export default function Claim() {
           </div>
           <div className="claimed-copy">
             <h2>{result.choice === "steun" ? t.thanks : t.welcome(result.label.split(" ").pop() ?? "")}</h2>
-            <p className="lead">{result.choice === "steun" ? t.thanksText(euro(result.amountMicro)) : t.welcomeText(result.label, euro(result.amountMicro))}</p>
+            <p className="lead">{result.choice === "steun" ? t.thanksText(result.paid) : t.welcomeText(result.label, result.paid)}</p>
             <div className="actions">
               <Link className="btn btn-lg" to="/mijn-pass">{result.choice === "steun" ? t.myPass : t.activate}</Link>
               <a className="more" href={share} target="_blank" rel="noreferrer">{t.share}</a>
@@ -266,6 +302,7 @@ export default function Claim() {
 
   const signedIn = Boolean(wallet);
   const priceLabel = product ? (next.price ? euro(next.price, { whole: true }) : t.soldOut) : Number.isFinite(eurMicro) ? euro(eurMicro) : "-";
+  const payLabel = coinCost === null ? "-" : coinAmount(coinCost, coin);
 
   return (
     <>
@@ -317,12 +354,34 @@ export default function Claim() {
               )}
             </section>
 
+            {COINS.length > 1 && (
+              <section className="step" aria-labelledby="s-pay">
+                <h2 id="s-pay">{t.payWith} <span>{t.payWithHint}</span></h2>
+                <div className="options coins" role="radiogroup" aria-labelledby="s-pay">
+                  {COINS.map((c) => {
+                    const cost = costIn(c);
+                    const bal = balances.data?.[c.id];
+                    return (
+                      <button key={c.id} type="button" role="radio" aria-checked={coin.id === c.id} className={`option${coin.id === c.id ? " is-on" : ""}`} onClick={() => pay(c.id)}>
+                        <span>
+                          <strong>{c.symbool}</strong>
+                          <small>{t.coinDesc[c.valuta]}{bal !== undefined ? ` · ${t.balanceOf(coinAmount(bal, c))}` : ""}</small>
+                        </span>
+                        <span className="price">{cost === null ? "–" : coinAmount(cost, c)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {coin.valuta === "USD" && <p className="fine">{rate ? t.rateNote(rate.toFixed(4), state.data?.koers?.datum ?? null) : t.rateMissing}</p>}
+              </section>
+            )}
+
             {isTestnet && (
               <section className={`step${signedIn ? "" : " locked"}`} aria-labelledby="s-funds">
                 <h2 id="s-funds">{t.funds} <span>{t.fundsHint}</span></h2>
-                <p className="muted">{t.fundsText(balance.data === null ? "-" : `${euro(balance.data)} ${SYMBOL}`)}</p>
+                <p className="muted">{t.fundsText(coin.symbool, balance === undefined ? "-" : coinAmount(balance, coin))}</p>
                 <div className="actions">
-                  <button type="button" className={`btn${needsFunds ? "" : " btn-quiet"}`} onClick={getTestEuro} disabled={faucet.busy || !signedIn}>{faucet.busy ? t.preparing : t.fundsBtn}</button>
+                  <button type="button" className={`btn${needsFunds ? "" : " btn-quiet"}`} onClick={getTestCoin} disabled={faucet.busy || !signedIn}>{faucet.busy ? t.preparing : t.fundsBtn(coin.symbool)}</button>
                   {faucet.msg && <span className="muted" role="status">{faucet.msg}</span>}
                 </div>
               </section>
@@ -366,6 +425,7 @@ export default function Claim() {
                   <div><dt>{t.rows.badge}</dt><dd>{t.badgeValue}</dd></div>
                 )}
                 <div><dt>{t.rows.fees}</dt><dd>{t.feesValue}</dd></div>
+                <div><dt>{t.rows.pay}</dt><dd>{payLabel}</dd></div>
               </dl>
               <p className="total"><span>{t.total}</span><span>{priceLabel}</span></p>
               <div style={{ display: "grid", gap: 12 }}>
@@ -392,7 +452,7 @@ export default function Claim() {
                 {phase === "sending" && t.sending}
                 {phase === "idle" && (product ? (next.next ? t.claim(`${product.naam} ${formatNumber(product, next.next)}`, priceLabel) : t.soldOutBtn) : t.support(priceLabel))}
               </button>
-              <p className="fine">{product ? t.explainPass(priceLabel) : t.explainSupport(priceLabel)}</p>
+              <p className="fine">{product ? t.explainPass(payLabel) : t.explainSupport(payLabel)}</p>
             </section>
           </div>
         </div>

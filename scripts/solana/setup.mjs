@@ -1,18 +1,22 @@
 #!/usr/bin/env node
-// Zet Marketing Scan Genesis op Solana op (localnet of devnet).
+// Zet Marketing Scan Genesis op Solana op (localnet, devnet of mainnet).
 //
 // Wat het doet:
 // 1. Maakt (of leest) de serversleutel in .keys/<netwerk>/authority.json (nooit committen).
-// 2. Maakt de test-euro (tEUR) aan, een Token-2022-munt zonder waarde, voor de demo.
-//    Op mainnet geef je met --payment-mint de echte euro-stablecoin op (bv. EURC).
+// 2. Betaalmunten (zie betaalmunten in shared/genesis.json): op het testnet maakt het tEUR en tUSD
+//    aan, Token-2022-munten zonder waarde, voor de demo. Op mainnet gebruikt het de echte EURC en
+//    USDC van Circle (of de munten die je opgeeft met --eurc-mint en --usdc-mint).
 // 3. Maakt de supporter-badge aan: Token-2022, 0 decimalen, NonTransferable (niet door te sturen).
-// 4. Maakt de kas aan (betalingen) en de rekening van de oprichter voor opnames.
+// 4. Maakt per munt een kas aan (betalingen) en een rekening van de oprichter voor opnames.
 // 5. Schrijft alle adressen naar shared/deployments/<netwerk>.json.
+//
+// Bestaat de deployment al, dan vult het script enkel aan wat ontbreekt (bv. een nieuwe munt) en
+// blijft al de rest, ook de passen, ongemoeid. Met --force begint het helemaal opnieuw.
 //
 // De passen zelf bestaan nog niet: elke pass wordt pas aangemaakt bij de aankoop, met een eigen
 // munt, een vast nummer en voorraad 1 (zie server/genesis.js).
 //
-// Gebruik: node scripts/solana/setup.mjs --network devnet [--founder <adres>] [--rpc <url>] [--payment-mint <adres>] [--force]
+// Gebruik: node scripts/solana/setup.mjs --network devnet [--founder <adres>] [--rpc <url>] [--eurc-mint <adres>] [--usdc-mint <adres>] [--force]
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,6 +32,7 @@ import {
   createInitializeNonTransferableMintInstruction,
   createInitializeMintInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
+  unpackMint,
 } from "@solana/spl-token";
 import { createInitializeInstruction, createUpdateFieldInstruction, pack } from "@solana/spl-token-metadata";
 
@@ -35,6 +40,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const DEFAULT_FOUNDER = "JPmYxhBGqt9GMe6kfozUce3EyQRAoQZD1hbLGWJR8T6";
 const RPC = { localnet: "http://127.0.0.1:8899", devnet: "https://api.devnet.solana.com", "mainnet-beta": "https://api.mainnet-beta.solana.com" };
 const MIN_SOL = 0.3;
+// De echte stablecoins van Circle op Solana mainnet (SPL Token, 6 decimalen).
+const MAINNET_MINTS = { eurc: "HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr", usdc: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" };
 
 function arg(name, fallback) {
   const i = process.argv.indexOf(`--${name}`);
@@ -97,6 +104,18 @@ async function createMintWithMetadata(connection, { payer, decimals, nonTransfer
   return { mint: mint.publicKey, signature };
 }
 
+/** Oude deployments hadden één betaalmunt (paymentMint, kas, ...): die wordt munten.eurc. */
+function upgrade(dep) {
+  if (dep.munten || !dep.paymentMint) return dep;
+  const { paymentMint, paymentProgram, kas, founderPaymentAccount, ...rest } = dep;
+  const signatures = { ...rest.signatures };
+  if (signatures.betaalmunt) signatures.munt_eurc = signatures.betaalmunt;
+  if (signatures.kas) signatures.kas_eurc = signatures.kas;
+  delete signatures.betaalmunt;
+  delete signatures.kas;
+  return { ...rest, munten: { eurc: { mint: paymentMint, program: paymentProgram, kas, founderAccount: founderPaymentAccount } }, signatures };
+}
+
 async function main() {
   const network = arg("network", "devnet");
   if (network === "mainnet-beta" && !process.argv.includes("--ik-weet-wat-ik-doe")) {
@@ -109,15 +128,22 @@ async function main() {
   const out = arg("out", join(ROOT, "shared", "deployments", `${network}.json`));
   const cfg = JSON.parse(readFileSync(join(ROOT, "shared", "genesis.json"), "utf8"));
 
-  if (existsSync(out) && !process.argv.includes("--force")) {
-    throw new Error(`${out} bestaat al. Gebruik --force om alles opnieuw aan te maken.`);
-  }
+  const existing = existsSync(out) && !process.argv.includes("--force") ? upgrade(JSON.parse(readFileSync(out, "utf8"))) : null;
+  if (existing && existing.network !== network) throw new Error(`${out} hoort bij ${existing.network}, niet bij ${network}.`);
 
   const connection = new Connection(rpc, "confirmed");
   const authority = loadOrCreateKey(join(keysDir, "authority.json"));
+  if (existing && existing.authority !== authority.publicKey.toBase58()) {
+    throw new Error(`De serversleutel in ${keysDir} hoort niet bij ${out}. Gebruik de juiste --keys, of --force om opnieuw te beginnen.`);
+  }
+  if (existing && existing.founderWallet !== founder.toBase58() && process.argv.includes("--founder")) {
+    throw new Error(`De oprichterswallet van ${out} is ${existing.founderWallet}. Die verander je enkel met --force.`);
+  }
+  console.log(existing ? `Bestaande deployment aanvullen: ${out}` : "Nieuwe deployment");
   console.log(`Netwerk: ${network} (${rpc})`);
   console.log(`Serversleutel: ${authority.publicKey.toBase58()}`);
-  console.log(`Oprichterswallet: ${founder.toBase58()}`);
+  const founderWallet = existing ? new PublicKey(existing.founderWallet) : founder;
+  console.log(`Oprichterswallet: ${founderWallet.toBase58()}`);
 
   let balance = (await connection.getBalance(authority.publicKey)) / LAMPORTS_PER_SOL;
   if (balance < MIN_SOL && network !== "mainnet-beta") {
@@ -140,74 +166,86 @@ async function main() {
   const base = arg("uri", cfg.metadataBasis);
   const site = base.replace(/\/(genesis|token)$/, "");
 
-  let paymentMint;
-  let paymentProgram;
-  const signatures = {};
-  const given = arg("payment-mint");
-  if (given) {
-    paymentMint = new PublicKey(given);
-    const info = await connection.getAccountInfo(paymentMint);
-    if (!info) throw new Error(`Betaalmunt ${given} niet gevonden op ${network}.`);
-    paymentProgram = info.owner;
-    console.log(`  ok  Bestaande betaalmunt ${given}`);
-  } else {
-    if (network === "mainnet-beta") throw new Error("Geef op mainnet de echte betaalmunt op met --payment-mint.");
-    const payment = await createMintWithMetadata(connection, {
-      payer: authority,
-      decimals: cfg.betaalmunt.decimalen,
-      nonTransferable: false,
-      name: `${cfg.betaalmunt.naam} (testnet)`,
-      symbol: cfg.betaalmunt.symbool,
-      uri: `${site}/token/teur.json`,
-      extra: [["gebruik", "enkel voor de demo, geen waarde"]],
-    });
-    paymentMint = payment.mint;
-    paymentProgram = TOKEN_2022_PROGRAM_ID;
-    signatures.betaalmunt = payment.signature;
+  const signatures = { ...(existing?.signatures ?? {}) };
+  const munten = { ...(existing?.munten ?? {}) };
+  for (const c of cfg.betaalmunten) {
+    const symbol = network === "mainnet-beta" ? c.symbool : c.testSymbool;
+    if (munten[c.id]) {
+      console.log(`  ok  ${symbol} bestaat al (${munten[c.id].mint})`);
+      continue;
+    }
+    let mint;
+    let program;
+    const given = arg(`${c.id}-mint`, network === "mainnet-beta" ? MAINNET_MINTS[c.id] : undefined);
+    if (given) {
+      mint = new PublicKey(given);
+      const info = await connection.getAccountInfo(mint);
+      if (!info) throw new Error(`${symbol} (${given}) niet gevonden op ${network}.`);
+      program = info.owner;
+      const decimals = unpackMint(mint, info, program).decimals;
+      if (decimals !== c.decimalen) throw new Error(`${symbol} heeft ${decimals} decimalen, verwacht ${c.decimalen}.`);
+      console.log(`  ok  Bestaande munt ${symbol} (${given})`);
+    } else {
+      const created = await createMintWithMetadata(connection, {
+        payer: authority,
+        decimals: c.decimalen,
+        nonTransferable: false,
+        name: `${c.testNaam} (testnet)`,
+        symbol,
+        uri: `${site}/token/${symbol.toLowerCase()}.json`,
+        extra: [["gebruik", "enkel voor de demo, geen waarde"]],
+      });
+      mint = created.mint;
+      program = TOKEN_2022_PROGRAM_ID;
+      signatures[`munt_${c.id}`] = created.signature;
+    }
+    const kas = getAssociatedTokenAddressSync(mint, authority.publicKey, false, program);
+    const founderAccount = getAssociatedTokenAddressSync(mint, founderWallet, false, program);
+    signatures[`kas_${c.id}`] = await send(
+      connection,
+      new Transaction().add(
+        createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, kas, authority.publicKey, mint, program),
+        createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, founderAccount, founderWallet, mint, program),
+      ),
+      [authority],
+      `Kas ${symbol} en rekening van de oprichter`,
+    );
+    munten[c.id] = { mint: mint.toBase58(), program: program.toBase58(), kas: kas.toBase58(), founderAccount: founderAccount.toBase58() };
   }
 
-  const supporter = await createMintWithMetadata(connection, {
-    payer: authority,
-    decimals: 0,
-    nonTransferable: true,
-    name: network === "mainnet-beta" ? cfg.steun.tokenNaam : `${cfg.steun.tokenNaam} (testnet)`,
-    symbol: cfg.steun.symbool,
-    uri: `${base}/steun.json`,
-    extra: [["website", site]],
-  });
-  signatures.supporterBadge = supporter.signature;
-
-  const kas = getAssociatedTokenAddressSync(paymentMint, authority.publicKey, false, paymentProgram);
-  const founderPayment = getAssociatedTokenAddressSync(paymentMint, founder, false, paymentProgram);
-  signatures.kas = await send(
-    connection,
-    new Transaction().add(
-      createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, kas, authority.publicKey, paymentMint, paymentProgram),
-      createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, founderPayment, founder, paymentMint, paymentProgram),
-    ),
-    [authority],
-    "Kas en rekening van de oprichter",
-  );
+  let supporterMint = existing?.supporterMint;
+  if (supporterMint) {
+    console.log(`  ok  Supporter-badge bestaat al (${supporterMint})`);
+  } else {
+    const supporter = await createMintWithMetadata(connection, {
+      payer: authority,
+      decimals: 0,
+      nonTransferable: true,
+      name: network === "mainnet-beta" ? cfg.steun.tokenNaam : `${cfg.steun.tokenNaam} (testnet)`,
+      symbol: cfg.steun.symbool,
+      uri: `${base}/steun.json`,
+      extra: [["website", site]],
+    });
+    supporterMint = supporter.mint.toBase58();
+    signatures.supporterBadge = supporter.signature;
+  }
 
   const deployment = {
     network,
     rpc,
-    createdAt: new Date().toISOString(),
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
     authority: authority.publicKey.toBase58(),
-    founderWallet: founder.toBase58(),
-    paymentMint: paymentMint.toBase58(),
-    paymentProgram: paymentProgram.toBase58(),
-    kas: kas.toBase58(),
-    founderPaymentAccount: founderPayment.toBase58(),
-    supporterMint: supporter.mint.toBase58(),
+    founderWallet: founderWallet.toBase58(),
+    supporterMint,
     passProgram: TOKEN_2022_PROGRAM_ID.toBase58(),
+    munten,
     signatures,
   };
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, `${JSON.stringify(deployment, null, 2)}\n`);
 
   console.log(`\nKlaar. Adressen bewaard in ${out}`);
-  console.log(`Kas:              ${explorer(network, rpc, deployment.kas)}`);
+  for (const [id, m] of Object.entries(deployment.munten)) console.log(`Kas ${id.toUpperCase()}:         ${explorer(network, rpc, m.kas)}`);
   console.log(`Supporter-badge:  ${explorer(network, rpc, deployment.supporterMint)}`);
   console.log(`\nZet de serversleutel als omgevingsvariabele SALE_AUTHORITY_SECRET (inhoud van ${join(keysDir, "authority.json")}).`);
   console.log("Die sleutel maakt de passen aan en beheert de kas: bewaar hem enkel in Vercel en in je wachtwoordbeheerder.");

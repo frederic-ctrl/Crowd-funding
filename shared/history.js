@@ -1,9 +1,10 @@
 // Leest de volledige geschiedenis van Genesis uit de blockchain: elke aankoop, steun,
-// terugbetaling en opname loopt via de kas en draagt een vaste memo. Enkel transacties die
-// de serversleutel ondertekende tellen mee, zodat niemand valse aankopen kan toevoegen.
-// Gedeeld door de server en de website (de site kan alles zelf in de browser nalezen).
+// terugbetaling en opname loopt via een kas (één per betaalmunt) en draagt een vaste memo.
+// Enkel transacties die de serversleutel ondertekende tellen mee, zodat niemand valse aankopen
+// kan toevoegen. Gedeeld door de server en de website (de site kan alles zelf in de browser nalezen).
 import { PublicKey } from "@solana/web3.js";
 import { parseMemo } from "./genesis.js";
+import { coinsOf } from "./munten.js";
 
 const MEMO_PROGRAMS = new Set(["MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr", "Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo"]);
 
@@ -31,8 +32,9 @@ function balanceChanges(tx) {
 
 /**
  * Eén gebeurtenis uit een geparste transactie, of null als het geen geldige Genesis-transactie is.
+ * amountMicro is het bedrag in de betaalmunt (munt), eurMicro de waarde in euro uit de memo.
  * @returns {{ kind: "aankoop"|"steun"|"terugbetaling"|"opname", productId: string|null, number: number|null, name: string,
- *   wallet: string, mint: string|null, amountMicro: number, signature: string, time: number|null, slot: number } | null}
+ *   wallet: string, mint: string|null, munt: string, amountMicro: number, eurMicro: number, signature: string, time: number|null, slot: number } | null}
  */
 export function parseGenesisTx(tx, deployment, cfg, signature, time = null) {
   if (!tx || tx.meta?.err) return null;
@@ -42,33 +44,46 @@ export function parseGenesisTx(tx, deployment, cfg, signature, time = null) {
   const memo = parseMemo(cfg, memoOf(tx));
   if (!memo) return null;
 
+  const coins = coinsOf(deployment, cfg);
+  const coinMints = new Set(coins.map((c) => c.mint));
   const changes = balanceChanges(tx);
-  const kas = changes.filter((c) => c.mint === deployment.paymentMint && c.owner === deployment.authority).reduce((s, c) => s + c.delta, 0);
-  const base = { kind: memo.kind, productId: memo.productId, number: memo.number, name: memo.name, signature, time, slot: tx.slot ?? 0 };
+  // Precies één kas beweegt: die bepaalt de munt.
+  const kasRows = changes.filter((c) => coinMints.has(c.mint) && c.owner === deployment.authority);
+  if (kasRows.length !== 1) return null;
+  const coin = coins.find((c) => c.mint === kasRows[0].mint);
+  const kas = kasRows[0].delta;
+  const eurMicro = memo.eurMicro ?? (coin.valuta === "EUR" ? Math.abs(kas) : null);
+  if (eurMicro === null) return null;
+  const base = { kind: memo.kind, productId: memo.productId, number: memo.number, name: memo.name, munt: coin.id, eurMicro, signature, time, slot: tx.slot ?? 0 };
+  const other = (c) => !coinMints.has(c.mint) && c.mint !== deployment.supporterMint;
 
   if (memo.kind === "aankoop") {
-    const pass = changes.find((c) => c.mint !== deployment.paymentMint && c.mint !== deployment.supporterMint && c.delta === 1);
+    const pass = changes.find((c) => other(c) && c.delta === 1);
     if (!pass || kas <= 0) return null;
     return { ...base, wallet: pass.owner, mint: pass.mint, amountMicro: kas };
   }
   if (memo.kind === "steun") {
-    const payerAccount = changes.find((c) => c.mint === deployment.paymentMint && c.owner !== deployment.authority && c.delta < 0);
+    const payerAccount = changes.find((c) => c.mint === coin.mint && c.owner !== deployment.authority && c.delta < 0);
     if (!payerAccount || kas <= 0) return null;
     return { ...base, wallet: payerAccount.owner, mint: null, amountMicro: kas };
   }
   if (memo.kind === "terugbetaling") {
-    const burned = changes.find((c) => c.mint !== deployment.paymentMint && c.delta === -1);
-    const receiver = changes.find((c) => c.mint === deployment.paymentMint && c.owner !== deployment.authority && c.delta > 0);
+    const burned = changes.find((c) => other(c) && c.delta === -1);
+    const receiver = changes.find((c) => c.mint === coin.mint && c.owner !== deployment.authority && c.delta > 0);
     if (!burned || !receiver || kas >= 0) return null;
     return { ...base, wallet: receiver.owner, mint: burned.mint, amountMicro: -kas };
   }
   // opname: van de kas naar de oprichterswallet
-  const founder = changes.find((c) => c.mint === deployment.paymentMint && c.owner === deployment.founderWallet && c.delta > 0);
+  const founder = changes.find((c) => c.mint === coin.mint && c.owner === deployment.founderWallet && c.delta > 0);
   if (!founder || kas >= 0) return null;
   return { ...base, wallet: founder.owner, mint: null, amountMicro: -kas };
 }
 
-/** Totalen, de stand per product en de Genesis-muur, uit een lijst gebeurtenissen (oudste eerst). */
+/**
+ * Totalen, de stand per product en de Genesis-muur, uit een lijst gebeurtenissen (oudste eerst).
+ * Totalen in euro (opgehaald, terugbetaald, opgenomen); per munt de bedragen in die munt en wat er
+ * in de kas hoort te staan.
+ */
 export function summarize(cfg, events) {
   const refunded = new Set(events.filter((e) => e.kind === "terugbetaling").map((e) => `${e.productId}:${e.number}`));
   const producten = {};
@@ -81,41 +96,50 @@ export function summarize(cfg, events) {
       hoogsteNummer: used,
     };
   }
-  const sum = (kind) => events.filter((e) => e.kind === kind).reduce((s, e) => s + e.amountMicro, 0);
+  const eur = (kind) => events.filter((e) => e.kind === kind).reduce((s, e) => s + e.eurMicro, 0);
   const steun = events.filter((e) => e.kind === "steun");
-  const binnenMicro = sum("aankoop") + sum("steun");
-  const terugMicro = sum("terugbetaling");
-  const opgenomenMicro = sum("opname");
+  const perMunt = {};
+  for (const c of cfg.betaalmunten ?? []) perMunt[c.id] = { binnenMicro: 0, terugbetaaldMicro: 0, opgenomenMicro: 0, verwachteKasMicro: 0 };
+  for (const e of events) {
+    const row = (perMunt[e.munt] ??= { binnenMicro: 0, terugbetaaldMicro: 0, opgenomenMicro: 0, verwachteKasMicro: 0 });
+    if (e.kind === "aankoop" || e.kind === "steun") row.binnenMicro += e.amountMicro;
+    else if (e.kind === "terugbetaling") row.terugbetaaldMicro += e.amountMicro;
+    else row.opgenomenMicro += e.amountMicro;
+    row.verwachteKasMicro = row.binnenMicro - row.terugbetaaldMicro - row.opgenomenMicro;
+  }
   const muur = events
     .filter((e) => e.kind === "aankoop" || e.kind === "steun")
     .map((e) => ({ ...e, teruggegeven: e.kind === "aankoop" && refunded.has(`${e.productId}:${e.number}`) }))
     .reverse();
   return {
     producten,
-    steun: { aantal: steun.length, totaalMicro: sum("steun"), wallets: new Set(steun.map((e) => e.wallet)).size },
-    opgehaaldMicro: binnenMicro - terugMicro,
-    terugbetaaldMicro: terugMicro,
-    opgenomenMicro,
-    verwachteKasMicro: binnenMicro - terugMicro - opgenomenMicro,
+    steun: { aantal: steun.length, totaalMicro: eur("steun"), wallets: new Set(steun.map((e) => e.wallet)).size },
+    opgehaaldMicro: eur("aankoop") + eur("steun") - eur("terugbetaling"),
+    terugbetaaldMicro: eur("terugbetaling"),
+    opgenomenMicro: eur("opname"),
+    perMunt,
     muur,
   };
 }
 
 /**
- * Alle Genesis-gebeurtenissen, oudste eerst. Bladert door de volledige geschiedenis van de kas.
+ * Alle Genesis-gebeurtenissen, oudste eerst. Bladert door de volledige geschiedenis van elke kas.
  * `cache` (een Map van handtekening naar gebeurtenis) maakt herhaalde oproepen goedkoop: transacties veranderen nooit.
  */
 export async function fetchEvents(connection, deployment, cfg, { cache = new Map(), batch = 50 } = {}) {
-  const kas = new PublicKey(deployment.kas);
-  const sigs = [];
-  let before;
-  for (;;) {
-    const page = await connection.getSignaturesForAddress(kas, { limit: 1000, before }, "confirmed");
-    sigs.push(...page);
-    const reachedCache = page.some((s) => cache.has(s.signature));
-    if (page.length < 1000 || reachedCache) break;
-    before = page[page.length - 1].signature;
+  const seen = new Map();
+  for (const coin of coinsOf(deployment, cfg)) {
+    const kas = new PublicKey(coin.kas);
+    let before;
+    for (;;) {
+      const page = await connection.getSignaturesForAddress(kas, { limit: 1000, before }, "confirmed");
+      for (const s of page) seen.set(s.signature, s);
+      const reachedCache = page.some((s) => cache.has(s.signature));
+      if (page.length < 1000 || reachedCache) break;
+      before = page[page.length - 1].signature;
+    }
   }
+  const sigs = [...seen.values()];
   const todo = sigs.filter((s) => !s.err && !cache.has(s.signature));
   for (let i = 0; i < todo.length; i += batch) {
     const slice = todo.slice(i, i + batch);

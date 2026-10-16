@@ -48,6 +48,43 @@ test("stand: enkel GET, en 503 zolang Genesis niet geactiveerd is", async () => 
   assert.equal((await genesis(new Request("https://example.test/api/genesis"), { SOLANA_NETWORK: "bestaat-niet" })).status, 503);
 });
 
+const authorityKp = Keypair.generate();
+const fakeDeployment = {
+  network: "devnet",
+  authority: authorityKp.publicKey.toBase58(),
+  founderWallet: wallet,
+  supporterMint: Keypair.generate().publicKey.toBase58(),
+  munten: Object.fromEntries(
+    ["eurc", "usdc"].map((id) => [id, { mint: Keypair.generate().publicKey.toBase58(), program: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb", kas: Keypair.generate().publicKey.toBase58(), founderAccount: Keypair.generate().publicKey.toBase58() }]),
+  ),
+};
+
+test("koop in USDC: zonder koers een duidelijke 503, onbekende munt een 400", async () => {
+  const deps = { deployment: fakeDeployment, authority: authorityKp, connection: {}, rate: async () => { throw new Error("ECB onbereikbaar"); } };
+  const down = await koop(post({ wallet, product: "pass", munt: "usdc", lang: "en" }), {}, deps);
+  assert.equal(down.status, 503);
+  assert.match((await down.json()).fout, /exchange rate/);
+  const unknown = await koop(post({ wallet, product: "pass", munt: "btc" }), {}, deps);
+  assert.equal(unknown.status, 400);
+  assert.match((await unknown.json()).fout, /betaalmunt "btc"/);
+});
+
+test("stand: saldo per kas en de koers euro-dollar", async () => {
+  const connection = {
+    getSignaturesForAddress: async () => [],
+    getParsedTransactions: async () => [],
+    getMultipleAccountsInfo: async (keys) => keys.map(() => null),
+  };
+  const res = await genesis(new Request("https://example.test/api/genesis"), {}, { deployment: fakeDeployment, connection, fresh: true, rate: async () => ({ eurUsd: 1.1208, datum: "2026-10-15" }) });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.deepEqual(body.kassen, { eurc: 0, usdc: 0 });
+  assert.deepEqual(body.koers, { eurUsd: 1.1208, datum: "2026-10-15" });
+  assert.equal(body.perMunt.usdc.verwachteKasMicro, 0);
+  const noRate = await genesis(new Request("https://example.test/api/genesis"), {}, { deployment: fakeDeployment, connection, fresh: true, rate: async () => { throw new Error("x"); } });
+  assert.equal((await noRate.json()).koers, null, "zonder koers werkt de stand gewoon");
+});
+
 test("activatiecodes: vast formaat, niet te raden, gebonden aan de serversleutel", () => {
   const authority = Keypair.generate();
   const code = activationCode(authority, cfg, "pass", 42, {});

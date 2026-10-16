@@ -1,6 +1,6 @@
 // Rekenregels van Marketing Scan Genesis. Gedeeld door de website, de server en de scripts,
 // zodat iedereen exact hetzelfde rekent. Bedragen in euro staan in basiseenheden van
-// 6 decimalen (1 euro = 1.000.000), zoals tEUR, EURC en USDC op Solana.
+// 6 decimalen (1 euro = 1.000.000), zoals EURC en USDC op Solana (zie munten.js).
 
 import { msg } from "./messages.js";
 
@@ -77,25 +77,28 @@ export function cleanName(input, lang = "nl") {
 }
 
 // Elke transactie krijgt een vaste, leesbare memo. Zo kan iedereen de geschiedenis nalezen.
-const MEMO = /^Marketing Scan (Genesis Pass|Genesis Agency|Supporter|terugbetaling Genesis Pass|terugbetaling Genesis Agency|opname)(?: #(\d+))?(?: \| (.*))?$/;
+// De waarde in euro staat erbij ("(EUR 99.00)"), ook als er in USDC betaald werd.
+const MEMO = /^Marketing Scan (Genesis Pass|Genesis Agency|Supporter|terugbetaling Genesis Pass|terugbetaling Genesis Agency|opname)(?: #(\d+))?(?: \(EUR (\d+\.\d{2})\))?(?: \| (.*))?$/;
 
-export function memoFor({ kind, product, number, name }) {
+export function memoFor({ kind, product, number, name, eurMicro }) {
   const base = kind === "steun" ? "Marketing Scan Supporter" : kind === "opname" ? "Marketing Scan opname" : `Marketing Scan ${kind === "terugbetaling" ? "terugbetaling " : ""}${product.naam}`;
   const nr = number ? ` ${formatNumber(product, number)}` : "";
-  return `${base}${nr}${name ? ` | ${name}` : ""}`;
+  const eur = Number.isInteger(eurMicro) ? ` (EUR ${(eurMicro / EUR).toFixed(2)})` : "";
+  return `${base}${nr}${eur}${name ? ` | ${name}` : ""}`;
 }
 
-/** Leest een memo terug. Geeft null als het geen Genesis-memo is. */
+/** Leest een memo terug. Geeft null als het geen Genesis-memo is. eurMicro is null als de memo geen bedrag noemt. */
 export function parseMemo(cfg, text) {
   const m = MEMO.exec(String(text ?? "").replace(/^\[\d+\] /, ""));
   if (!m) return null;
-  const [, what, nr, name = ""] = m;
-  if (what === "Supporter") return { kind: "steun", productId: "steun", number: null, name };
-  if (what === "opname") return { kind: "opname", productId: null, number: null, name };
+  const [, what, nr, eur, name = ""] = m;
+  const eurMicro = eur ? Math.round(Number(eur) * 100) * 10_000 : null;
+  if (what === "Supporter") return { kind: "steun", productId: "steun", number: null, name, eurMicro };
+  if (what === "opname") return { kind: "opname", productId: null, number: null, name, eurMicro };
   const refund = what.startsWith("terugbetaling ");
   const product = cfg.producten.find((p) => p.naam === what.replace("terugbetaling ", ""));
   if (!product || !nr) return null;
-  return { kind: refund ? "terugbetaling" : "aankoop", productId: product.id, number: Number(nr), name };
+  return { kind: refund ? "terugbetaling" : "aankoop", productId: product.id, number: Number(nr), name, eurMicro };
 }
 
 /** Is de verkoop open? Op het testnet altijd (demo). Op mainnet enkel met verkoopActief en binnen de periode. */
@@ -113,9 +116,10 @@ function closedMessage(cfg, now, lang) {
 
 /**
  * Controleert de aankoop van een pass. Geeft fouten in gewone taal terug (leeg = in orde).
- * @param {{ cfg: object, product: object, nextNumber: number | null, held: number, balanceMicro?: number, network: string, now?: Date, lang?: "en" | "nl" }} p
+ * Betaal je in USDC, geef dan de prijs in de munt mee (coinPriceMicro, coinLabel zoals "107.25 USDC").
+ * @param {{ cfg: object, product: object, nextNumber: number | null, held: number, balanceMicro?: number, coinPriceMicro?: number, coinLabel?: string, network: string, now?: Date, lang?: "en" | "nl" }} p
  */
-export function checkPassPurchase({ cfg, product, nextNumber, held, balanceMicro, network, now = new Date(), lang = "nl" }) {
+export function checkPassPurchase({ cfg, product, nextNumber, held, balanceMicro, coinPriceMicro, coinLabel, network, now = new Date(), lang = "nl" }) {
   if (!saleIsOpen(cfg, network, now)) return [closedMessage(cfg, now, lang)];
   const m = msg(lang);
   const errors = [];
@@ -124,14 +128,14 @@ export function checkPassPurchase({ cfg, product, nextNumber, held, balanceMicro
   if (held >= product.maxPerWallet) {
     errors.push(product.maxPerWallet === 1 ? m.onePerWallet(product.naam) : m.maxPerWallet(held, product.naam, product.maxPerWallet));
   }
-  if (balanceMicro !== undefined && balanceMicro < price) {
-    errors.push(m.notEnoughForPass(product.naam, lang === "en" ? (price / EUR).toFixed(2) : formatEur(price)));
+  if (balanceMicro !== undefined && balanceMicro < (coinPriceMicro ?? price)) {
+    errors.push(m.notEnoughForPass(product.naam, coinLabel ?? (lang === "en" ? `€${(price / EUR).toFixed(2)}` : `€ ${formatEur(price)}`)));
   }
   return errors;
 }
 
-/** Controleert een steun vanaf €1. */
-export function checkSupport({ cfg, eurMicro, balanceMicro, network, now = new Date(), lang = "nl" }) {
+/** Controleert een steun vanaf €1. coinMicro: het bedrag in de munt (bij USDC), anders gelijk aan eurMicro. */
+export function checkSupport({ cfg, eurMicro, balanceMicro, coinMicro, network, now = new Date(), lang = "nl" }) {
   if (!saleIsOpen(cfg, network, now)) return [closedMessage(cfg, now, lang)];
   const m = msg(lang);
   const s = cfg.steun;
@@ -139,7 +143,7 @@ export function checkSupport({ cfg, eurMicro, balanceMicro, network, now = new D
   const errors = [];
   if (eurMicro < s.minimumEur * EUR) errors.push(m.minimum(s.minimumEur));
   if (eurMicro > s.maximumEur * EUR) errors.push(m.maximum(s.maximumEur));
-  if (balanceMicro !== undefined && eurMicro > balanceMicro) errors.push(m.notEnoughForSupport());
+  if (balanceMicro !== undefined && (coinMicro ?? eurMicro) > balanceMicro) errors.push(m.notEnoughForSupport());
   return errors;
 }
 

@@ -3,6 +3,7 @@
 //   web/public/token/pass.png     (512 x 512, afbeelding van de Genesis Pass in wallets)
 //   web/public/token/agency.png   (512 x 512, Genesis Agency)
 //   web/public/token/steun.png    (512 x 512, supporter-badge)
+//   web/public/token/teur.png, tusd.png (512 x 512, testmunten van de demo)
 // Vereist Playwright met Chromium op de machine: npm i -D playwright && npx playwright install chromium
 import { createRequire } from "node:module";
 import { join, dirname } from "node:path";
@@ -19,6 +20,8 @@ for (const [file, query, target, width, height, transparent] of [
   ["pass.html", "?v=pass", "token/pass.png", 512, 512, true],
   ["pass.html", "?v=agency", "token/agency.png", 512, 512, true],
   ["pass.html", "?v=steun", "token/steun.png", 512, 512, true],
+  ["pass.html", "?v=teur", "token/teur.png", 512, 512, true],
+  ["pass.html", "?v=tusd", "token/tusd.png", 512, 512, true],
 ]) {
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
   await page.goto(pathToFileURL(join(here, file)).href + query, { waitUntil: "networkidle" });

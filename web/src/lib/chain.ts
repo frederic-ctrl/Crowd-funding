@@ -1,16 +1,15 @@
 // Wat de site rechtstreeks van de blockchain leest, zonder tussenkomst van onze server.
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, getNonTransferable, unpackAccount, unpackMint } from "@solana/spl-token";
-import type { Deployment, Genesis } from "../config";
+import type { Coin, Deployment, Genesis } from "../config";
 import { fetchEvents, summarize } from "../../../shared/history.js";
 import type { GenesisEvent, GenesisState } from "./api";
 
-/** Saldo van de betaalmunt (tEUR of EURC) in de wallet. */
-export async function fetchPaymentBalance(connection: Connection, dep: Deployment, owner: PublicKey): Promise<number> {
-  const program = new PublicKey(dep.paymentProgram);
-  const account = getAssociatedTokenAddressSync(new PublicKey(dep.paymentMint), owner, false, program);
-  const info = await connection.getAccountInfo(account, "confirmed");
-  return info ? Number(unpackAccount(account, info, program).amount) : 0;
+/** Saldo van elke betaalmunt (EURC en USDC, op het testnet tEUR en tUSD) in de wallet, in één aanvraag. */
+export async function fetchCoinBalances(connection: Connection, coins: Coin[], owner: PublicKey): Promise<Record<string, number>> {
+  const accounts = coins.map((c) => getAssociatedTokenAddressSync(new PublicKey(c.mint), owner, false, new PublicKey(c.program)));
+  const infos = await connection.getMultipleAccountsInfo(accounts, "confirmed");
+  return Object.fromEntries(coins.map((c, i) => [c.id, infos[i] ? Number(unpackAccount(accounts[i], infos[i], new PublicKey(c.program)).amount) : 0]));
 }
 
 /** Staat deze pass (nog) in de wallet? Rechtstreeks van de keten. */
@@ -21,9 +20,9 @@ export async function holdsPass(connection: Connection, owner: PublicKey, mint: 
 }
 
 /** Leest de volledige geschiedenis van de kas in de browser en rekent alles zelf na. */
-export async function verifyInBrowser(connection: Connection, dep: Deployment, cfg: Genesis): Promise<Omit<GenesisState, "netwerk" | "kasMicro" | "gebeurtenissen" | "bijgewerkt">> {
+export async function verifyInBrowser(connection: Connection, dep: Deployment, cfg: Genesis): Promise<Omit<GenesisState, "netwerk" | "kassen" | "koers" | "gebeurtenissen" | "bijgewerkt">> {
   const events = (await fetchEvents(connection, dep, cfg, { batch: 20 })) as GenesisEvent[];
-  return summarize(cfg, events) as unknown as Omit<GenesisState, "netwerk" | "kasMicro" | "gebeurtenissen" | "bijgewerkt">;
+  return summarize(cfg, events) as unknown as Omit<GenesisState, "netwerk" | "kassen" | "koers" | "gebeurtenissen" | "bijgewerkt">;
 }
 
 export function decodeTransaction(base64: string): Transaction {

@@ -3,7 +3,8 @@
 // (Wallet Standard: transacties en berichten ondertekenen). Vereist: Playwright met Chromium, een
 // draaiende site (npm run preview) en een netwerk met een deployment (bv. een lokale validator).
 //
-// Doorloopt: pass claimen, activeren, steunen, de overzichtspagina's (ook op gsm) en geld terug.
+// Doorloopt: pass claimen (tEUR), activeren, steunen, een pass in tUSD, de overzichtspagina's
+// (ook op gsm) en geld terug. Zet EUR_USD_KOERS op de server voor een vaste koers.
 // Een lokale validator gooit standaard oude blokken weg; start hem voor lange sessies met
 // --limit-ledger-size 50000000, anders ziet de controle in de browser niet de volledige geschiedenis.
 // Gebruik: SITE_URL=http://127.0.0.1:4173 SHOTS=./shots node scripts/e2e/ui-koop.mjs
@@ -147,6 +148,21 @@ try {
   await page.getByText("Thank you for your support.").waitFor({ timeout: 60000 });
   console.log("steun gelukt");
 
+  // 3b. Een tweede pass, betaald in tUSD (de testversie van USDC)
+  await page.goto(`${SITE}/genesis`, { waitUntil: "networkidle" });
+  await page.getByText("Signed in", { exact: true }).waitFor({ timeout: 15000 });
+  await page.getByRole("radio", { name: /tUSD/ }).click();
+  await page.getByText(/ECB reference rate/).waitFor({ timeout: 15000 });
+  await page.getByRole("button", { name: /Get 1,000 tUSD/ }).click();
+  await page.getByText(/You received 1,000\.00 tUSD/).waitFor({ timeout: 30000 });
+  await page.check("#a-terms");
+  await page.check("#a-nature");
+  await page.check("#a-demo");
+  await shot(page, "genesis-claim-usdc.png");
+  await page.getByRole("button", { name: /Claim Genesis Pass #\d{3} for €99/ }).click();
+  await page.getByText(/You paid [\d.,]+ tUSD \(€99\.00\)/).waitFor({ timeout: 60000 });
+  console.log("pass in tUSD geclaimd:", await page.locator(".claimed-copy .lead").innerText());
+
   // 4. Overzichtspagina's, ook op gsm
   for (const [name, path, vp] of [
     ["overzicht", "/", { width: 1280, height: 900 }],
@@ -172,9 +188,9 @@ try {
 
   // 5. Geld terug binnen 14 dagen
   await page.goto(`${SITE}/mijn-pass`, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Request refund" }).click();
-  await page.getByRole("button", { name: /Yes, refund €99\.00/ }).click();
-  await page.getByText(/Refunded: €99\.00/).waitFor({ timeout: 60000 });
+  await page.getByRole("button", { name: "Request refund" }).first().click();
+  await page.getByRole("button", { name: /Yes, refund 110\.96 tUSD/ }).click(); // de nieuwste pass (in tUSD) staat bovenaan
+  await page.getByText(/Refunded: 110\.96 tUSD/).waitFor({ timeout: 60000 });
   await page.getByText("Refunded", { exact: true }).first().waitFor({ timeout: 30000 });
   await shot(page, "mijn-pass-terug.png");
   console.log("geld terug gelukt");

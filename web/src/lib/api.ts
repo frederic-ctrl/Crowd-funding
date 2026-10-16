@@ -1,3 +1,4 @@
+import type { CoinId } from "../config";
 export class ApiError extends Error {
   messages: string[];
   status: number;
@@ -33,22 +34,27 @@ export type GenesisEvent = {
   name: string;
   wallet: string;
   mint: string | null;
+  munt: CoinId;
   amountMicro: number;
+  eurMicro: number;
   signature: string;
   time: number | null;
   slot: number;
   teruggegeven?: boolean;
 };
 
+export type CoinTotals = { binnenMicro: number; terugbetaaldMicro: number; opgenomenMicro: number; verwachteKasMicro: number };
+
 export type GenesisState = {
   netwerk: string;
-  kasMicro: number;
+  kassen: Partial<Record<CoinId, number>>;
+  koers: { eurUsd: number; datum: string | null } | null;
   producten: Record<"pass" | "agency", { verkocht: number; teruggegeven: number; hoogsteNummer: number }>;
   steun: { aantal: number; totaalMicro: number; wallets: number };
   opgehaaldMicro: number;
   terugbetaaldMicro: number;
   opgenomenMicro: number;
-  verwachteKasMicro: number;
+  perMunt: Partial<Record<CoinId, CoinTotals>>;
   muur: GenesisEvent[];
   gebeurtenissen: GenesisEvent[];
   bijgewerkt: string;
@@ -59,27 +65,29 @@ export function fetchGenesis() {
 }
 
 export type Prepared = { transaction: string; lastValidBlockHeight: number };
-export type PreparedPass = Prepared & { productId: "pass" | "agency"; number: number; label: string; priceMicro: number; mint: string };
-export type PreparedSupport = Prepared & { productId: "steun"; amountMicro: number; newBadge: boolean };
+/** amountMicro: wat je betaalt in de munt (EURC of USDC); priceMicro en eurMicro: de waarde in euro. */
+type Paid = { munt: CoinId; symbool: string; amountMicro: number; eurUsd?: number };
+export type PreparedPass = Prepared & Paid & { productId: "pass" | "agency"; number: number; label: string; priceMicro: number; mint: string };
+export type PreparedSupport = Prepared & Paid & { productId: "steun"; eurMicro: number; newBadge: boolean };
 
-export function preparePass(wallet: string, product: "pass" | "agency", naam: string) {
-  return request<PreparedPass>("/api/koop", { wallet, product, naam });
+export function preparePass(wallet: string, product: "pass" | "agency", naam: string, munt: CoinId) {
+  return request<PreparedPass>("/api/koop", { wallet, product, naam, munt });
 }
 
-export function prepareSupport(wallet: string, bedrag: string, naam: string) {
-  return request<PreparedSupport>("/api/koop", { wallet, product: "steun", bedrag, naam });
+export function prepareSupport(wallet: string, bedrag: string, naam: string, munt: CoinId) {
+  return request<PreparedSupport>("/api/koop", { wallet, product: "steun", bedrag, naam, munt });
 }
 
 export function prepareRefund(wallet: string, product: string, nummer: number) {
-  return request<Prepared & { amountMicro: number }>("/api/terugbetaling", { wallet, product, nummer });
+  return request<Prepared & Paid & { eurMicro: number }>("/api/terugbetaling", { wallet, product, nummer });
 }
 
 export function activatePass(wallet: string, product: string, nummer: number, bericht: string, handtekening: string) {
   return request<{ code: string; productId: string; number: number; websites: number }>("/api/activeer", { wallet, product, nummer, bericht, handtekening });
 }
 
-export function requestTestEuro(wallet: string) {
-  return request<{ signature: string; amountMicro: number; balanceMicro: number }>("/api/testgeld", { wallet });
+export function requestTestCoin(wallet: string, munt: CoinId) {
+  return request<{ signature: string; munt: CoinId; symbool: string; amountMicro: number; balanceMicro: number }>("/api/testgeld", { wallet, munt });
 }
 
 export function joinWaitlist(email: string, language: "en" | "nl") {

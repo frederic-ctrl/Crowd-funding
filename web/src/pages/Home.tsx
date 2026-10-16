@@ -9,7 +9,7 @@ import { explorerAddress } from "../lib/explorer";
 import { verifyPasses } from "../lib/chain";
 import { joinWaitlist, ApiError, type GenesisState } from "../lib/api";
 import { Bar, Reveal, State, Value } from "../components/ui";
-import { Ladder, PassBack, PassCard, Wall, eventLabel, goalMicro, view } from "../components/genesis";
+import { Ladder, PassBack, PassCard, Wall, buffersGedekt, eventLabel, goalMicro, kassenKloppen, perCoin, view } from "../components/genesis";
 import { SpinningPass } from "../components/SpinningPass";
 import { useLang, useT } from "../i18n";
 
@@ -91,13 +91,13 @@ const T = {
       ["Why does the price go up every 50 passes?", "The earliest customers back us when it matters most. So the price is fixed per number: €99 for #001 to #050, then €50 more per 50, up to €299."],
       ["Why a wallet instead of a card payment?", "Your pass lives in your own wallet: nobody can take it or freeze it, including us. Every payment and refund is public. And refunds are automatic, in the same transaction that burns your pass."],
       ["How do refunds work?", "Within 14 days of buying, tap Refund in My pass. Your pass is burned and the full amount returns to your wallet in one transaction. No questions, no forms."],
-      ["What do I need?", "A Solana wallet like Phantom, Solflare or Backpack, and euro stablecoin (EURC). We pay the network fees. In the demo you get free test euros."],
+      ["What do I need?", "A Solana wallet like Phantom, Solflare or Backpack, and USDC or EURC. Prices are in euro; in USDC you pay the ECB rate of the day. We pay the network fees. In the demo you get free test money."],
       ["What if I lose my wallet?", "Activate your pass early. After that, your lifetime plan is tied to your Marketing Scan account, even if your wallet is gone."],
       ["Do I get an invoice?", "Yes. Invoicing and VAT are set up before real sales start. All prices are final prices."],
       ["When do real sales start?", "Right now this is a demo on Solana devnet with test money. Real sales open once the legal setup is done. Join the list below to hear first."],
     ],
     ctaHead: "Get in early.",
-    ctaLead: isTestnet ? "Try everything now with test euros: claim a pass, activate it, even get a refund." : "Sign in, pick your pass, confirm. Your numbered pass is in your wallet within a minute.",
+    ctaLead: isTestnet ? "Try everything now with test money: claim a pass, activate it, even get a refund." : "Sign in, pick your pass, confirm. Your numbered pass is in your wallet within a minute.",
     listTitle: "Get notified when sales open.",
     email: "Email address",
     emailPlaceholder: "you@company.com",
@@ -188,13 +188,13 @@ const T = {
       ["Waarom stijgt de prijs per 50 passes?", "Wie vroeg instapt, steunt ons wanneer het het meest uitmaakt. Daarom ligt de prijs vast per nummer: €99 voor #001 tot #050, daarna telkens €50 meer per 50, tot €299."],
       ["Waarom een wallet en geen kaartbetaling?", "Je pass staat in je eigen wallet: niemand kan hem afpakken of bevriezen, ook wij niet. Elke betaling en terugbetaling is publiek. En geld terug gaat automatisch, in dezelfde transactie die je pass verbrandt."],
       ["Hoe werkt geld terug?", "Binnen 14 dagen na je aankoop tik je in Mijn pass op Geld terug. Je pass wordt verbrand en het volledige bedrag staat in één transactie terug in je wallet. Geen vragen, geen formulieren."],
-      ["Wat heb ik nodig?", "Een Solana-wallet zoals Phantom, Solflare of Backpack, en euro-stablecoin (EURC). De transactiekosten betalen wij. In de demo krijg je gratis test-euro."],
+      ["Wat heb ik nodig?", "Een Solana-wallet zoals Phantom, Solflare of Backpack, en USDC of EURC. De prijzen staan in euro; in USDC betaal je aan de ECB-koers van de dag. De transactiekosten betalen wij. In de demo krijg je gratis testgeld."],
       ["Wat als ik mijn wallet verlies?", "Activeer je pass snel. Daarna hangt je levenslange abonnement aan je Marketing Scan-account, ook als je wallet ooit weg is."],
       ["Krijg ik een factuur?", "Ja. Facturen en btw worden geregeld voor de echte verkoop start. Alle prijzen zijn eindprijzen."],
       ["Wanneer start de echte verkoop?", "Nu is dit een demo op het Solana-testnet met testgeld. De echte verkoop opent zodra de juridische vorm in orde is. Schrijf je hieronder in om het als eerste te horen."],
     ],
     ctaHead: "Wees er vroeg bij.",
-    ctaLead: isTestnet ? "Probeer alles nu al met test-euro: een pass claimen, activeren en zelfs geld terugvragen." : "Log in, kies je pass en bevestig. Binnen een minuut staat je genummerde pass in je wallet.",
+    ctaLead: isTestnet ? "Probeer alles nu al met testgeld: een pass claimen, activeren en zelfs geld terugvragen." : "Log in, kies je pass en bevestig. Binnen een minuut staat je genummerde pass in je wallet.",
     listTitle: "Verwittig me als de verkoop opent.",
     email: "E-mailadres",
     emailPlaceholder: "jij@bedrijf.be",
@@ -346,8 +346,9 @@ function Trust({ s, t }: { s: GenesisState | null; t: Copy }) {
   const check = useAsync(s ? () => verifyPasses(connection, passes) : null, [connection, key]);
   const c = check.data;
   const label = (state: "ok" | "wait" | "bad") => (state === "ok" ? t.verified : state === "bad" ? t.problem : t.checking);
-  const kas: "ok" | "wait" | "bad" = !s ? "wait" : s.kasMicro === s.verwachteKasMicro ? "ok" : "bad";
-  const buffer: "ok" | "wait" | "bad" = !s ? "wait" : s.kasMicro >= v.bufferMicro ? "ok" : "bad";
+  const kas: "ok" | "wait" | "bad" = !s ? "wait" : kassenKloppen(s) ? "ok" : "bad";
+  const buffer: "ok" | "wait" | "bad" = !s ? "wait" : buffersGedekt(s, v.buffers) ? "ok" : "bad";
+  const expected = Object.fromEntries(Object.entries(s?.perMunt ?? {}).map(([id, m]) => [id, m?.verwachteKasMicro ?? 0]));
   const unique: "ok" | "wait" | "bad" = !c ? "wait" : c.problems.length === 0 ? "ok" : "bad";
   return (
     <section className="section dark" aria-labelledby="h-trust">
@@ -360,12 +361,12 @@ function Trust({ s, t }: { s: GenesisState | null; t: Copy }) {
           <Reveal className="fact">
             <State state={kas}>{label(kas)}</State>
             <h3>{t.facts.kas.title}</h3>
-            <p>{s ? t.facts.kas.text(euro(s.kasMicro), euro(s.verwachteKasMicro)) : "…"}</p>
+            <p>{s ? t.facts.kas.text(perCoin(s.kassen), perCoin(expected)) : "…"}</p>
           </Reveal>
           <Reveal className="fact">
             <State state={buffer}>{label(buffer)}</State>
             <h3>{t.facts.buffer.title}</h3>
-            <p>{t.facts.buffer.text(euro(v.bufferMicro))}</p>
+            <p>{t.facts.buffer.text(perCoin(v.buffers))}</p>
           </Reveal>
           <Reveal className="fact">
             <State state={unique}>{label(unique)}</State>
@@ -380,7 +381,7 @@ function Trust({ s, t }: { s: GenesisState | null; t: Copy }) {
         </div>
         <p className="facts-more">
           <Link className="more" to="/transparantie">{t.ledger}</Link>
-          {deployment && <>{"  "}<a className="more" href={explorerAddress(deployment.kas)} target="_blank" rel="noreferrer" style={{ marginLeft: 28 }}>Solana Explorer</a></>}
+          {deployment && <>{"  "}<a className="more" href={explorerAddress(deployment.authority)} target="_blank" rel="noreferrer" style={{ marginLeft: 28 }}>Solana Explorer</a></>}
         </p>
       </div>
     </section>

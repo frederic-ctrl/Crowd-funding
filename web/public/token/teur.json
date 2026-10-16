@@ -1,6 +1,6 @@
 {
   "name": "Test-euro (testnet)",
   "symbol": "tEUR",
-  "description": "Testgeld voor de demo van de community-ronde van Marketing Scan. Heeft geen waarde.",
+  "description": "Testgeld voor de demo van Marketing Scan Genesis, in de plaats van EURC. Heeft geen waarde.",
   "image": "https://funding.marketingscan.be/token/teur.png"
 }

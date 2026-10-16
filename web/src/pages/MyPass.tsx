@@ -2,15 +2,15 @@ import { useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { PublicKey } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { SYMBOL, deployment, genesis, isTestnet } from "../config";
+import { coinOf, deployment, genesis, isTestnet } from "../config";
 import { activationMessage, formatNumber, refundDeadline } from "../../../shared/genesis.js";
-import { useAsync, useBalance, useGenesis } from "../lib/hooks";
+import { useAsync, useBalances, useGenesis } from "../lib/hooks";
 import { confirmSignature, decodeTransaction, explainError, holdsPass } from "../lib/chain";
 import { ApiError, activatePass, prepareRefund, type GenesisEvent } from "../lib/api";
-import { dateLong, dateTime, euro, shortAddress } from "../lib/format";
+import { coinAmount, dateLong, dateTime, euro, shortAddress } from "../lib/format";
 import { explorerAddress, explorerTx } from "../lib/explorer";
 import { useWalletUi } from "../components/Wallet";
-import { PassBack, PassCard, productOf } from "../components/genesis";
+import { PassBack, PassCard, perCoin, productOf } from "../components/genesis";
 import { SpinningPass } from "../components/SpinningPass";
 import { useLang, useT } from "../i18n";
 
@@ -31,7 +31,7 @@ const T = {
     loading: "Loading…",
     loadFailed: "Couldn’t load.",
     emptyTitle: "No Genesis Pass yet.",
-    emptyText: isTestnet ? "Claim your numbered pass and get Marketing Scan Pro for life. On devnet it’s free, with test euros." : "Claim your numbered pass and get Marketing Scan Pro for life.",
+    emptyText: isTestnet ? "Claim your numbered pass and get Marketing Scan Pro for life. On devnet it’s free, with test money." : "Claim your numbered pass and get Marketing Scan Pro for life.",
     emptyCta: "Claim your pass",
     status: "Status",
     inWallet: "In your wallet",
@@ -63,7 +63,7 @@ const T = {
     supporter: "Supporter.",
     supportText: (n: number, a: string) => `You supported Marketing Scan ${n === 1 ? "once" : `${n} times`}, ${a} in total. Thank you.`,
     tx: "Transaction",
-    balance: (b: string) => `Test euro balance: ${b}.`,
+    balance: (b: string) => `Test money balance: ${b}.`,
     more: "Claim another",
   },
   nl: {
@@ -82,7 +82,7 @@ const T = {
     loading: "Laden…",
     loadFailed: "Laden lukte niet.",
     emptyTitle: "Nog geen Genesis Pass.",
-    emptyText: isTestnet ? "Claim je genummerde pass en krijg levenslang Marketing Scan Pro. Op het testnet gratis, met test-euro." : "Claim je genummerde pass en krijg levenslang Marketing Scan Pro.",
+    emptyText: isTestnet ? "Claim je genummerde pass en krijg levenslang Marketing Scan Pro. Op het testnet gratis, met testgeld." : "Claim je genummerde pass en krijg levenslang Marketing Scan Pro.",
     emptyCta: "Claim je pass",
     status: "Status",
     inWallet: "In je wallet",
@@ -114,7 +114,7 @@ const T = {
     supporter: "Supporter.",
     supportText: (n: number, a: string) => `Je steunde Marketing Scan ${n === 1 ? "één keer" : `${n} keer`}, samen ${a}. Bedankt.`,
     tx: "Transactie",
-    balance: (b: string) => `Saldo test-euro: ${b}.`,
+    balance: (b: string) => `Saldo testgeld: ${b}.`,
     more: "Nog iets claimen",
   },
 };
@@ -151,6 +151,10 @@ function PassRow({ e, owner, own, onChange, t }: { e: GenesisEvent; owner: strin
   const deadline = e.time ? refundDeadline(genesis, e.time) : 0;
   const canRefund = own && !e.teruggegeven && Date.now() < deadline;
   const label = formatNumber(product, e.number!);
+  const coin = coinOf(e.munt);
+  // Wat je betaalde en terugkrijgt: in de munt waarmee je betaalde, met de waarde in euro bij USDC.
+  const back = coin ? coinAmount(e.amountMicro, coin) : euro(e.eurMicro);
+  const paid = coin && coin.valuta !== "EUR" ? `${back} (${euro(e.eurMicro)})` : back;
 
   async function activate() {
     if (!signMessage) return setMsg({ kind: "bad", text: t.noSign });
@@ -177,7 +181,7 @@ function PassRow({ e, owner, own, onChange, t }: { e: GenesisEvent; owner: strin
       const signed = await signTransaction(decodeTransaction(prepared.transaction));
       const signature = await connection.sendRawTransaction(signed.serialize());
       await confirmSignature(connection, signature, lang);
-      setMsg({ kind: "ok", text: t.refundedMsg(euro(prepared.amountMicro)) });
+      setMsg({ kind: "ok", text: t.refundedMsg(coin ? coinAmount(prepared.amountMicro, coin) : euro(prepared.eurMicro)) });
       setConfirmRefund(false);
       onChange();
     } catch (err) {
@@ -213,7 +217,7 @@ function PassRow({ e, owner, own, onChange, t }: { e: GenesisEvent; owner: strin
             <dd>{e.teruggegeven ? t.refunded : inWallet.data === null ? t.checking : inWallet.data ? <span className="ok">{t.inWallet}</span> : <span className="bad">{t.notInWallet}</span>}</dd>
           </div>
           <div><dt>{t.bought}</dt><dd>{dateTime(e.time)}</dd></div>
-          <div><dt>{t.paid}</dt><dd>{euro(e.amountMicro)} {SYMBOL}</dd></div>
+          <div><dt>{t.paid}</dt><dd>{paid}</dd></div>
           <div><dt>{t.plan}</dt><dd>{t.planValue(product.websites)}</dd></div>
           {!e.teruggegeven && e.time && <div><dt>{t.refund}</dt><dd>{Date.now() < deadline ? t.refundUntil(dateLong(deadline)) : t.refundOver}</dd></div>}
           {e.mint && <div><dt>{t.mint}</dt><dd><a className="mono" href={explorerAddress(e.mint)} target="_blank" rel="noreferrer">{shortAddress(e.mint)}</a></dd></div>}
@@ -239,9 +243,9 @@ function PassRow({ e, owner, own, onChange, t }: { e: GenesisEvent; owner: strin
         )}
         {confirmRefund && (
           <div className="confirm">
-            <p>{t.confirmText(label, euro(e.amountMicro))}</p>
+            <p>{t.confirmText(label, back)}</p>
             <div className="actions">
-              <button type="button" className="btn btn-danger" disabled={busy !== ""} onClick={refund}>{busy === "terug" ? t.refundBusy : t.confirmYes(euro(e.amountMicro))}</button>
+              <button type="button" className="btn btn-danger" disabled={busy !== ""} onClick={refund}>{busy === "terug" ? t.refundBusy : t.confirmYes(back)}</button>
               <button type="button" className="linkbtn" disabled={busy !== ""} onClick={() => setConfirmRefund(false)}>{t.confirmNo}</button>
             </div>
           </div>
@@ -262,13 +266,13 @@ export default function MyPass() {
   const owner = viewing ?? publicKey?.toBase58() ?? null;
   const own = Boolean(publicKey && owner === publicKey.toBase58());
   const state = useGenesis(10_000);
-  const balance = useBalance(own ? owner : null);
+  const balance = useBalances(own ? owner : null);
   const [lookup, setLookup] = useState("");
 
   const mine = (state.data?.muur ?? []).filter((e) => e.wallet === owner);
   const passes = mine.filter((e) => e.kind === "aankoop").sort((a, b) => (a.teruggegeven ? 1 : 0) - (b.teruggegeven ? 1 : 0));
   const support = mine.filter((e) => e.kind === "steun");
-  const supportTotal = support.reduce((s, e) => s + e.amountMicro, 0);
+  const supportTotal = support.reduce((s, e) => s + e.eurMicro, 0);
 
   function submitLookup(ev: FormEvent) {
     ev.preventDefault();
@@ -327,14 +331,14 @@ export default function MyPass() {
                   <p className="lead">{t.supportText(support.length, euro(supportTotal))}</p>
                   <dl className="group">
                     {support.map((e) => (
-                      <div key={e.signature}><dt>{dateTime(e.time)}</dt><dd><a href={explorerTx(e.signature)} target="_blank" rel="noreferrer">{euro(e.amountMicro)}</a></dd></div>
+                      <div key={e.signature}><dt>{dateTime(e.time)}</dt><dd><a href={explorerTx(e.signature)} target="_blank" rel="noreferrer">{euro(e.eurMicro)}</a></dd></div>
                     ))}
                   </dl>
                 </div>
               </article>
             )}
             {own && isTestnet && state.data && (
-              <p className="fine center">{t.balance(balance.data === null ? "-" : `${euro(balance.data)} ${SYMBOL}`)} <Link to="/genesis">{t.more}</Link></p>
+              <p className="fine center">{t.balance(balance.data === null ? "-" : perCoin(balance.data))} <Link to="/genesis">{t.more}</Link></p>
             )}
           </div>
         )}

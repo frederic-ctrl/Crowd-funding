@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
-import { AGENCY, PASS, SYMBOL, deployment, genesis } from "../config";
+import { AGENCY, COINS, PASS, deployment, genesis } from "../config";
 import { formatNumber } from "../../../shared/genesis.js";
 import { useAsync, useGenesis } from "../lib/hooks";
-import { ago, count, dateTime, euro, shortAddress } from "../lib/format";
+import { ago, coinAmount, count, dateTime, euro, shortAddress } from "../lib/format";
 import { explorerAddress, explorerTx } from "../lib/explorer";
 import { verifyInBrowser, verifyPasses } from "../lib/chain";
-import type { GenesisEvent } from "../lib/api";
+import type { GenesisEvent, GenesisState } from "../lib/api";
 import { Address, Bar, Reveal, State } from "../components/ui";
-import { eventLabel, goalMicro, view } from "../components/genesis";
+import { buffersGedekt, eventLabel, goalMicro, kassenKloppen, perCoin, view } from "../components/genesis";
 import { useLang, useT } from "../i18n";
 
 const T = {
@@ -19,7 +19,7 @@ const T = {
     loadFailed: "Couldn’t load.",
     raised: (pct: number) => `raised · ${pct}% of the ${euro(goalMicro(), { whole: true })} goal`,
     kas: "In the treasury",
-    kasNote: `${SYMBOL}, live balance`,
+    kasNote: (coins: string) => `Live balance: ${coins}`,
     refunded: "Refunded",
     refundedNote: (n: number) => `${n} ${n === 1 ? "pass" : "passes"} returned`,
     withdrawn: "Withdrawn by the founder",
@@ -43,7 +43,8 @@ const T = {
     diffText: "Let us know, or check the transactions below yourself.",
     you: "Your browser",
     site: "This site",
-    lines: ["Genesis Passes sold", "Agency sold", "Raised", "Refunded", "Withdrawn", "Expected in treasury"],
+    lines: ["Genesis Passes sold", "Agency sold", "Raised", "Refunded", "Withdrawn"],
+    kasLine: (sym: string) => `Treasury ${sym}`,
     ledger: "Ledger.",
     ledgerNote: "Every movement in the treasury, newest first. Only transactions signed by the server key count.",
     cols: ["Date", "What", "Wallet", "Amount", "Transaction"],
@@ -52,12 +53,12 @@ const T = {
     kinds: { aankoop: "Purchase", steun: "Support", terugbetaling: "Refund", opname: "Founder withdrawal" },
     addresses: "Addresses.",
     addr: {
-      kas: "Treasury (all payments)",
+      kas: (sym: string) => `Treasury ${sym} (payments)`,
       authority: "Server key (creates passes, pays fees, manages the treasury)",
       founder: "Founder wallet",
-      founderAcc: "Founder account (withdrawals)",
+      founderAcc: (sym: string) => `Founder account ${sym} (withdrawals)`,
       badge: `Supporter badge (${genesis.steun.symbool})`,
-      payment: `Payment token (${SYMBOL})`,
+      payment: (sym: string) => `Payment coin ${sym}`,
       program: "Pass token program (Token-2022)",
     },
     howTitle: "How it works.",
@@ -76,7 +77,7 @@ const T = {
     loadFailed: "Laden lukte niet.",
     raised: (pct: number) => `opgehaald · ${pct}% van het doel van ${euro(goalMicro(), { whole: true })}`,
     kas: "In de kas",
-    kasNote: `${SYMBOL}, live saldo`,
+    kasNote: (coins: string) => `Live saldo: ${coins}`,
     refunded: "Teruggestort",
     refundedNote: (n: number) => `${n} ${n === 1 ? "pass" : "passes"} teruggegeven`,
     withdrawn: "Opgenomen door de oprichter",
@@ -100,7 +101,8 @@ const T = {
     diffText: "Laat het ons weten, of kijk zelf in de transacties hieronder.",
     you: "Je browser",
     site: "Deze site",
-    lines: ["Genesis Passes verkocht", "Agency verkocht", "Opgehaald", "Teruggestort", "Opgenomen", "Verwacht in de kas"],
+    lines: ["Genesis Passes verkocht", "Agency verkocht", "Opgehaald", "Teruggestort", "Opgenomen"],
+    kasLine: (sym: string) => `Kas ${sym}`,
     ledger: "Kasboek.",
     ledgerNote: "Elke beweging in de kas, nieuwste eerst. Enkel transacties die de serversleutel ondertekende tellen mee.",
     cols: ["Datum", "Wat", "Wallet", "Bedrag", "Transactie"],
@@ -109,12 +111,12 @@ const T = {
     kinds: { aankoop: "Aankoop", steun: "Steun", terugbetaling: "Geld terug", opname: "Opname oprichter" },
     addresses: "Adressen.",
     addr: {
-      kas: "Kas (alle betalingen)",
+      kas: (sym: string) => `Kas ${sym} (betalingen)`,
       authority: "Serversleutel (maakt passen aan, betaalt kosten, beheert de kas)",
       founder: "Wallet van de oprichter",
-      founderAcc: "Rekening van de oprichter (opnames)",
+      founderAcc: (sym: string) => `Rekening van de oprichter in ${sym} (opnames)`,
       badge: `Supporter-badge (${genesis.steun.symbool})`,
-      payment: `Betaalmunt (${SYMBOL})`,
+      payment: (sym: string) => `Betaalmunt ${sym}`,
       program: "Token-programma van de passes (Token-2022)",
     },
     howTitle: "Hoe het werkt.",
@@ -129,7 +131,26 @@ const T = {
 };
 
 function signed(e: GenesisEvent) {
-  return e.kind === "aankoop" || e.kind === "steun" ? `+ ${euro(e.amountMicro)}` : `− ${euro(e.amountMicro)}`;
+  const coin = COINS.find((c) => c.id === e.munt);
+  return (
+    <>
+      {e.kind === "aankoop" || e.kind === "steun" ? "+ " : "− "}
+      {euro(e.eurMicro)}
+      {coin && <small className="muted coin-note">{coinAmount(e.amountMicro, coin)}</small>}
+    </>
+  );
+}
+
+/** Wat er in de kassen zit, omgerekend naar euro (USDC aan de koers van vandaag). */
+function kassenInEuro(s: GenesisState): number | null {
+  let total = 0;
+  for (const c of COINS) {
+    const micro = s.kassen[c.id] ?? 0;
+    if (c.valuta === "EUR") total += micro;
+    else if (s.koers) total += Math.round(micro / s.koers.eurUsd);
+    else if (micro > 0) return null;
+  }
+  return total;
 }
 
 export default function Transparency() {
@@ -154,9 +175,13 @@ export default function Transparency() {
         [mine.opgehaaldMicro, s.opgehaaldMicro, (n) => euro(n)],
         [mine.terugbetaaldMicro, s.terugbetaaldMicro, (n) => euro(n)],
         [mine.opgenomenMicro, s.opgenomenMicro, (n) => euro(n)],
-        [mine.verwachteKasMicro, s.kasMicro, (n) => euro(n)],
       ];
       const lines = pairs.map(([a, b, f], i) => [t.lines[i], f(a), f(b), a === b] as [string, string, string, boolean]);
+      for (const coin of COINS) {
+        const a = mine.perMunt[coin.id]?.verwachteKasMicro ?? 0;
+        const b = s.kassen[coin.id] ?? 0;
+        lines.push([t.kasLine(coin.symbool), coinAmount(a, coin), coinAmount(b, coin), a === b]);
+      }
       setBrowser({ busy: false, result: { same: lines.every((l) => l[3]), lines }, error: "" });
     } catch (err) {
       setBrowser({ busy: false, result: null, error: err instanceof Error ? err.message : String(err) });
@@ -166,6 +191,8 @@ export default function Transparency() {
   const c = passCheck.data;
   const st = (ok: boolean | null): "ok" | "wait" | "bad" => (ok === null ? "wait" : ok ? "ok" : "bad");
   const pct = s ? Math.floor((s.opgehaaldMicro / goalMicro()) * 100) : 0;
+  const kasEur = s ? kassenInEuro(s) : null;
+  const expected = Object.fromEntries(Object.entries(s?.perMunt ?? {}).map(([id, m]) => [id, m?.verwachteKasMicro ?? 0]));
 
   return (
     <>
@@ -188,7 +215,7 @@ export default function Transparency() {
             </Reveal>
 
             <div className="kpis">
-              <div className="kpi"><span>{t.kas}</span><b>{s ? euro(s.kasMicro) : "–"}</b><small>{t.kasNote}</small></div>
+              <div className="kpi"><span>{t.kas}</span><b>{s && kasEur !== null ? euro(kasEur) : "–"}</b><small>{s ? t.kasNote(perCoin(s.kassen)) : ""}</small></div>
               <div className="kpi"><span>{t.refunded}</span><b>{s ? euro(s.terugbetaaldMicro) : "–"}</b><small>{s ? t.refundedNote(s.producten.pass.teruggegeven + s.producten.agency.teruggegeven) : ""}</small></div>
               <div className="kpi"><span>{t.withdrawn}</span><b>{s ? euro(s.opgenomenMicro) : "–"}</b><small>{t.withdrawnNote}</small></div>
             </div>
@@ -197,14 +224,14 @@ export default function Transparency() {
               <h2 id="h-checks" className="block-title">{t.checks}</h2>
               <ul className="checklist">
                 <li>
-                  <State state={st(s ? s.kasMicro === s.verwachteKasMicro : null)}><span className="sr-only">status</span></State>
+                  <State state={st(s ? kassenKloppen(s) : null)}><span className="sr-only">status</span></State>
                   <h3>{t.c.kas[0] as string}</h3>
-                  <p>{s ? (t.c.kas[1] as (a: string, b: string) => string)(euro(s.verwachteKasMicro), euro(s.kasMicro)) : t.checking}</p>
+                  <p>{s ? (t.c.kas[1] as (a: string, b: string) => string)(perCoin(expected), perCoin(s.kassen)) : t.checking}</p>
                 </li>
                 <li>
-                  <State state={st(s ? s.kasMicro >= v.bufferMicro : null)}><span className="sr-only">status</span></State>
+                  <State state={st(s ? buffersGedekt(s, v.buffers) : null)}><span className="sr-only">status</span></State>
                   <h3>{t.c.buffer[0] as string}</h3>
-                  <p>{s ? (t.c.buffer[1] as (a: string) => string)(euro(v.bufferMicro)) : t.checking}</p>
+                  <p>{s ? (t.c.buffer[1] as (a: string) => string)(perCoin(v.buffers)) : t.checking}</p>
                 </li>
                 <li>
                   <State state={st(c ? c.problems.length === 0 : null)}><span className="sr-only">status</span></State>
@@ -270,15 +297,15 @@ export default function Transparency() {
             <section aria-labelledby="h-addr">
               <h2 id="h-addr" className="block-title">{t.addresses}</h2>
               <dl className="group stack" style={{ background: "var(--bg-alt)" }}>
-                <div><dt>{t.addr.kas}</dt><dd><Address value={deployment.kas} /></dd></div>
+                {COINS.map((c) => <div key={`kas-${c.id}`}><dt>{t.addr.kas(c.symbool)}</dt><dd><Address value={c.kas} /></dd></div>)}
                 <div><dt>{t.addr.authority}</dt><dd><Address value={deployment.authority} /></dd></div>
                 <div><dt>{t.addr.founder}</dt><dd><Address value={deployment.founderWallet} /></dd></div>
-                <div><dt>{t.addr.founderAcc}</dt><dd><Address value={deployment.founderPaymentAccount} /></dd></div>
+                {COINS.map((c) => <div key={`fa-${c.id}`}><dt>{t.addr.founderAcc(c.symbool)}</dt><dd><Address value={c.founderAccount} /></dd></div>)}
                 <div><dt>{t.addr.badge}</dt><dd><Address value={deployment.supporterMint} /></dd></div>
-                <div><dt>{t.addr.payment}</dt><dd><Address value={deployment.paymentMint} /></dd></div>
+                {COINS.map((c) => <div key={`mint-${c.id}`}><dt>{t.addr.payment(c.symbool)}</dt><dd><Address value={c.mint} /></dd></div>)}
                 <div><dt>{t.addr.program}</dt><dd><Address value={deployment.passProgram} /></dd></div>
               </dl>
-              <p className="fine" style={{ marginTop: 12 }}><a href={explorerAddress(deployment.kas)} target="_blank" rel="noreferrer">Solana Explorer ›</a></p>
+              <p className="fine" style={{ marginTop: 12 }}><a href={explorerAddress(deployment.authority)} target="_blank" rel="noreferrer">Solana Explorer ›</a></p>
             </section>
 
             <section aria-labelledby="h-how">

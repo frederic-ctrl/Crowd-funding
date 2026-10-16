@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { deployment } from "../config";
+import { COINS, deployment } from "../config";
 import { fetchGenesis, type GenesisState } from "./api";
-import { fetchPaymentBalance } from "./chain";
+import { fetchCoinBalances } from "./chain";
 
 type AsyncState<T> = { data: T | null; error: string | null; loading: boolean; refresh: () => void; updatedAt: number | null };
 
@@ -65,10 +65,10 @@ export function useGenesis(refreshMs = 15_000) {
   return useAsync<GenesisState>(deployment ? fetchGenesis : null, [], refreshMs);
 }
 
-export function useBalance(owner: string | null, refreshMs = 20_000) {
+/** Saldo per betaalmunt in de wallet: { eurc, usdc } in basiseenheden. */
+export function useBalances(owner: string | null, refreshMs = 20_000) {
   const { connection } = useConnection();
-  const dep = deployment;
-  return useAsync<number>(dep && owner ? () => fetchPaymentBalance(connection, dep, new PublicKey(owner)) : null, [connection, owner], refreshMs);
+  return useAsync<Record<string, number>>(deployment && owner && COINS.length ? () => fetchCoinBalances(connection, COINS, new PublicKey(owner)) : null, [connection, owner], refreshMs);
 }
 
 /** Werkt een "x s geleden"-label elke 5 seconden bij. */

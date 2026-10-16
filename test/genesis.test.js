@@ -19,6 +19,7 @@ import {
   refundDeadline,
 } from "../shared/genesis.js";
 import { parseGenesisTx, summarize } from "../shared/history.js";
+import { coinsOf, coinById, toCoinMicro, toEurMicro, formatCoin } from "../shared/munten.js";
 
 const cfg = JSON.parse(readFileSync(new URL("../shared/genesis.json", import.meta.url), "utf8"));
 const pass = findProduct(cfg, "pass");
@@ -70,14 +71,50 @@ test("publieke naam: optioneel, kort, zonder vreemde tekens", () => {
 test("memo's gaan heen en terug", () => {
   const m = memoFor({ kind: "aankoop", product: pass, number: 42, name: "@jan" });
   assert.equal(m, "Marketing Scan Genesis Pass #042 | @jan");
-  assert.deepEqual(parseMemo(cfg, m), { kind: "aankoop", productId: "pass", number: 42, name: "@jan" });
-  assert.deepEqual(parseMemo(cfg, memoFor({ kind: "aankoop", product: agency, number: 3 })), { kind: "aankoop", productId: "agency", number: 3, name: "" });
-  assert.deepEqual(parseMemo(cfg, memoFor({ kind: "steun", name: "Fan" })), { kind: "steun", productId: "steun", number: null, name: "Fan" });
-  assert.deepEqual(parseMemo(cfg, memoFor({ kind: "terugbetaling", product: pass, number: 9 })), { kind: "terugbetaling", productId: "pass", number: 9, name: "" });
+  assert.deepEqual(parseMemo(cfg, m), { kind: "aankoop", productId: "pass", number: 42, name: "@jan", eurMicro: null });
+  assert.deepEqual(parseMemo(cfg, memoFor({ kind: "aankoop", product: agency, number: 3 })), { kind: "aankoop", productId: "agency", number: 3, name: "", eurMicro: null });
+  assert.deepEqual(parseMemo(cfg, memoFor({ kind: "steun", name: "Fan" })), { kind: "steun", productId: "steun", number: null, name: "Fan", eurMicro: null });
+  assert.deepEqual(parseMemo(cfg, memoFor({ kind: "terugbetaling", product: pass, number: 9 })), { kind: "terugbetaling", productId: "pass", number: 9, name: "", eurMicro: null });
   assert.equal(parseMemo(cfg, memoFor({ kind: "opname" })).kind, "opname");
   assert.equal(parseMemo(cfg, "[38] Marketing Scan Genesis Pass #001").number, 1, "memo uit getSignaturesForAddress");
   assert.equal(parseMemo(cfg, "iets anders"), null);
   assert.equal(parseMemo(cfg, "Marketing Scan Genesis Pass"), null, "een aankoop zonder nummer telt niet");
+});
+
+test("memo's met de waarde in euro (ook bij betalen in USDC)", () => {
+  const m = memoFor({ kind: "aankoop", product: pass, number: 42, name: "An", eurMicro: 99 * EUR });
+  assert.equal(m, "Marketing Scan Genesis Pass #042 (EUR 99.00) | An");
+  assert.deepEqual(parseMemo(cfg, m), { kind: "aankoop", productId: "pass", number: 42, name: "An", eurMicro: 99 * EUR });
+  assert.equal(memoFor({ kind: "steun", eurMicro: 12.5 * EUR }), "Marketing Scan Supporter (EUR 12.50)");
+  assert.equal(parseMemo(cfg, "Marketing Scan Supporter (EUR 12.50)").eurMicro, 12.5 * EUR);
+  assert.equal(parseMemo(cfg, "Marketing Scan opname (EUR 1234.56)").eurMicro, 1234.56 * EUR);
+  assert.equal(parseMemo(cfg, "Marketing Scan terugbetaling Genesis Agency #03 (EUR 799.00)").number, 3);
+});
+
+test("betaalmunten: EURC en USDC, op het testnet tEUR en tUSD", () => {
+  const munten = { eurc: { mint: "E", program: "P", kas: "KE", founderAccount: "FE" }, usdc: { mint: "U", program: "P", kas: "KU", founderAccount: "FU" } };
+  assert.deepEqual(coinsOf({ network: "devnet", munten }, cfg).map((c) => c.symbool), ["tEUR", "tUSD"]);
+  assert.deepEqual(coinsOf({ network: "mainnet-beta", munten }, cfg).map((c) => c.symbool), ["EURC", "USDC"]);
+  assert.deepEqual(coinsOf({ network: "devnet", munten: { eurc: munten.eurc } }, cfg).map((c) => c.id), ["eurc"], "enkel munten die in de deployment staan");
+  assert.equal(coinById({ network: "devnet", munten }, cfg, "usdc").kas, "KU");
+  assert.equal(coinById({ network: "devnet", munten }, cfg, "btc"), null);
+});
+
+test("omrekenen naar USDC: ECB-koers, naar boven afgerond op een cent", () => {
+  const usdc = { valuta: "USD", decimalen: 6, symbool: "USDC" };
+  const eurc = { valuta: "EUR", decimalen: 6, symbool: "EURC" };
+  assert.equal(toCoinMicro(99 * EUR, eurc, null), 99 * EUR);
+  assert.equal(toCoinMicro(99 * EUR, usdc, 1.1208), 110_960_000, "99 x 1,1208 = 110,9592: wordt 110,96");
+  assert.equal(toCoinMicro(100 * EUR, usdc, 1.1), 110 * EUR, "geen afronding als het exact is");
+  assert.equal(toCoinMicro(1 * EUR, usdc, 1.08001), 1_090_000);
+  assert.equal(toCoinMicro(99 * EUR, usdc, null), null, "zonder koers geen prijs in USDC");
+  assert.equal(toEurMicro(110_960_000, usdc, 1.1208), 99 * EUR);
+  assert.equal(toEurMicro(5 * EUR, eurc, null), 5 * EUR);
+  assert.equal(formatCoin(110_960_000, usdc), "110.96 USDC");
+  const base = { cfg, product: pass, held: 0, network: "devnet", nextNumber: 1 };
+  assert.match(checkPassPurchase({ ...base, balanceMicro: 100 * EUR, coinPriceMicro: 110_960_000, coinLabel: "110.96 USDC" })[0], /kost 110\.96 USDC/);
+  assert.deepEqual(checkPassPurchase({ ...base, balanceMicro: 111 * EUR, coinPriceMicro: 110_960_000, coinLabel: "110.96 USDC" }), []);
+  assert.match(checkSupport({ cfg, network: "devnet", eurMicro: 5 * EUR, coinMicro: 5_610_000, balanceMicro: 5 * EUR })[0], /niet genoeg saldo/);
 });
 
 test("verkoop: op het testnet altijd open, op mainnet enkel met verkoopActief", () => {
@@ -124,7 +161,13 @@ test("bedragen inlezen, ook met komma en duizendtalpunt", () => {
 });
 
 // Geschiedenis: nagebootste geparste transacties zoals getParsedTransactions ze teruggeeft.
-const dep = { authority: "AUTH", founderWallet: "FOUNDER", paymentMint: "TEUR", supporterMint: "BADGE", kas: "KAS" };
+const dep = {
+  network: "devnet",
+  authority: "AUTH",
+  founderWallet: "FOUNDER",
+  supporterMint: "BADGE",
+  munten: { eurc: { mint: "TEUR", program: "P", kas: "KAS", founderAccount: "FA" }, usdc: { mint: "TUSD", program: "P", kas: "KASU", founderAccount: "FAU" } },
+};
 const bal = (accountIndex, mint, owner, amount) => ({ accountIndex, mint, owner, uiTokenAmount: { amount: String(amount) } });
 function tx({ memo, pre = [], post = [], payer = "AUTH", signer = true, err = null, slot = 1 }) {
   return {
@@ -185,8 +228,54 @@ test("geschiedenis: aankoop, steun, terugbetaling en opname", () => {
   assert.equal(sum.producten.pass.hoogsteNummer, 2);
   assert.equal(sum.steun.totaalMicro, 5 * EUR);
   assert.equal(sum.opgehaaldMicro, (99 + 5 + 99 - 99) * EUR);
-  assert.equal(sum.verwachteKasMicro, 99 * EUR);
+  assert.equal(sum.perMunt.eurc.verwachteKasMicro, 99 * EUR);
+  assert.equal(sum.perMunt.usdc.verwachteKasMicro, 0);
+  assert.equal(a.munt, "eurc");
+  assert.equal(a.eurMicro, 99 * EUR, "zonder bedrag in de memo is de waarde in euro gelijk aan het bedrag in EURC");
   assert.deepEqual(sum.muur.map((m) => [m.wallet, m.teruggegeven]), [["CAROL", false], ["BOB", false], ["ALICE", true]]);
+});
+
+test("geschiedenis: betalen en terugbetalen in USDC, totalen in euro", () => {
+  const usd = 110_960_000;
+  const buy = parseGenesisTx(
+    tx({
+      slot: 20,
+      memo: memoFor({ kind: "aankoop", product: pass, number: 3, eurMicro: 99 * EUR }),
+      pre: [bal(1, "TUSD", "DAN", 500 * EUR), bal(2, "TUSD", "AUTH", 0)],
+      post: [bal(1, "TUSD", "DAN", 500 * EUR - usd), bal(2, "TUSD", "AUTH", usd), bal(3, "PASS3", "DAN", 1)],
+    }),
+    dep, cfg, "u1", 200,
+  );
+  assert.deepEqual([buy.kind, buy.munt, buy.amountMicro, buy.eurMicro, buy.wallet], ["aankoop", "usdc", usd, 99 * EUR, "DAN"]);
+  const eurBuy = parseGenesisTx(buyPass(4, "EVA", 99, 21), dep, cfg, "u2", 201);
+  const refund = parseGenesisTx(
+    tx({
+      slot: 22,
+      memo: memoFor({ kind: "terugbetaling", product: pass, number: 3, eurMicro: 99 * EUR }),
+      pre: [bal(1, "TUSD", "DAN", 500 * EUR - usd), bal(2, "TUSD", "AUTH", usd), bal(3, "PASS3", "DAN", 1)],
+      post: [bal(1, "TUSD", "DAN", 500 * EUR), bal(2, "TUSD", "AUTH", 0)],
+    }),
+    dep, cfg, "u3", 202,
+  );
+  assert.deepEqual([refund.kind, refund.munt, refund.amountMicro, refund.eurMicro], ["terugbetaling", "usdc", usd, 99 * EUR]);
+  const sum = summarize(cfg, [buy, eurBuy, refund]);
+  assert.equal(sum.opgehaaldMicro, 99 * EUR);
+  assert.equal(sum.terugbetaaldMicro, 99 * EUR);
+  assert.deepEqual(sum.perMunt.usdc, { binnenMicro: usd, terugbetaaldMicro: usd, opgenomenMicro: 0, verwachteKasMicro: 0 });
+  assert.equal(sum.perMunt.eurc.verwachteKasMicro, 99 * EUR);
+
+  const noEur = tx({
+    memo: memoFor({ kind: "aankoop", product: pass, number: 5 }),
+    pre: [bal(1, "TUSD", "DAN", 500 * EUR), bal(2, "TUSD", "AUTH", 0)],
+    post: [bal(1, "TUSD", "DAN", 500 * EUR - usd), bal(2, "TUSD", "AUTH", usd), bal(3, "PASS5", "DAN", 1)],
+  });
+  assert.equal(parseGenesisTx(noEur, dep, cfg, "u4"), null, "USDC zonder waarde in euro telt niet");
+  const twoKas = tx({
+    memo: memoFor({ kind: "aankoop", product: pass, number: 6, eurMicro: 99 * EUR }),
+    pre: [bal(1, "TUSD", "DAN", 500 * EUR), bal(2, "TUSD", "AUTH", 0), bal(4, "TEUR", "AUTH", 0), bal(5, "TEUR", "DAN", 99 * EUR)],
+    post: [bal(1, "TUSD", "DAN", 500 * EUR - usd), bal(2, "TUSD", "AUTH", usd), bal(4, "TEUR", "AUTH", 99 * EUR), bal(5, "TEUR", "DAN", 0), bal(3, "PASS6", "DAN", 1)],
+  });
+  assert.equal(parseGenesisTx(twoKas, dep, cfg, "u5"), null, "per transactie beweegt precies één kas");
 });
 
 test("geschiedenis: enkel transacties van de serversleutel tellen", () => {

@@ -1,11 +1,14 @@
 // GET /api/genesis
 // De stand van Genesis, gelezen uit de blockchain: verkochte passen per product, steun, wat er
-// opgehaald en teruggestort is, het saldo van de kas en de Genesis-muur. Elke regel heeft de
-// handtekening van de transactie, zodat iedereen het zelf kan nakijken.
+// opgehaald en teruggestort is, het saldo van elke kas (EURC en USDC) en de Genesis-muur. Elke
+// regel heeft de handtekening van de transactie, zodat iedereen het zelf kan nakijken. Met de
+// koers euro-dollar van vandaag, zodat de site de prijs in USDC kan tonen.
 import { PublicKey } from "@solana/web3.js";
 import { unpackAccount } from "@solana/spl-token";
 import { json } from "../server/solana.js";
+import { eurUsd as fetchRate } from "../server/koers.js";
 import { fetchEvents, summarize } from "../shared/history.js";
+import { coinsOf } from "../shared/munten.js";
 import { setup, urlLang } from "./_common.js";
 import { msg } from "../shared/messages.js";
 
@@ -19,17 +22,23 @@ export async function handle(request, env = process.env, deps = {}) {
   if (ctx.response) return ctx.response;
   const { deployment, cfg, connection } = ctx;
 
-  const key = `${deployment.network}:${deployment.kas}`;
+  const coins = coinsOf(deployment, cfg);
+  const key = `${deployment.network}:${coins.map((c) => c.kas).join(",")}`;
   if (!deps.fresh && last.key === key && Date.now() - last.at < 5_000) return json(200, last.body, "public, max-age=5");
   try {
     if (!caches.has(key)) caches.set(key, new Map());
-    const events = await fetchEvents(connection, deployment, cfg, { cache: caches.get(key) });
-    const kas = new PublicKey(deployment.kas);
-    const info = await connection.getAccountInfo(kas, "confirmed");
-    const kasMicro = info ? Number(unpackAccount(kas, info, new PublicKey(deployment.paymentProgram)).amount) : 0;
+    const [events, infos, koers] = await Promise.all([
+      fetchEvents(connection, deployment, cfg, { cache: caches.get(key) }),
+      connection.getMultipleAccountsInfo(coins.map((c) => new PublicKey(c.kas)), "confirmed"),
+      (deps.rate ?? fetchRate)({ env }).catch(() => null),
+    ]);
+    const kassen = Object.fromEntries(
+      coins.map((c, i) => [c.id, infos[i] ? Number(unpackAccount(new PublicKey(c.kas), infos[i], new PublicKey(c.program)).amount) : 0]),
+    );
     const body = {
       netwerk: deployment.network,
-      kasMicro,
+      kassen,
+      koers: koers ? { eurUsd: koers.eurUsd, datum: koers.datum } : null,
       ...summarize(cfg, events),
       gebeurtenissen: events.slice(-100).reverse(),
       bijgewerkt: new Date().toISOString(),

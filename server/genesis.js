@@ -46,6 +46,7 @@ import {
   activationMessage,
 } from "../shared/genesis.js";
 import { parseGenesisTx } from "../shared/history.js";
+import { coinById, toCoinMicro, toEurMicro, formatCoin } from "../shared/munten.js";
 import { msg } from "../shared/messages.js";
 
 export const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
@@ -67,6 +68,13 @@ function product(cfg, productId, lang = "nl") {
   const p = findProduct(cfg, productId);
   if (!p) throw new PurchaseError([msg(lang).unknownProduct(productId)]);
   return p;
+}
+
+/** De betaalmunt (EURC of USDC) met haar adressen op dit netwerk. */
+function coin(deployment, cfg, id, lang = "nl") {
+  const c = coinById(deployment, cfg, id);
+  if (!c) throw new PurchaseError([msg(lang).unknownCoin(id)]);
+  return c;
 }
 
 // --- Pass-adressen -------------------------------------------------------------------------
@@ -117,12 +125,16 @@ export async function passesOf(connection, authority, p, owner) {
   return out.sort((a, b) => a.number - b.number);
 }
 
-async function paymentBalance(connection, deployment, owner) {
-  const paymentMint = new PublicKey(deployment.paymentMint);
-  const paymentProgram = new PublicKey(deployment.paymentProgram);
-  const account = getAssociatedTokenAddressSync(paymentMint, owner, false, paymentProgram);
+async function paymentBalance(connection, c, owner) {
+  const program = new PublicKey(c.program);
+  const account = getAssociatedTokenAddressSync(new PublicKey(c.mint), owner, false, program);
   const info = await connection.getAccountInfo(account, "confirmed");
-  return { account, balance: info ? Number(unpackAccount(account, info, paymentProgram).amount) : 0 };
+  return { account, balance: info ? Number(unpackAccount(account, info, program).amount) : 0 };
+}
+
+/** Betaling van de koper naar de kas van de munt. */
+function payToKas(c, from, owner, amountMicro) {
+  return createTransferCheckedInstruction(from, new PublicKey(c.mint), new PublicKey(c.kas), owner, BigInt(amountMicro), c.decimalen, [], new PublicKey(c.program));
 }
 
 async function finish(connection, tx, authority, extraSigners = []) {
@@ -138,23 +150,39 @@ async function finish(connection, tx, authority, extraSigners = []) {
 /**
  * Bouwt de aankoop van één pass: de munt van het volgende vrije nummer wordt aangemaakt, de pass
  * gaat naar de koper, het muntrecht wordt meteen ingetrokken (voorraad blijft 1) en de betaling gaat naar de kas.
+ * munt: "eurc" of "usdc". Bij USDC is eurUsd (dollar per euro) nodig.
  */
-export async function buildPassPurchase({ connection, deployment, cfg, productId, buyer, authority, name = "", now = new Date(), lang = "nl" }) {
+export async function buildPassPurchase({ connection, deployment, cfg, productId, buyer, authority, name = "", munt = "eurc", eurUsd = null, now = new Date(), lang = "nl" }) {
   assertAuthority(deployment, authority);
   const p = product(cfg, productId, lang);
+  const c = coin(deployment, cfg, munt, lang);
   const clean = cleanName(name, lang);
   if (clean.fout) throw new PurchaseError([clean.fout]);
 
   const [{ next }, held, { account: buyerPayment, balance }] = await Promise.all([
     nextFreeNumber(connection, authority, p),
     passesOf(connection, authority, p, buyer),
-    paymentBalance(connection, deployment, buyer),
+    paymentBalance(connection, c, buyer),
   ]);
-  const errors = checkPassPurchase({ cfg, product: p, nextNumber: next, held: held.length, balanceMicro: balance, network: deployment.network, now, lang });
+  const nextPrice = next ? priceForNumber(p, next) : null;
+  const coinPrice = nextPrice === null ? null : toCoinMicro(nextPrice, c, eurUsd);
+  if (nextPrice !== null && coinPrice === null) throw new PurchaseError([msg(lang).rateDown()]);
+  const errors = checkPassPurchase({
+    cfg,
+    product: p,
+    nextNumber: next,
+    held: held.length,
+    balanceMicro: balance,
+    coinPriceMicro: coinPrice ?? undefined,
+    coinLabel: c.valuta === "EUR" || coinPrice === null ? undefined : formatCoin(coinPrice, c),
+    network: deployment.network,
+    now,
+    lang,
+  });
   if (errors.length > 0) throw new PurchaseError(errors);
 
   const number = next;
-  const price = priceForNumber(p, number);
+  const price = nextPrice;
   const mint = passKeypair(authority, p.id, number);
   const buyerPass = getAssociatedTokenAddressSync(mint.publicKey, buyer, false, TOKEN_2022_PROGRAM_ID);
   const metadata = {
@@ -167,9 +195,6 @@ export async function buildPassPurchase({ connection, deployment, cfg, productId
   };
   const mintLen = getMintLen([ExtensionType.MetadataPointer, ExtensionType.NonTransferable]);
   const lamports = await connection.getMinimumBalanceForRentExemption(mintLen + TYPE_SIZE + LENGTH_SIZE + pack(metadata).length);
-  const paymentMint = new PublicKey(deployment.paymentMint);
-  const paymentProgram = new PublicKey(deployment.paymentProgram);
-
   const tx = new Transaction().add(
     SystemProgram.createAccount({ fromPubkey: authority.publicKey, newAccountPubkey: mint.publicKey, space: mintLen, lamports, programId: TOKEN_2022_PROGRAM_ID }),
     createInitializeMetadataPointerInstruction(mint.publicKey, authority.publicKey, mint.publicKey, TOKEN_2022_PROGRAM_ID),
@@ -188,25 +213,39 @@ export async function buildPassPurchase({ connection, deployment, cfg, productId
     createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, buyerPass, buyer, mint.publicKey, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID),
     createMintToCheckedInstruction(mint.publicKey, buyerPass, authority.publicKey, 1n, 0, [], TOKEN_2022_PROGRAM_ID),
     createSetAuthorityInstruction(mint.publicKey, authority.publicKey, AuthorityType.MintTokens, null, [], TOKEN_2022_PROGRAM_ID),
-    createTransferCheckedInstruction(buyerPayment, paymentMint, new PublicKey(deployment.kas), buyer, BigInt(price), cfg.betaalmunt.decimalen, [], paymentProgram),
-    memo(memoFor({ kind: "aankoop", product: p, number, name: clean.naam })),
+    payToKas(c, buyerPayment, buyer, coinPrice),
+    memo(memoFor({ kind: "aankoop", product: p, number, name: clean.naam, eurMicro: price })),
   );
   const signed = await finish(connection, tx, authority, [mint]);
-  return { ...signed, productId: p.id, number, label: formatNumber(p, number), priceMicro: price, mint: mint.publicKey.toBase58() };
+  return {
+    ...signed,
+    productId: p.id,
+    number,
+    label: formatNumber(p, number),
+    priceMicro: price,
+    munt: c.id,
+    symbool: c.symbool,
+    amountMicro: coinPrice,
+    mint: mint.publicKey.toBase58(),
+  };
 }
 
 /** Bouwt een steun vanaf €1: de betaling gaat naar de kas, en de eerste keer krijg je de supporter-badge. */
-export async function buildSupport({ connection, deployment, cfg, buyer, eurMicro, authority, name = "", now = new Date(), lang = "nl" }) {
+export async function buildSupport({ connection, deployment, cfg, buyer, eurMicro, authority, name = "", munt = "eurc", eurUsd = null, now = new Date(), lang = "nl" }) {
   assertAuthority(deployment, authority);
+  const c = coin(deployment, cfg, munt, lang);
   const clean = cleanName(name, lang);
   if (clean.fout) throw new PurchaseError([clean.fout]);
   const supporterMint = new PublicKey(deployment.supporterMint);
   const badge = getAssociatedTokenAddressSync(supporterMint, buyer, false, TOKEN_2022_PROGRAM_ID);
   const [{ account: buyerPayment, balance }, badgeInfo] = await Promise.all([
-    paymentBalance(connection, deployment, buyer),
+    paymentBalance(connection, c, buyer),
     connection.getAccountInfo(badge, "confirmed"),
   ]);
-  const errors = checkSupport({ cfg, eurMicro, balanceMicro: balance, network: deployment.network, now, lang });
+  const valid = Number.isFinite(eurMicro) && eurMicro > 0;
+  const coinMicro = valid ? toCoinMicro(eurMicro, c, eurUsd) : undefined;
+  if (coinMicro === null) throw new PurchaseError([msg(lang).rateDown()]);
+  const errors = checkSupport({ cfg, eurMicro, balanceMicro: balance, coinMicro, network: deployment.network, now, lang });
   if (errors.length > 0) throw new PurchaseError(errors);
 
   const hasBadge = badgeInfo ? unpackAccount(badge, badgeInfo, TOKEN_2022_PROGRAM_ID).amount > 0n : false;
@@ -217,12 +256,9 @@ export async function buildSupport({ connection, deployment, cfg, buyer, eurMicr
       createMintToCheckedInstruction(supporterMint, badge, authority.publicKey, 1n, 0, [], TOKEN_2022_PROGRAM_ID),
     );
   }
-  tx.add(
-    createTransferCheckedInstruction(buyerPayment, new PublicKey(deployment.paymentMint), new PublicKey(deployment.kas), buyer, BigInt(eurMicro), cfg.betaalmunt.decimalen, [], new PublicKey(deployment.paymentProgram)),
-    memo(memoFor({ kind: "steun", name: clean.naam })),
-  );
+  tx.add(payToKas(c, buyerPayment, buyer, coinMicro), memo(memoFor({ kind: "steun", name: clean.naam, eurMicro })));
   const signed = await finish(connection, tx, authority);
-  return { ...signed, productId: "steun", amountMicro: eurMicro, newBadge: !hasBadge };
+  return { ...signed, productId: "steun", eurMicro, munt: c.id, symbool: c.symbool, amountMicro: coinMicro, newBadge: !hasBadge };
 }
 
 // --- Geld terug --------------------------------------------------------------------------
@@ -239,7 +275,7 @@ export async function findPassPurchase(connection, deployment, cfg, mint) {
 
 /**
  * Bouwt een terugbetaling binnen de bedenktijd: in één transactie verbrandt de koper de pass en
- * gaat het volledige bedrag van de kas terug naar de koper.
+ * gaat het volledige bedrag van de kas terug naar de koper, in dezelfde munt als de aankoop.
  */
 export async function buildRefund({ connection, deployment, cfg, productId, number, buyer, authority, now = new Date(), lang = "nl" }) {
   assertAuthority(deployment, authority);
@@ -248,10 +284,7 @@ export async function buildRefund({ connection, deployment, cfg, productId, numb
   if (!Number.isInteger(number) || number < 1 || number > p.max) throw new PurchaseError([m.unknownNumber()]);
   const mint = passKeypair(authority, p.id, number).publicKey;
   const buyerPass = getAssociatedTokenAddressSync(mint, buyer, false, TOKEN_2022_PROGRAM_ID);
-  const kas = new PublicKey(deployment.kas);
-  const paymentMint = new PublicKey(deployment.paymentMint);
-  const paymentProgram = new PublicKey(deployment.paymentProgram);
-  const [mintInfo, passInfo, kasInfo] = await connection.getMultipleAccountsInfo([mint, buyerPass, kas], "confirmed");
+  const [mintInfo, passInfo] = await connection.getMultipleAccountsInfo([mint, buyerPass], "confirmed");
   if (!mintInfo) throw new PurchaseError([m.passMissing(passName(p, number))]);
   if (unpackMint(mint, mintInfo, TOKEN_2022_PROGRAM_ID).supply === 0n) throw new PurchaseError([m.alreadyRefunded(passName(p, number))]);
   if (!passInfo || unpackAccount(buyerPass, passInfo, TOKEN_2022_PROGRAM_ID).amount !== 1n) {
@@ -267,6 +300,11 @@ export async function buildRefund({ connection, deployment, cfg, productId, numb
     const date = new Intl.DateTimeFormat(m.dateLocale, { day: "numeric", month: "long", year: "numeric" }).format(new Date(deadline));
     throw new PurchaseError([m.refundOver(cfg.bedenktijdDagen, date)]);
   }
+  const c = coin(deployment, cfg, purchase.munt, lang);
+  const kas = new PublicKey(c.kas);
+  const paymentMint = new PublicKey(c.mint);
+  const paymentProgram = new PublicKey(c.program);
+  const kasInfo = await connection.getAccountInfo(kas, "confirmed");
   const kasBalance = kasInfo ? Number(unpackAccount(kas, kasInfo, paymentProgram).amount) : 0;
   if (kasBalance < purchase.amountMicro) throw new Error("De kas heeft te weinig saldo voor deze terugbetaling.");
 
@@ -275,38 +313,44 @@ export async function buildRefund({ connection, deployment, cfg, productId, numb
     createBurnCheckedInstruction(buyerPass, mint, buyer, 1n, 0, [], TOKEN_2022_PROGRAM_ID),
     createCloseAccountInstruction(buyerPass, authority.publicKey, buyer, [], TOKEN_2022_PROGRAM_ID),
     createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, buyerPayment, buyer, paymentMint, paymentProgram, ASSOCIATED_TOKEN_PROGRAM_ID),
-    createTransferCheckedInstruction(kas, paymentMint, buyerPayment, authority.publicKey, BigInt(purchase.amountMicro), cfg.betaalmunt.decimalen, [], paymentProgram),
-    memo(memoFor({ kind: "terugbetaling", product: p, number })),
+    createTransferCheckedInstruction(kas, paymentMint, buyerPayment, authority.publicKey, BigInt(purchase.amountMicro), c.decimalen, [], paymentProgram),
+    memo(memoFor({ kind: "terugbetaling", product: p, number, eurMicro: purchase.eurMicro })),
   );
   const signed = await finish(connection, tx, authority);
-  return { ...signed, productId: p.id, number, amountMicro: purchase.amountMicro };
+  return { ...signed, productId: p.id, number, munt: c.id, symbool: c.symbool, amountMicro: purchase.amountMicro, eurMicro: purchase.eurMicro };
 }
 
 // --- Opnemen -----------------------------------------------------------------------------
 
 /**
- * Wat de oprichter uit de kas mag opnemen: alles behalve de aankopen die nog binnen de bedenktijd
- * vallen. Zo kan elke terugbetaling altijd meteen uitbetaald worden.
+ * Wat de oprichter uit de kas van een munt mag opnemen: alles behalve de aankopen in die munt die
+ * nog binnen de bedenktijd vallen. Zo kan elke terugbetaling altijd meteen uitbetaald worden.
  */
-export function withdrawable(cfg, events, kasMicro, now = new Date()) {
+export function withdrawable(cfg, events, munt, kasMicro, now = new Date()) {
   const refunded = new Set(events.filter((e) => e.kind === "terugbetaling").map((e) => `${e.productId}:${e.number}`));
   const buffer = events
-    .filter((e) => e.kind === "aankoop" && !refunded.has(`${e.productId}:${e.number}`) && (!e.time || now.getTime() <= refundDeadline(cfg, e.time)))
+    .filter((e) => e.kind === "aankoop" && e.munt === munt && !refunded.has(`${e.productId}:${e.number}`) && (!e.time || now.getTime() <= refundDeadline(cfg, e.time)))
     .reduce((s, e) => s + e.amountMicro, 0);
   return { bufferMicro: buffer, opneembaarMicro: Math.max(0, kasMicro - buffer) };
 }
 
-/** Bouwt een opname van de kas naar de rekening van de oprichter, met memo. Volledig ondertekend door de server. */
-export async function buildWithdrawal({ connection, deployment, cfg, authority, amountMicro }) {
+/**
+ * Bouwt een opname van de kas van een munt naar de rekening van de oprichter, met memo (waarde in
+ * euro; bij USDC volgens eurUsd). Volledig ondertekend door de server.
+ */
+export async function buildWithdrawal({ connection, deployment, cfg, authority, munt = "eurc", amountMicro, eurUsd = null }) {
   assertAuthority(deployment, authority);
   if (!Number.isInteger(amountMicro) || amountMicro <= 0) throw new PurchaseError([msg("nl").nothingToWithdraw()]);
-  const paymentMint = new PublicKey(deployment.paymentMint);
-  const paymentProgram = new PublicKey(deployment.paymentProgram);
-  const founderPayment = new PublicKey(deployment.founderPaymentAccount);
+  const c = coin(deployment, cfg, munt);
+  const eurMicro = toEurMicro(amountMicro, c, eurUsd);
+  if (eurMicro === null) throw new PurchaseError([msg("nl").rateDown()]);
+  const paymentMint = new PublicKey(c.mint);
+  const paymentProgram = new PublicKey(c.program);
+  const founderPayment = new PublicKey(c.founderAccount);
   const tx = new Transaction().add(
     createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, founderPayment, new PublicKey(deployment.founderWallet), paymentMint, paymentProgram, ASSOCIATED_TOKEN_PROGRAM_ID),
-    createTransferCheckedInstruction(new PublicKey(deployment.kas), paymentMint, founderPayment, authority.publicKey, BigInt(amountMicro), cfg.betaalmunt.decimalen, [], paymentProgram),
-    memo(memoFor({ kind: "opname" })),
+    createTransferCheckedInstruction(new PublicKey(c.kas), paymentMint, founderPayment, authority.publicKey, BigInt(amountMicro), c.decimalen, [], paymentProgram),
+    memo(memoFor({ kind: "opname", eurMicro })),
   );
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
   tx.feePayer = authority.publicKey;

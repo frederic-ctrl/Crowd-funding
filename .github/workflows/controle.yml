@@ -65,3 +65,5 @@ jobs:
         run: |
           node scripts/solana/demo-aankopen.mjs --network localnet --keys /tmp/keys --passen 2 --agency 1 --steun 1
           node scripts/solana/opnemen.mjs --network localnet
+        env:
+          EUR_USD_KOERS: "1.12"

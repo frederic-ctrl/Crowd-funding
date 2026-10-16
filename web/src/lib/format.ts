@@ -16,6 +16,12 @@ export function euro(micro: number | bigint, { whole = false } = {}): string {
   return new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(value);
 }
 
+/** Bedrag in een betaalmunt, zoals een wallet het toont: "110.96 USDC" of "99.00 EURC". */
+export function coinAmount(micro: number, coin: { symbool: string; decimalen: number }): string {
+  const value = micro / 10 ** coin.decimalen;
+  return `${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} ${coin.symbool}`;
+}
+
 export function count(n: number | bigint): string {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Number(n));
 }

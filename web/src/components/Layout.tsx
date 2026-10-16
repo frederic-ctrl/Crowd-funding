@@ -17,7 +17,7 @@ const T = {
     ribbon: "This is a demo on Solana devnet. Not on sale yet.",
     ribbonMore: "How it works",
     footerNote: isTestnet
-      ? "Marketing Scan Genesis is a demo on Solana devnet. Passes and test euros have no value. Not on sale yet: real sales start once the legal setup is done."
+      ? "Marketing Scan Genesis is a demo on Solana devnet. Passes and test money have no value. Not on sale yet: real sales start once the legal setup is done."
       : "Marketing Scan Genesis is an early-access sale of lifetime subscriptions to Marketing Scan Pro. Not an investment: passes are non-transferable and earn nothing.",
     cols: [
       { title: "Genesis", links: [["/genesis", "Genesis Pass"], ["/mijn-pass", "My pass"], ["/transparantie", "Transparency"]] },
@@ -38,7 +38,7 @@ const T = {
     ribbon: "Dit is een demo op het Solana-testnet. Nog geen verkoop.",
     ribbonMore: "Hoe het werkt",
     footerNote: isTestnet
-      ? "Marketing Scan Genesis is een demo op het Solana-testnet. Passes en test-euro hebben geen waarde. Nog geen verkoop: die start pas als de juridische vorm in orde is."
+      ? "Marketing Scan Genesis is een demo op het Solana-testnet. Passes en testgeld hebben geen waarde. Nog geen verkoop: die start pas als de juridische vorm in orde is."
       : "Marketing Scan Genesis is een voorverkoop van levenslange abonnementen op Marketing Scan Pro. Geen investering: passes zijn niet overdraagbaar en leveren niets op.",
     cols: [
       { title: "Genesis", links: [["/genesis", "Genesis Pass"], ["/mijn-pass", "Mijn pass"], ["/transparantie", "Transparantie"]] },

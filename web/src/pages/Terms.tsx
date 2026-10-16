@@ -23,7 +23,7 @@ const T: Record<"en" | "nl", { title: string; sub: string; draft: string; testne
     title: "Terms.",
     sub: "In plain language. What you buy, what you get, and what happens if things change.",
     draft: "Draft.",
-    testnet: " On devnet there are no sales: you pay with test euros without value and get no real subscription.",
+    testnet: " On devnet there are no sales: you pay with test money without value and get no real subscription.",
     missing: "published before sales start",
     sections: () => [
       { title: "1. Who sells", body: <p>{company.vennootschap ?? company.merk}, {company.adres ?? T.en.missing}{company.ondernemingsnummer ? `, company number ${company.ondernemingsnummer}` : ""}. Contact: {company.privacyEmail ?? T.en.missing}.</p> },
@@ -57,11 +57,11 @@ const T: Record<"en" | "nl", { title: string; sub: string; draft: string; testne
         body: (
           <>
             <p>The price of a {PASS.naam} depends on its number: {ladder("; ")}. A {AGENCY.naam} costs {euro(AGENCY.prijsladder[0].prijsEur * EUR, { whole: true })}. All prices are final prices. All passes together raise at most {euro(maxRevenueMicro(PASS) + maxRevenueMicro(AGENCY), { whole: true })}.</p>
-            <p>You pay in euro stablecoin (EURC) on Solana. Your number is fixed only once your transaction is confirmed. If someone beats you to it, your transaction fails without any payment, and you get the next free number.</p>
+            <p>You pay on Solana in EURC (euro) or USDC (dollar). Prices are in euro. If you pay in USDC, we convert the price at the European Central Bank reference rate of that day, rounded up to the cent. Your wallet shows the exact amount before you confirm. Your number is fixed only once your transaction is confirmed. If someone beats you to it, your transaction fails without any payment, and you get the next free number.</p>
           </>
         ),
       },
-      { title: `7. Refund within ${genesis.bedenktijdDagen} days`, body: <p>Within {genesis.bedenktijdDagen} days of your purchase you can request a refund in My pass, without giving a reason and also as a business. In one transaction your pass is burned and you get the full amount back in your wallet. A refunded number is not sold again. Support is a gift and is not refunded.</p> },
+      { title: `7. Refund within ${genesis.bedenktijdDagen} days`, body: <p>Within {genesis.bedenktijdDagen} days of your purchase you can request a refund in My pass, without giving a reason and also as a business. In one transaction your pass is burned and you get the full amount back in your wallet, in the same coin you paid with. A refunded number is not sold again. Support is a gift and is not refunded.</p> },
       { title: "8. Activation", body: <p>You activate your pass with a free signature in your wallet (not a transaction). You get an activation code to enter in Marketing Scan. Pro is then tied to your Marketing Scan account. One pass can belong to one account at a time.</p> },
       { title: "9. Your wallet", body: <p>You are responsible for your wallet and your secret phrase. We never ask for it. If you lose your wallet after activating, Pro stays tied to your account. We can’t recover or reissue a pass itself.</p> },
       { title: "10. If Marketing Scan stops", body: <p>If Marketing Scan ever shuts down, we’ll announce it at least 6 months in advance and you can export all your data.</p> },
@@ -73,7 +73,7 @@ const T: Record<"en" | "nl", { title: string; sub: string; draft: string; testne
     title: "Voorwaarden.",
     sub: "In gewone taal. Wat je koopt, wat je krijgt en wat er gebeurt als het anders loopt.",
     draft: "Concept.",
-    testnet: " Op het testnet is er geen verkoop: je betaalt met test-euro zonder waarde en krijgt geen echt abonnement.",
+    testnet: " Op het testnet is er geen verkoop: je betaalt met testgeld zonder waarde en krijgt geen echt abonnement.",
     missing: "wordt aangevuld vóór de start van de verkoop",
     sections: () => [
       { title: "1. Wie verkoopt", body: <p>{company.vennootschap ?? company.merk}, {company.adres ?? T.nl.missing}{company.ondernemingsnummer ? `, ondernemingsnummer ${company.ondernemingsnummer}` : ""}. Contact: {company.privacyEmail ?? T.nl.missing}.</p> },
@@ -107,11 +107,11 @@ const T: Record<"en" | "nl", { title: string; sub: string; draft: string; testne
         body: (
           <>
             <p>De prijs van een {PASS.naam} hangt af van het nummer: {ladder("; ")}. Een {AGENCY.naam} kost {euro(AGENCY.prijsladder[0].prijsEur * EUR, { whole: true })}. Alle prijzen zijn eindprijzen. Samen brengen alle passes maximaal {euro(maxRevenueMicro(PASS) + maxRevenueMicro(AGENCY), { whole: true })} op.</p>
-            <p>Je betaalt in euro-stablecoin (EURC) op Solana. Je nummer ligt pas vast als je transactie bevestigd is. Was iemand je net voor, dan mislukt je transactie zonder dat er iets betaald wordt, en krijg je het volgende vrije nummer.</p>
+            <p>Je betaalt op Solana in EURC (euro) of USDC (dollar). De prijzen staan in euro. Betaal je in USDC, dan rekenen we de prijs om aan de referentiekoers van de Europese Centrale Bank van die dag, naar boven afgerond op een cent. Je wallet toont het exacte bedrag voor je bevestigt. Je nummer ligt pas vast als je transactie bevestigd is. Was iemand je net voor, dan mislukt je transactie zonder dat er iets betaald wordt, en krijg je het volgende vrije nummer.</p>
           </>
         ),
       },
-      { title: `7. Geld terug binnen ${genesis.bedenktijdDagen} dagen`, body: <p>Binnen {genesis.bedenktijdDagen} dagen na je aankoop kan je je geld terugvragen bij Mijn pass, zonder reden en ook als je een bedrijf bent. In één transactie wordt je pass verbrand en krijg je het volledige bedrag terug in je wallet. Een teruggegeven nummer wordt niet opnieuw verkocht. Steun is een gift en wordt niet terugbetaald.</p> },
+      { title: `7. Geld terug binnen ${genesis.bedenktijdDagen} dagen`, body: <p>Binnen {genesis.bedenktijdDagen} dagen na je aankoop kan je je geld terugvragen bij Mijn pass, zonder reden en ook als je een bedrijf bent. In één transactie wordt je pass verbrand en krijg je het volledige bedrag terug in je wallet, in dezelfde munt waarmee je betaalde. Een teruggegeven nummer wordt niet opnieuw verkocht. Steun is een gift en wordt niet terugbetaald.</p> },
       { title: "8. Activeren", body: <p>Je activeert je pass met een gratis handtekening in je wallet (geen transactie). Je krijgt een activatiecode die je in Marketing Scan invult. Daarna hangt Pro aan je Marketing Scan-account. Eén pass hoort bij één account tegelijk.</p> },
       { title: "9. Je wallet", body: <p>Je bent zelf verantwoordelijk voor je wallet en je geheime zin. Wij vragen die nooit. Ben je je wallet kwijt nadat je pass geactiveerd is, dan blijft Pro aan je account hangen. Een pass zelf kunnen we niet terughalen of opnieuw uitgeven.</p> },
       { title: "10. Als Marketing Scan stopt", body: <p>Stopt Marketing Scan ooit, dan laten we dat minstens 6 maanden vooraf weten en kan je al je gegevens exporteren.</p> },

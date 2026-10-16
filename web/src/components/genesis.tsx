@@ -1,7 +1,7 @@
 // Bouwstenen van Genesis: de pass (voor- en achterkant), de prijsladder en de Genesis-muur.
-import { AGENCY, PASS, genesis, type Product } from "../config";
+import { AGENCY, COINS, PASS, genesis, type Product } from "../config";
 import { formatNumber, ladderState, priceForNumber } from "../../../shared/genesis.js";
-import { euro, shortAddress } from "../lib/format";
+import { coinAmount, euro, shortAddress } from "../lib/format";
 import { explorerTx } from "../lib/explorer";
 import type { GenesisEvent, GenesisState } from "../lib/api";
 import { useLang, type Lang } from "../i18n";
@@ -124,7 +124,7 @@ export function Avatar({ wallet }: { wallet: string }) {
 }
 
 export function eventLabel(e: GenesisEvent, lang: Lang = "en"): string {
-  if (e.kind === "steun") return `Supporter · ${euro(e.amountMicro)}`;
+  if (e.kind === "steun") return `Supporter · ${euro(e.eurMicro)}`;
   const p = productOf(e.productId);
   if (!p || !e.number) return "Genesis";
   return `${p.naam} ${formatNumber(p, e.number)}${e.teruggegeven ? (lang === "nl" ? " (teruggegeven)" : " (refunded)") : ""}`;
@@ -155,7 +155,22 @@ export function goalMicro() {
   return genesis.doelEur * 1_000_000;
 }
 
-/** Alles wat de site uit de stand van Genesis afleidt: volgende nummers, prijzen, buffer voor terugbetalingen. */
+/** Bedragen per munt naast elkaar: "1,234.00 EURC · 56.00 USDC". */
+export function perCoin(amounts: Partial<Record<string, number>>): string {
+  return COINS.map((c) => coinAmount(amounts[c.id] ?? 0, c)).join(" · ");
+}
+
+/** Klopt elke kas met wat er volgens de geschiedenis in hoort te zitten? */
+export function kassenKloppen(s: GenesisState): boolean {
+  return COINS.every((c) => (s.kassen[c.id] ?? 0) === (s.perMunt[c.id]?.verwachteKasMicro ?? 0));
+}
+
+/** Dekt elke kas de aankopen die nog binnen de bedenktijd vallen? */
+export function buffersGedekt(s: GenesisState, buffers: Record<string, number>): boolean {
+  return COINS.every((c) => (s.kassen[c.id] ?? 0) >= (buffers[c.id] ?? 0));
+}
+
+/** Alles wat de site uit de stand van Genesis afleidt: volgende nummers, prijzen, buffer voor terugbetalingen (per munt). */
 export function view(s: GenesisState | null, now = Date.now()) {
   const product = (p: Product) => {
     const st = s?.producten[p.id];
@@ -169,8 +184,12 @@ export function view(s: GenesisState | null, now = Date.now()) {
       left: p.max - used,
     };
   };
-  const bufferMicro = (s?.muur ?? [])
-    .filter((e) => e.kind === "aankoop" && !e.teruggegeven && e.time && e.time * 1000 + genesis.bedenktijdDagen * 86_400_000 > now)
-    .reduce((sum, e) => sum + e.amountMicro, 0);
-  return { pass: product(PASS), agency: product(AGENCY), bufferMicro };
+  const buffers: Record<string, number> = {};
+  let bufferEurMicro = 0;
+  for (const e of s?.muur ?? []) {
+    if (e.kind !== "aankoop" || e.teruggegeven || !e.time || e.time * 1000 + genesis.bedenktijdDagen * 86_400_000 <= now) continue;
+    buffers[e.munt] = (buffers[e.munt] ?? 0) + e.amountMicro;
+    bufferEurMicro += e.eurMicro;
+  }
+  return { pass: product(PASS), agency: product(AGENCY), buffers, bufferEurMicro };
 }

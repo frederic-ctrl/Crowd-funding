@@ -1,12 +1,12 @@
-// POST /api/testgeld  { wallet, lang? }
-// Enkel voor de demo op devnet: stuurt 1.000 test-euro (tEUR, zonder waarde) naar een wallet.
-import { sendTestEuro, FaucetError } from "../server/faucet.js";
+// POST /api/testgeld  { wallet, munt?: "eurc" | "usdc", lang? }
+// Enkel voor de demo op devnet: stuurt 1.000 tEUR of tUSD (zonder waarde) naar een wallet.
+import { sendTestCoin, FaucetError } from "../server/faucet.js";
 import { loadDeployment, loadGenesis, connectionFor, loadAuthority, json } from "../server/solana.js";
 import { msg } from "../shared/messages.js";
 import { readPost } from "./_common.js";
 
 export async function handle(request, env = process.env, deps = {}) {
-  const { wallet: recipient, lang, response } = await readPost(request);
+  const { body, wallet: recipient, lang, response } = await readPost(request);
   if (response) return response;
   const m = msg(lang);
 
@@ -22,12 +22,13 @@ export async function handle(request, env = process.env, deps = {}) {
   }
 
   try {
-    const result = await sendTestEuro({
+    const result = await sendTestCoin({
       connection: deps.connection ?? connectionFor(deployment, env.SOLANA_RPC_URL),
       deployment,
       cfg: deps.cfg ?? loadGenesis(),
       authority,
       recipient,
+      munt: String(body?.munt || "eurc"),
       lang,
     });
     return json(200, result);

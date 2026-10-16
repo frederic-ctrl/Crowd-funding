@@ -1,0 +1,6 @@
+{
+  "name": "Test-dollar (testnet)",
+  "symbol": "tUSD",
+  "description": "Testgeld voor de demo van Marketing Scan Genesis, in de plaats van USDC. Heeft geen waarde.",
+  "image": "https://funding.marketingscan.be/token/tusd.png"
+}

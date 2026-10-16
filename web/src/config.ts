@@ -2,6 +2,7 @@
 import genesisJson from "../../shared/genesis.json";
 import companyJson from "../../shared/bedrijf.json";
 import metricsJson from "../../shared/cijfers.json";
+import { coinsOf } from "../../shared/munten.js";
 
 export type Tier = { tot: number; prijsEur: number };
 
@@ -29,7 +30,22 @@ export type Genesis = {
   metadataBasis: string;
   producten: Product[];
   steun: { id: "steun"; naam: string; tokenNaam: string; symbool: string; beschrijving: string; minimumEur: number; maximumEur: number; voordelen: string[] };
-  betaalmunt: { symbool: string; naam: string; decimalen: number };
+  betaalmunten: { id: CoinId; symbool: string; naam: string; testSymbool: string; testNaam: string; valuta: "EUR" | "USD"; decimalen: number }[];
+};
+
+export type CoinId = "eurc" | "usdc";
+
+/** Een betaalmunt met haar adressen op dit netwerk: EURC en USDC (op het testnet tEUR en tUSD). */
+export type Coin = {
+  id: CoinId;
+  symbool: string;
+  naam: string;
+  valuta: "EUR" | "USD";
+  decimalen: number;
+  mint: string;
+  program: string;
+  kas: string;
+  founderAccount: string;
 };
 
 export type Deployment = {
@@ -37,10 +53,7 @@ export type Deployment = {
   rpc: string;
   authority: string;
   founderWallet: string;
-  paymentMint: string;
-  paymentProgram: string;
-  kas: string;
-  founderPaymentAccount: string;
+  munten: Partial<Record<CoinId, { mint: string; program: string; kas: string; founderAccount: string }>>;
   supporterMint: string;
   passProgram: string;
   signatures?: Record<string, string>;
@@ -52,7 +65,6 @@ export const metrics = metricsJson as { bijgewerkt: string; wekelijkseGebruikers
 
 export const PASS = genesis.producten.find((p) => p.id === "pass")!;
 export const AGENCY = genesis.producten.find((p) => p.id === "agency")!;
-export const SYMBOL = genesis.betaalmunt.symbool;
 
 const deployments = import.meta.glob<Deployment>("../../shared/deployments/*.json", { eager: true, import: "default" });
 
@@ -61,3 +73,7 @@ export const deployment: Deployment | null = deployments[`../../shared/deploymen
 export const rpcUrl: string = import.meta.env.VITE_SOLANA_RPC_URL ?? deployment?.rpc ?? "https://api.devnet.solana.com";
 export const isTestnet = network !== "mainnet-beta";
 export const FOUNDER_WALLET = deployment?.founderWallet ?? "JPmYxhBGqt9GMe6kfozUce3EyQRAoQZD1hbLGWJR8T6";
+export const COINS = coinsOf(deployment, genesis) as Coin[];
+export function coinOf(id: string | null | undefined): Coin | null {
+  return COINS.find((c) => c.id === id) ?? null;
+}

@@ -470,3 +470,7 @@ td.empty { color: var(--muted); text-align: center; padding: 28px 0; }
 }
 @media (max-width: 560px) { .rung-bar { height: calc(var(--h) * 0.62); } }
 h1, h2, .lead, .hero-sub, .page-head p { text-wrap: balance; }
+
+/* Betaalmunten: bedrag in de munt onder het bedrag in euro (kasboek). */
+.coin-note { display: block; font-size: 12px; margin-top: 2px; }
+th.r + th, td.r + td { padding-left: 24px; }

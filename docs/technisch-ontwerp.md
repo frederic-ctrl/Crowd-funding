@@ -21,12 +21,14 @@ Hoe Marketing Scan Genesis op Solana werkt: welke accounts er zijn, wat elke tra
 | Account | Wat |
 |---|---|
 | **Serversleutel** (`.keys/<netwerk>/authority.json`) | betaalt kosten, maakt passen aan, beheert de kas, munt supporter-badges. In Vercel als `SALE_AUTHORITY_SECRET`. |
-| **Betaalmunt** | tEUR (Token-2022, 6 decimalen) op het testnet; op mainnet een bestaande munt via `--payment-mint` (EURC). |
-| **Kas** | het betaalaccount (ATA) van de serversleutel. Alle betalingen komen hier binnen. |
-| **Rekening van de oprichter** | het betaalaccount van de oprichterswallet, voor opnames. |
+| **Betaalmunten** | EURC en USDC van Circle op mainnet (SPL Token, 6 decimalen). Op het testnet tEUR en tUSD (Token-2022, 6 decimalen, zonder waarde). Zie `betaalmunten` in `shared/genesis.json` en `shared/munten.js`. |
+| **Kas** (één per munt) | het betaalaccount (ATA) van de serversleutel voor die munt. Alle betalingen in die munt komen hier binnen. |
+| **Rekening van de oprichter** (één per munt) | het betaalaccount van de oprichterswallet, voor opnames. |
 | **Supporter-badge** (MSFAN) | Token-2022 met NonTransferable, 0 decimalen, zonder bevriesrecht. |
 
-Alle adressen komen in `shared/deployments/<netwerk>.json`. De site leest dat bestand mee in bij het bouwen.
+Alle adressen komen in `shared/deployments/<netwerk>.json` (per munt onder `munten.eurc` en `munten.usdc`). De site leest dat bestand mee in bij het bouwen.
+
+**Prijzen en munten.** Prijzen staan altijd in euro. EURC betaalt hetzelfde bedrag. USDC betaalt de europrijs maal de ECB-referentiekoers van de dag (via Frankfurter, 15 minuten bewaard op de server), naar boven afgerond op een cent. De koper ziet het exacte bedrag in de wallet voor die bevestigt. Elke memo vermeldt de waarde in euro, zodat de totalen altijd in euro kloppen: `Marketing Scan Genesis Pass #007 (EUR 99.00) | @naam`. Geld terug gaat in dezelfde munt en voor exact hetzelfde bedrag als de aankoop; de buffer voor terugbetalingen geldt per kas.
 
 ## 3. Een pass
 
@@ -48,16 +50,16 @@ Elke transactie is atomair: lukt één stap niet, dan gebeurt er niets. De serve
 3. metadata met naam, symbool en link
 4. pass-account van de koper, 1 pass munten, muntrecht intrekken
 5. betaling van de koper naar de kas (de koper ondertekent)
-6. memo: `Marketing Scan Genesis Pass #007 | @naam`
+6. memo: `Marketing Scan Genesis Pass #007 (EUR 99.00) | @naam`
 
-**Steunen** (`buildSupport`): de eerste keer een supporter-badge, daarna enkel de betaling naar de kas, met memo `Marketing Scan Supporter | naam`.
+**Steunen** (`buildSupport`): de eerste keer een supporter-badge, daarna enkel de betaling naar de kas, met memo `Marketing Scan Supporter (EUR 5.00) | naam`.
 
 **Geld terug** (`buildRefund`), enkel binnen de bedenktijd en door de eigenaar:
 1. de koper verbrandt de pass en sluit het pass-account
-2. de kas betaalt het volledige bedrag van de oorspronkelijke aankoop terug (gelezen uit de eerste transactie van de munt)
-3. memo: `Marketing Scan terugbetaling Genesis Pass #007`
+2. de kas van dezelfde munt betaalt het volledige bedrag van de oorspronkelijke aankoop terug (gelezen uit de eerste transactie van de pass)
+3. memo: `Marketing Scan terugbetaling Genesis Pass #007 (EUR 99.00)`
 
-**Opnemen** (`scripts/solana/opnemen.mjs`): van de kas naar de rekening van de oprichter, enkel wat buiten de bedenktijd valt, met memo `Marketing Scan opname`. Zonder `--uitvoeren` toont het script enkel het overzicht.
+**Opnemen** (`scripts/solana/opnemen.mjs`): per munt van de kas naar de rekening van de oprichter, enkel wat buiten de bedenktijd valt, met memo `Marketing Scan opname (EUR …)` (USDC aan de koers van de dag). Zonder `--uitvoeren` toont het script enkel het overzicht.
 
 ## 5. Activeren
 
@@ -101,7 +103,7 @@ De browsertest `scripts/e2e/ui-koop.mjs` doorloopt de echte site met een testwal
 ## 8. Op het testnet zetten (devnet)
 
 1. Stuur devnet-SOL (minstens 0,3) naar de serversleutel, via faucet.solana.com.
-2. `node scripts/solana/setup.mjs --network devnet`
+2. `node scripts/solana/setup.mjs --network devnet` (bestaat de deployment al, dan vult het script enkel aan wat ontbreekt, zoals een nieuwe munt)
 3. `node scripts/solana/demo-aankopen.mjs --network devnet` (optioneel, voor een levendige muur)
 4. Vercel: `SOLANA_NETWORK=devnet`, `SALE_AUTHORITY_SECRET=<inhoud van .keys/devnet/authority.json>`, optioneel `SOLANA_RPC_URL` (een eigen RPC, bv. Helius) en voor de wachtlijst `SUPABASE_URL` en `SUPABASE_SECRET_KEY`.
 5. `shared/deployments/devnet.json` committen en deployen.
@@ -112,6 +114,6 @@ Geen database nodig: de blockchain is de bron van waarheid.
 
 1. `shared/bedrijf.json` invullen (een build voor mainnet faalt zonder).
 2. Een nieuwe serversleutel en een eigen RPC.
-3. `node scripts/solana/setup.mjs --network mainnet-beta --payment-mint <EURC-mint-adres> --ik-weet-wat-ik-doe`. Haal het mint-adres van EURC op Solana bij Circle zelf (developers.circle.com) en controleer het twee keer.
+3. `node scripts/solana/setup.mjs --network mainnet-beta --ik-weet-wat-ik-doe`. Het script gebruikt de echte EURC (`HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr`) en USDC (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`) en controleert dat ze bestaan en 6 decimalen hebben. Vergelijk de adressen zelf met developers.circle.com.
 4. `verkoopActief: true` in `shared/genesis.json`, en `legalReviewDone` en `verkoopActief` in `marketing/x/config.json`.
 5. Opnames naar een hardware-wallet of een Squads-multisig.

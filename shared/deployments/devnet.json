@@ -4,15 +4,27 @@
   "createdAt": "2026-10-16T08:33:34.754Z",
   "authority": "9ZLJxhmEDFiDJ8VkMU43QoWXrSY22ZusYnw5BhyL95M9",
   "founderWallet": "JPmYxhBGqt9GMe6kfozUce3EyQRAoQZD1hbLGWJR8T6",
-  "paymentMint": "EgLyR8sH8oheb21Y7JDVgt4WNZqbhYwqiuFYqxGJ9JbZ",
-  "paymentProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
-  "kas": "6489u6RTvpLfDZ6uszVZg7BhPQX5NnRADdHhbfW1FSEN",
-  "founderPaymentAccount": "8Gme6o6t4kdG3LtMxGunZ1Qm557Dq7octL6b2sFANRHQ",
   "supporterMint": "C44YGPMiHgG5Z4QeDhZWx1jgspQWWED8tUbZHTNvKuAM",
   "passProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+  "munten": {
+    "eurc": {
+      "mint": "EgLyR8sH8oheb21Y7JDVgt4WNZqbhYwqiuFYqxGJ9JbZ",
+      "program": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+      "kas": "6489u6RTvpLfDZ6uszVZg7BhPQX5NnRADdHhbfW1FSEN",
+      "founderAccount": "8Gme6o6t4kdG3LtMxGunZ1Qm557Dq7octL6b2sFANRHQ"
+    },
+    "usdc": {
+      "mint": "7hGqAtpW6Ns5gevbLV9AJSRCVGNPWu4btvhgrrt583cB",
+      "program": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+      "kas": "4eusr7cbJjyqJSMgFzKSQ8AR6uJM5nFxK9Heg5ScEcBx",
+      "founderAccount": "FeHTY9C1UvKS3jEbchGbNLhAVpF1tYXpeiFoPPm1peaB"
+    }
+  },
   "signatures": {
-    "betaalmunt": "5rNSoQnjWDDqnQU8M4Ewck4otNs8YqNmxdBYdUQV96wkTZD64A8gL9mVsuuV1rbaoNLY4Rmp2jGwDYteUih34JK",
     "supporterBadge": "q4MUaLjaCftRThXbvisCyQ28hMx1DsGutPx6wzgb7tuPWHentWZTr1sRLwGEpkhT7sjKcXG7m7kQdwti4CePtc7",
-    "kas": "2sVgXkawwKXMVXeEH2EYRWTXH78BjPdRwC2Qf5CaCuybxXTUnuUA3snD1RKxNP5n4y6x1mJDDscCcw65JP1GaRjC"
+    "munt_eurc": "5rNSoQnjWDDqnQU8M4Ewck4otNs8YqNmxdBYdUQV96wkTZD64A8gL9mVsuuV1rbaoNLY4Rmp2jGwDYteUih34JK",
+    "kas_eurc": "2sVgXkawwKXMVXeEH2EYRWTXH78BjPdRwC2Qf5CaCuybxXTUnuUA3snD1RKxNP5n4y6x1mJDDscCcw65JP1GaRjC",
+    "munt_usdc": "46PpQsRbrHxF9ebiGs9RdAtJhcAFCNTFAb7ahSFTW3HEAtZkKCpmGTqfGyEgg3CNk6hV99SXspj494sr6amkwsxq",
+    "kas_usdc": "28w39ZtFLzX7Zo8gotze7uYv8nrBqNDm5doowYc4ZqCsppSMd56rvNxEbK7jdCbdQxsWN2shHNMSqRxajTWEtzH2"
   }
 }

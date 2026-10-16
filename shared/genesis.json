@@ -66,9 +66,8 @@
       "Telt mee voor het doel van €50.000"
     ]
   },
-  "betaalmunt": {
-    "symbool": "tEUR",
-    "naam": "Test-euro",
-    "decimalen": 6
-  }
+  "betaalmunten": [
+    { "id": "eurc", "symbool": "EURC", "naam": "Euro Coin", "testSymbool": "tEUR", "testNaam": "Test-euro", "valuta": "EUR", "decimalen": 6 },
+    { "id": "usdc", "symbool": "USDC", "naam": "USD Coin", "testSymbool": "tUSD", "testNaam": "Test-dollar", "valuta": "USD", "decimalen": 6 }
+  ]
 }

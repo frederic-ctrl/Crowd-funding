@@ -1,4 +1,4 @@
-// Testgeld voor de demo: stuurt tEUR naar een wallet. Werkt nooit op mainnet.
+// Testgeld voor de demo: stuurt tEUR of tUSD naar een wallet. Werkt nooit op mainnet.
 import { PublicKey, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
 import {
   getAssociatedTokenAddressSync,
@@ -7,6 +7,7 @@ import {
   unpackAccount,
 } from "@solana/spl-token";
 import { EUR } from "../shared/genesis.js";
+import { coinById } from "../shared/munten.js";
 import { msg } from "../shared/messages.js";
 
 export const FAUCET_AMOUNT = 1000 * EUR;
@@ -14,23 +15,25 @@ export const FAUCET_MAX_BALANCE = 1000 * EUR;
 
 export class FaucetError extends Error {}
 
-export async function sendTestEuro({ connection, deployment, cfg, authority, recipient, amountMicro = FAUCET_AMOUNT, lang = "nl" }) {
+export async function sendTestCoin({ connection, deployment, cfg, authority, recipient, munt = "eurc", amountMicro = FAUCET_AMOUNT, lang = "nl" }) {
   const m = msg(lang);
   if (deployment.network === "mainnet-beta") throw new FaucetError(m.faucetMainnet());
-  const paymentMint = new PublicKey(deployment.paymentMint);
-  const paymentProgram = new PublicKey(deployment.paymentProgram);
+  const c = coinById(deployment, cfg, munt);
+  if (!c) throw new FaucetError(m.unknownCoin(munt));
+  const paymentMint = new PublicKey(c.mint);
+  const paymentProgram = new PublicKey(c.program);
   const ata = getAssociatedTokenAddressSync(paymentMint, recipient, false, paymentProgram);
 
   const info = await connection.getAccountInfo(ata);
   const balance = info ? Number(unpackAccount(ata, info, paymentProgram).amount) : 0;
   if (balance >= FAUCET_MAX_BALANCE) {
-    throw new FaucetError(m.faucetEnough((balance / EUR).toLocaleString(m.dateLocale), cfg.betaalmunt.symbool));
+    throw new FaucetError(m.faucetEnough((balance / EUR).toLocaleString(m.dateLocale), c.symbool));
   }
 
   const tx = new Transaction().add(
     createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, ata, recipient, paymentMint, paymentProgram),
-    createMintToCheckedInstruction(paymentMint, ata, authority.publicKey, BigInt(amountMicro), cfg.betaalmunt.decimalen, [], paymentProgram),
+    createMintToCheckedInstruction(paymentMint, ata, authority.publicKey, BigInt(amountMicro), c.decimalen, [], paymentProgram),
   );
   const signature = await sendAndConfirmTransaction(connection, tx, [authority], { commitment: "confirmed" });
-  return { signature, amountMicro, balanceMicro: balance + amountMicro };
+  return { signature, munt: c.id, symbool: c.symbool, amountMicro, balanceMicro: balance + amountMicro };
 }

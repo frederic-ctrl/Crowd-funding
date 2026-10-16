@@ -60,7 +60,7 @@ Details: [technisch-ontwerp.md](technisch-ontwerp.md).
 
 - **De kas** is een publieke rekening op Solana. Elke betaling komt daar binnen, met een vaste memo ("Marketing Scan Genesis Pass #007").
 - **Buffer voor terugbetalingen:** aankopen van de laatste 14 dagen blijven in de kas. Het script `scripts/solana/opnemen.mjs` stuurt enkel de rest naar je eigen wallet, ook met een memo. Zo is elke terugbetaling altijd gedekt, en ziet iedereen wanneer jij geld opneemt.
-- **Betaalmunt:** op het testnet test-euro (tEUR, zonder waarde), op mainnet EURC (de euro-stablecoin van Circle op Solana). Van EURC naar je bankrekening gaat via een exchange zoals Bitvavo of Kraken.
+- **Betaalmunten:** op het testnet tEUR en tUSD (zonder waarde), op mainnet EURC en USDC (de stablecoins van Circle op Solana). Prijzen staan in euro; in USDC betaal je aan de ECB-koers van de dag. Van EURC of USDC naar je bankrekening gaat via een exchange zoals Bitvavo of Kraken.
 - **Supporters** betalen ook in de kas. Steun is een gift en wordt niet terugbetaald.
 
 ---
@@ -79,7 +79,7 @@ Neem deze vragen mee. De antwoorden bepalen wanneer je `verkoopActief` op `true`
 - Btw is verschuldigd bij een **vooruitbetaling**, dus op het moment dat iemand een pass koopt, niet pas wanneer Pro gebruikt wordt.
 - De prijzen op de site zijn **eindprijzen**. Met 21% btw houd je van €99 ongeveer €81,82 over. Wil je €99 netto, verhoog dan de prijsladder in `shared/genesis.json`.
 - Klanten in andere EU-landen: bij bedrijven verlegging van btw, bij consumenten mogelijk btw van hun land (OSS-regeling). Vraag of je de verkoop eerst tot België wil beperken.
-- Betaling in EURC verandert niets aan de btw: die wordt berekend op de waarde in euro.
+- Betaling in EURC of USDC verandert niets aan de btw: die wordt berekend op de waarde in euro (die staat bij elke aankoop in de memo op de keten).
 
 ### Consumentenrecht
 - **Herroepingsrecht:** consumenten mogen een online aankoop binnen 14 dagen herroepen. De geld-terug-knop doet dat automatisch, ook voor bedrijven.
@@ -121,7 +121,7 @@ Neem deze vragen mee. De antwoorden bepalen wanneer je `verkoopActief` op `true`
 4. **Testnet online:** stuur devnet-SOL naar de serversleutel `9ZLJxhmEDFiDJ8VkMU43QoWXrSY22ZusYnw5BhyL95M9` (via faucet.solana.com), daarna zet ik Genesis op devnet en de site op Vercel.
 5. **X opstarten** tijdens de testfase: posts goedkeuren, publiek opbouwen, wachtlijst laten groeien.
 6. **Marketing Scan:** een veld voor de activatiecode dat `GET /api/activeer?code=...` aanroept en Pro geeft.
-7. **Mainnet:** EURC als betaalmunt, verkoopActief en legalReviewDone op `true`, en starten.
+7. **Mainnet:** EURC en USDC als betaalmunten, verkoopActief en legalReviewDone op `true`, en starten.
 
 ---
 
