@@ -8,15 +8,21 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, body?: unknown): Promise<T> {
+// De taal van de site gaat mee met elke aanvraag, zodat meldingen in de juiste taal terugkomen.
+let lang: "en" | "nl" = "en";
+export function setApiLang(l: "en" | "nl") {
+  lang = l;
+}
+
+async function request<T>(path: string, body?: Record<string, unknown>): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, body === undefined ? undefined : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    res = await fetch(body === undefined ? `${path}?lang=${lang}` : path, body === undefined ? undefined : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...body, lang }) });
   } catch {
-    throw new ApiError(0, "Geen verbinding met de server. Controleer je internet.");
+    throw new ApiError(0, lang === "nl" ? "Geen verbinding met de server. Controleer je internet." : "Can’t reach the server. Check your connection.");
   }
   const data = (await res.json().catch(() => ({}))) as { fout?: string; fouten?: string[] } & T;
-  if (!res.ok) throw new ApiError(res.status, data.fout ?? "Er ging iets mis.", data.fouten);
+  if (!res.ok) throw new ApiError(res.status, data.fout ?? (lang === "nl" ? "Er ging iets mis." : "Something went wrong."), data.fouten);
   return data;
 }
 
@@ -76,6 +82,6 @@ export function requestTestEuro(wallet: string) {
   return request<{ signature: string; amountMicro: number; balanceMicro: number }>("/api/testgeld", { wallet });
 }
 
-export function joinWaitlist(email: string) {
-  return request<{ ok: boolean }>("/api/waitlist", { email, consent: true, lang: "nl" });
+export function joinWaitlist(email: string, language: "en" | "nl") {
+  return request<{ ok: boolean }>("/api/waitlist", { email, consent: true, lang: language });
 }

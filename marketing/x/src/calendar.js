@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import YAML from "yaml";
 import { normalize, approvalHash } from "./text.js";
-import { CATEGORIES, checkPost } from "./compliance.js";
+import { CATEGORIES, checkPost, postLang, defaultLang, DEFAULT_LANG } from "./compliance.js";
 import { zonedToUtc, isoWeek, addDays, parseClock } from "./time.js";
 
 export const STATUSES = ["concept", "goedgekeurd"];
@@ -10,6 +10,9 @@ const WEEKDAYS = ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zat
 const ID_RE = /^[a-z0-9][a-z0-9-]{2,80}$/;
 const MOMENT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)$/;
 const LINK_KEYS = ["site", "scan", "genesis", "transparantie", "voorwaarden"];
+// Links naar de community-site krijgen ?lang=<taal van de post>, zodat de site meteen in die taal opent.
+// {scan} (marketingscan.be) blijft zoals hij is.
+const LANG_LINK_KEYS = new Set(["site", "genesis", "transparantie", "voorwaarden"]);
 // Hoe oud de cijfers voor een sjabloonpost maximaal mogen zijn.
 const MAX_DATA_AGE_DAYS = 8;
 
@@ -25,17 +28,30 @@ const METRICS = [
 ];
 export const TEMPLATE_KEYS = ["week", ...METRICS.map((m) => m.key), "stand"];
 
-// Voorbeeldwaarden om een sjabloon al bij het schrijven en goedkeuren te controleren.
+// Voorbeeldwaarden per taal om een sjabloon al bij het schrijven en goedkeuren te controleren.
 export const SAMPLE_VARS = {
-  week: 44,
-  passes: "123",
-  agency: "12",
-  supporters: "1.234",
-  opgehaald: "23.456",
-  gebruikers: "1.234",
-  wachtlijst: "1.234",
-  stand: "rechtsvorm bij de boekhouder",
+  en: {
+    week: 44,
+    passes: "123",
+    agency: "12",
+    supporters: "1,234",
+    opgehaald: "23,456",
+    gebruikers: "1,234",
+    wachtlijst: "1,234",
+    stand: "legal form with the accountant",
+  },
+  nl: {
+    week: 44,
+    passes: "123",
+    agency: "12",
+    supporters: "1.234",
+    opgehaald: "23.456",
+    gebruikers: "1.234",
+    wachtlijst: "1.234",
+    stand: "rechtsvorm bij de boekhouder",
+  },
 };
+const sampleVars = (lang) => SAMPLE_VARS[lang] ?? SAMPLE_VARS[DEFAULT_LANG];
 
 export function loadCalendar(path) {
   const doc = YAML.parseDocument(readFileSync(path, "utf8"));
@@ -50,8 +66,24 @@ export function saveCalendar(path, doc) {
   writeFileSync(path, doc.toString({ lineWidth: 0 }), "utf8");
 }
 
-/** Vult {site}, {scan}, {genesis}, {transparantie} en {voorwaarden} in uit config, plus eventuele sjabloonvariabelen. */
-export function renderText(text, config, vars = {}) {
+/** Zet ?lang=<taal> achter een link, tenzij de link al een query heeft. */
+export function withLang(link, lang) {
+  if (!link || !lang || link.includes("?")) return link;
+  let url;
+  try {
+    url = new URL(link);
+  } catch {
+    return link;
+  }
+  url.search = `lang=${encodeURIComponent(lang)}`;
+  return url.toString();
+}
+
+/**
+ * Vult {site}, {scan}, {genesis}, {transparantie} en {voorwaarden} in uit config, plus eventuele sjabloonvariabelen.
+ * Links naar de community-site krijgen ?lang=<lang> (standaard: defaultLang uit config.json).
+ */
+export function renderText(text, config, vars = {}, lang = defaultLang(config)) {
   const site = String(config.links?.site ?? "").replace(/\/+$/, "");
   const links = {
     site,
@@ -63,10 +95,40 @@ export function renderText(text, config, vars = {}) {
   return normalize(
     String(text ?? "").replace(/\{(\w+)\}/g, (all, key) => {
       if (Object.hasOwn(vars, key)) return String(vars[key]);
-      if (Object.hasOwn(links, key) && links[key]) return links[key];
+      if (Object.hasOwn(links, key) && links[key]) return LANG_LINK_KEYS.has(key) ? withLang(links[key], lang) : links[key];
       return all;
     }),
   );
+}
+
+/**
+ * De tekst(en) van een post of sjabloon. `tekst` is een string in de taal van het item, of een tekst
+ * per taal ({ en: "...", nl: "..." }). Het veld `lang` (anders defaultLang) kiest welke tekst gepost wordt.
+ */
+export function textVariants(entry, config) {
+  const lang = postLang(entry, config);
+  const raw = entry?.tekst;
+  if (raw !== null && typeof raw === "object" && !Array.isArray(raw)) {
+    const variants = Object.entries(raw).map(([l, tekst]) => ({ lang: l, tekst }));
+    return { lang, perTaal: true, selected: raw[lang], variants };
+  }
+  return { lang, perTaal: false, selected: raw, variants: [{ lang, tekst: raw }] };
+}
+
+function missingVariant(tv) {
+  return `Geen tekst voor taal "${tv.lang}" (veld lang, of defaultLang in config.json). Talen in dit item: ${tv.variants.map((v) => v.lang).join(", ")}.`;
+}
+
+/** Controleert elke taalversie. Bij een tekst per taal staat de taal voor elke melding. */
+function checkVariants(entry, tv, config, varsFor = () => ({})) {
+  const issues = [];
+  for (const v of tv.variants) {
+    const tekst = renderText(v.tekst, config, varsFor(v.lang), v.lang);
+    for (const i of checkPost({ categorie: entry.categorie, tekst, lang: v.lang }, config)) {
+      issues.push(tv.perTaal ? { ...i, bericht: `[${v.lang}] ${i.bericht}` } : i);
+    }
+  }
+  return issues;
 }
 
 function unknownPlaceholders(text, allowed) {
@@ -99,53 +161,61 @@ export function reviewCalendar({ posts, templates }, config) {
     if (!STATUSES.includes(entry.status)) add("fout", "status", `Status moet ${STATUSES.join(" of ")} zijn.`);
     if (!CATEGORIES.includes(entry.categorie)) add("fout", "categorie", `Onbekende categorie "${entry.categorie}".`);
     const allowed = soort === "post" ? LINK_KEYS : [...LINK_KEYS, ...TEMPLATE_KEYS];
-    for (const key of unknownPlaceholders(entry.tekst, allowed)) add("fout", "placeholder", `Onbekende placeholder {${key}}.`);
-    if (/\{voorwaarden\}/.test(String(entry.tekst)) && !config.offer?.voorwaardenUrl) {
+    const tv = textVariants(entry, config);
+    const unknown = new Set(tv.variants.flatMap((v) => unknownPlaceholders(v.tekst, allowed)));
+    for (const key of unknown) add("fout", "placeholder", `Onbekende placeholder {${key}}.`);
+    if (tv.variants.some((v) => /\{voorwaarden\}/.test(String(v.tekst))) && !config.offer?.voorwaardenUrl) {
       add("fout", "placeholder", "{voorwaarden} gebruikt, maar offer.voorwaardenUrl is leeg.");
     }
-    return { issues, add };
+    if (tv.perTaal && typeof tv.selected !== "string") add("fout", "taal", missingVariant(tv));
+    return { issues, add, tv };
   };
 
   for (const post of posts) {
-    const { issues, add } = common(post, "post");
+    const { issues, add, tv } = common(post, "post");
     const moment = MOMENT_RE.test(String(post.moment ?? "")) ? new Date(post.moment) : null;
     if (!moment || Number.isNaN(moment.getTime())) {
       add("fout", "moment", "Moment ontbreekt of heeft geen tijdzone, bv. 2026-10-27T10:00:00+01:00.");
     }
-    const tekst = renderText(post.tekst, config);
+    const tekst = renderText(tv.selected, config, {}, tv.lang);
     const approval = approvalIssue(post, tekst);
     if (approval) add("fout", "goedkeuring", approval);
     const key = tekst.toLowerCase();
     if (tekst && seenTexts.has(key)) add("fout", "dubbel", `Zelfde tekst als "${seenTexts.get(key)}". X weigert dubbele posts.`);
     seenTexts.set(key, post.id);
-    issues.push(...checkPost({ categorie: post.categorie, tekst }, config));
-    reviewed.push({ id: post.id, soort: "post", categorie: post.categorie, status: post.status, moment, tekst, issues });
+    issues.push(...checkVariants(post, tv, config));
+    reviewed.push({ id: post.id, soort: "post", categorie: post.categorie, status: post.status, lang: tv.lang, moment, tekst, issues });
   }
 
   for (const template of templates) {
-    const { issues, add } = common(template, "sjabloon");
+    const { issues, add, tv } = common(template, "sjabloon");
     if (!WEEKDAYS.includes(template.elke)) add("fout", "elke", `"elke" moet een weekdag zijn: ${WEEKDAYS.join(", ")}.`);
     if (!parseClock(template.om)) add("fout", "om", `"om" moet een uur zijn zoals "10:00".`);
-    const tekst = renderText(template.tekst, config);
+    const tekst = renderText(tv.selected, config, {}, tv.lang);
     const approval = approvalIssue(template, tekst);
     if (approval) add("fout", "goedkeuring", approval);
-    // Controleer het sjabloon met voorbeeldwaarden, zodat fouten al bij het schrijven opvallen.
-    const sample = renderText(template.tekst, config, SAMPLE_VARS);
-    issues.push(...checkPost({ categorie: template.categorie, tekst: sample }, config));
-    reviewed.push({ id: template.id, soort: "sjabloon", categorie: template.categorie, status: template.status, moment: null, tekst, issues });
+    // Controleer elke taalversie met voorbeeldwaarden, zodat fouten al bij het schrijven opvallen.
+    issues.push(...checkVariants(template, tv, config, sampleVars));
+    reviewed.push({ id: template.id, soort: "sjabloon", categorie: template.categorie, status: template.status, lang: tv.lang, moment: null, tekst, issues });
   }
 
   return reviewed;
 }
 
-const nlNumber = (n, decimals = 0) =>
-  new Intl.NumberFormat("nl-BE", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n);
+const NUMBER_LOCALE = { en: "en-GB", nl: "nl-BE" };
+const formatNumber = (n, decimals, lang) =>
+  new Intl.NumberFormat(NUMBER_LOCALE[lang] ?? NUMBER_LOCALE[DEFAULT_LANG], {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(n);
 
 /**
- * Zet de cijfers uit data/cijfers.json om naar sjabloonvariabelen in Belgische notatie ("1.234", "12.345,50").
+ * Zet de cijfers uit data/cijfers.json om naar sjabloonvariabelen, in de notatie van de taal:
+ * Engels "1,234" en "12,345.50", Nederlands (Belgisch) "1.234" en "12.345,50".
+ * `stand` is { "en": "...", "nl": "..." }; een gewone string telt als Nederlands.
  * Een ontbrekend of onmogelijk cijfer wordt "" met een reden in `problems`, zodat de post geblokkeerd blijft.
  */
-export function templateVars(data, week) {
+export function templateVars(data, week, lang = DEFAULT_LANG) {
   const vars = { week };
   const problems = {};
   for (const m of METRICS) {
@@ -159,9 +229,15 @@ export function templateVars(data, week) {
       problems[m.key] = `"${m.veld}" in data/cijfers.json moet een ${m.geheel ? "geheel " : ""}getal zijn van ${range}.`;
       continue;
     }
-    vars[m.key] = nlNumber(n, Number.isInteger(n) ? 0 : 2);
+    vars[m.key] = formatNumber(n, Number.isInteger(n) ? 0 : 2, lang);
   }
-  vars.stand = typeof data?.stand === "string" ? normalize(data.stand).replace(/[.\s]+$/, "") : "";
+  const rawStand = data?.stand;
+  const byLang = typeof rawStand === "string" ? { nl: rawStand } : rawStand && typeof rawStand === "object" ? rawStand : {};
+  const stand = byLang[lang];
+  vars.stand = typeof stand === "string" ? normalize(stand).replace(/[.\s]+$/, "") : "";
+  if (!vars.stand && Object.values(byLang).some((v) => typeof v === "string" && v.trim())) {
+    problems.stand = `Waarde voor {stand} ontbreekt in de taal "${lang}": zet "stand" in data/cijfers.json als { "en": "...", "nl": "..." }.`;
+  }
   return { vars, problems };
 }
 
@@ -181,6 +257,8 @@ export function materializeTemplates(templates, data, config, now, { weeksAhead 
     const clock = parseClock(template.om);
     const dayIndex = WEEKDAYS.indexOf(template.elke);
     if (!clock || dayIndex < 0) continue;
+    const tv = textVariants(template, config);
+    const source = typeof tv.selected === "string" ? tv.selected : "";
     for (const w of weeks) {
       const date = addDays(w.monday, dayIndex);
       const moment = zonedToUtc({ ...date, ...clock }, tz);
@@ -192,19 +270,20 @@ export function materializeTemplates(templates, data, config, now, { weeksAhead 
       } else if (moment.getTime() - updated.getTime() > MAX_DATA_AGE_DAYS * 86400000) {
         issues.push({ niveau: "fout", regel: "cijfers", bericht: `De cijfers zijn ouder dan ${MAX_DATA_AGE_DAYS} dagen. Werk data/cijfers.json bij.` });
       }
-      const { vars, problems } = templateVars(data, w.week);
+      if (tv.perTaal && !source) issues.push({ niveau: "fout", regel: "taal", bericht: missingVariant(tv) });
+      const { vars, problems } = templateVars(data, w.week, tv.lang);
       for (const key of TEMPLATE_KEYS) {
-        if (String(template.tekst).includes(`{${key}}`) && vars[key] === "") {
+        if (source.includes(`{${key}}`) && vars[key] === "") {
           const bericht = problems[key] ?? `Waarde voor {${key}} ontbreekt in data/cijfers.json.`;
           issues.push({ niveau: "fout", regel: "cijfers", bericht });
         }
       }
-      const base = renderText(template.tekst, config);
-      const tekst = renderText(template.tekst, config, vars);
+      const base = renderText(source, config, {}, tv.lang);
+      const tekst = renderText(source, config, vars, tv.lang);
       const approval = approvalIssue(template, base);
       if (approval) issues.push({ niveau: "fout", regel: "goedkeuring", bericht: approval });
-      issues.push(...checkPost({ categorie: template.categorie, tekst }, config));
-      out.push({ id, soort: "sjabloonpost", categorie: template.categorie, status: template.status, moment, tekst, issues });
+      issues.push(...checkPost({ categorie: template.categorie, tekst, lang: tv.lang }, config));
+      out.push({ id, soort: "sjabloonpost", categorie: template.categorie, status: template.status, lang: tv.lang, moment, tekst, issues });
     }
   }
   return out;
@@ -226,12 +305,10 @@ export function approve(doc, id, { door, now, config }) {
   const found = findEntry(doc, id);
   if (!found) throw new Error(`Geen post of sjabloon met id "${id}".`);
   const entry = found.map.toJSON();
-  const tekst = renderText(entry.tekst, config);
-  const toCheck =
-    found.soort === "post"
-      ? tekst
-      : renderText(entry.tekst, config, SAMPLE_VARS);
-  const errors = checkPost({ categorie: entry.categorie, tekst: toCheck }, config).filter((i) => i.niveau === "fout");
+  const tv = textVariants(entry, config);
+  const tekst = renderText(tv.selected, config, {}, tv.lang);
+  const errors = checkVariants(entry, tv, config, found.soort === "post" ? undefined : sampleVars).filter((i) => i.niveau === "fout");
+  if (tv.perTaal && typeof tv.selected !== "string") errors.unshift({ bericht: missingVariant(tv) });
   if (errors.length > 0) {
     throw new Error(`Kan "${id}" niet goedkeuren:\n- ${errors.map((e) => e.bericht).join("\n- ")}`);
   }

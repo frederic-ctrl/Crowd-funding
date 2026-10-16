@@ -46,6 +46,7 @@ import {
   activationMessage,
 } from "../shared/genesis.js";
 import { parseGenesisTx } from "../shared/history.js";
+import { msg } from "../shared/messages.js";
 
 export const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
@@ -62,9 +63,9 @@ function assertAuthority(deployment, authority) {
   if (!authority.publicKey.equals(new PublicKey(deployment.authority))) throw new Error("De serversleutel hoort niet bij deze deployment.");
 }
 
-function product(cfg, productId) {
+function product(cfg, productId, lang = "nl") {
   const p = findProduct(cfg, productId);
-  if (!p) throw new PurchaseError([`Onbekend product "${productId}".`]);
+  if (!p) throw new PurchaseError([msg(lang).unknownProduct(productId)]);
   return p;
 }
 
@@ -138,10 +139,10 @@ async function finish(connection, tx, authority, extraSigners = []) {
  * Bouwt de aankoop van één pass: de munt van het volgende vrije nummer wordt aangemaakt, de pass
  * gaat naar de koper, het muntrecht wordt meteen ingetrokken (voorraad blijft 1) en de betaling gaat naar de kas.
  */
-export async function buildPassPurchase({ connection, deployment, cfg, productId, buyer, authority, name = "", now = new Date() }) {
+export async function buildPassPurchase({ connection, deployment, cfg, productId, buyer, authority, name = "", now = new Date(), lang = "nl" }) {
   assertAuthority(deployment, authority);
-  const p = product(cfg, productId);
-  const clean = cleanName(name);
+  const p = product(cfg, productId, lang);
+  const clean = cleanName(name, lang);
   if (clean.fout) throw new PurchaseError([clean.fout]);
 
   const [{ next }, held, { account: buyerPayment, balance }] = await Promise.all([
@@ -149,7 +150,7 @@ export async function buildPassPurchase({ connection, deployment, cfg, productId
     passesOf(connection, authority, p, buyer),
     paymentBalance(connection, deployment, buyer),
   ]);
-  const errors = checkPassPurchase({ cfg, product: p, nextNumber: next, held: held.length, balanceMicro: balance, network: deployment.network, now });
+  const errors = checkPassPurchase({ cfg, product: p, nextNumber: next, held: held.length, balanceMicro: balance, network: deployment.network, now, lang });
   if (errors.length > 0) throw new PurchaseError(errors);
 
   const number = next;
@@ -195,9 +196,9 @@ export async function buildPassPurchase({ connection, deployment, cfg, productId
 }
 
 /** Bouwt een steun vanaf €1: de betaling gaat naar de kas, en de eerste keer krijg je de supporter-badge. */
-export async function buildSupport({ connection, deployment, cfg, buyer, eurMicro, authority, name = "", now = new Date() }) {
+export async function buildSupport({ connection, deployment, cfg, buyer, eurMicro, authority, name = "", now = new Date(), lang = "nl" }) {
   assertAuthority(deployment, authority);
-  const clean = cleanName(name);
+  const clean = cleanName(name, lang);
   if (clean.fout) throw new PurchaseError([clean.fout]);
   const supporterMint = new PublicKey(deployment.supporterMint);
   const badge = getAssociatedTokenAddressSync(supporterMint, buyer, false, TOKEN_2022_PROGRAM_ID);
@@ -205,7 +206,7 @@ export async function buildSupport({ connection, deployment, cfg, buyer, eurMicr
     paymentBalance(connection, deployment, buyer),
     connection.getAccountInfo(badge, "confirmed"),
   ]);
-  const errors = checkSupport({ cfg, eurMicro, balanceMicro: balance, network: deployment.network, now });
+  const errors = checkSupport({ cfg, eurMicro, balanceMicro: balance, network: deployment.network, now, lang });
   if (errors.length > 0) throw new PurchaseError(errors);
 
   const hasBadge = badgeInfo ? unpackAccount(badge, badgeInfo, TOKEN_2022_PROGRAM_ID).amount > 0n : false;
@@ -240,30 +241,31 @@ export async function findPassPurchase(connection, deployment, cfg, mint) {
  * Bouwt een terugbetaling binnen de bedenktijd: in één transactie verbrandt de koper de pass en
  * gaat het volledige bedrag van de kas terug naar de koper.
  */
-export async function buildRefund({ connection, deployment, cfg, productId, number, buyer, authority, now = new Date() }) {
+export async function buildRefund({ connection, deployment, cfg, productId, number, buyer, authority, now = new Date(), lang = "nl" }) {
   assertAuthority(deployment, authority);
-  const p = product(cfg, productId);
-  if (!Number.isInteger(number) || number < 1 || number > p.max) throw new PurchaseError(["Onbekend nummer."]);
+  const m = msg(lang);
+  const p = product(cfg, productId, lang);
+  if (!Number.isInteger(number) || number < 1 || number > p.max) throw new PurchaseError([m.unknownNumber()]);
   const mint = passKeypair(authority, p.id, number).publicKey;
   const buyerPass = getAssociatedTokenAddressSync(mint, buyer, false, TOKEN_2022_PROGRAM_ID);
   const kas = new PublicKey(deployment.kas);
   const paymentMint = new PublicKey(deployment.paymentMint);
   const paymentProgram = new PublicKey(deployment.paymentProgram);
   const [mintInfo, passInfo, kasInfo] = await connection.getMultipleAccountsInfo([mint, buyerPass, kas], "confirmed");
-  if (!mintInfo) throw new PurchaseError([`${passName(p, number)} bestaat niet.`]);
-  if (unpackMint(mint, mintInfo, TOKEN_2022_PROGRAM_ID).supply === 0n) throw new PurchaseError([`${passName(p, number)} werd al teruggegeven.`]);
+  if (!mintInfo) throw new PurchaseError([m.passMissing(passName(p, number))]);
+  if (unpackMint(mint, mintInfo, TOKEN_2022_PROGRAM_ID).supply === 0n) throw new PurchaseError([m.alreadyRefunded(passName(p, number))]);
   if (!passInfo || unpackAccount(buyerPass, passInfo, TOKEN_2022_PROGRAM_ID).amount !== 1n) {
-    throw new PurchaseError([`${passName(p, number)} staat niet in deze wallet.`]);
+    throw new PurchaseError([m.notInWallet(passName(p, number))]);
   }
 
   const purchase = await findPassPurchase(connection, deployment, cfg, mint);
   if (!purchase || purchase.number !== number || purchase.productId !== p.id || purchase.wallet !== buyer.toBase58() || !purchase.time) {
-    throw new PurchaseError(["De aankoop van deze pass werd niet gevonden."]);
+    throw new PurchaseError([m.purchaseNotFound()]);
   }
   const deadline = refundDeadline(cfg, purchase.time);
   if (now.getTime() > deadline) {
-    const date = new Intl.DateTimeFormat("nl-BE", { day: "numeric", month: "long", year: "numeric" }).format(new Date(deadline));
-    throw new PurchaseError([`De bedenktijd van ${cfg.bedenktijdDagen} dagen liep af op ${date}.`]);
+    const date = new Intl.DateTimeFormat(m.dateLocale, { day: "numeric", month: "long", year: "numeric" }).format(new Date(deadline));
+    throw new PurchaseError([m.refundOver(cfg.bedenktijdDagen, date)]);
   }
   const kasBalance = kasInfo ? Number(unpackAccount(kas, kasInfo, paymentProgram).amount) : 0;
   if (kasBalance < purchase.amountMicro) throw new Error("De kas heeft te weinig saldo voor deze terugbetaling.");
@@ -297,7 +299,7 @@ export function withdrawable(cfg, events, kasMicro, now = new Date()) {
 /** Bouwt een opname van de kas naar de rekening van de oprichter, met memo. Volledig ondertekend door de server. */
 export async function buildWithdrawal({ connection, deployment, cfg, authority, amountMicro }) {
   assertAuthority(deployment, authority);
-  if (!Number.isInteger(amountMicro) || amountMicro <= 0) throw new PurchaseError(["Er valt niets op te nemen."]);
+  if (!Number.isInteger(amountMicro) || amountMicro <= 0) throw new PurchaseError([msg("nl").nothingToWithdraw()]);
   const paymentMint = new PublicKey(deployment.paymentMint);
   const paymentProgram = new PublicKey(deployment.paymentProgram);
   const founderPayment = new PublicKey(deployment.founderPaymentAccount);
@@ -378,14 +380,15 @@ export async function passStatus(connection, authority, cfg, productId, number) 
  * Activeert een pass: de wallet bewijst met een gratis handtekening dat de pass van haar is,
  * en krijgt de activatiecode voor Marketing Scan Pro.
  */
-export async function activate({ connection, authority, cfg, productId, number, wallet, message, signature, now = new Date(), env = process.env }) {
-  const p = product(cfg, productId);
+export async function activate({ connection, authority, cfg, productId, number, wallet, message, signature, now = new Date(), env = process.env, lang = "nl" }) {
+  const m = msg(lang);
+  const p = product(cfg, productId, lang);
   const time = /Tijdstip: (.+)$/.exec(message ?? "")?.[1];
-  if (!time || message !== activationMessage(p, number, wallet, time)) throw new PurchaseError(["De ondertekende tekst klopt niet."]);
-  if (Math.abs(now.getTime() - new Date(time).getTime()) > 10 * 60_000) throw new PurchaseError(["De handtekening is verlopen. Probeer opnieuw."]);
-  if (!verifyWalletSignature(wallet, message, signature)) throw new PurchaseError(["De handtekening klopt niet."]);
+  if (!time || message !== activationMessage(p, number, wallet, time)) throw new PurchaseError([m.signedTextWrong()]);
+  if (Math.abs(now.getTime() - new Date(time).getTime()) > 10 * 60_000) throw new PurchaseError([m.signatureExpired()]);
+  if (!verifyWalletSignature(wallet, message, signature)) throw new PurchaseError([m.signatureWrong()]);
   const status = await passStatus(connection, authority, cfg, p.id, number);
-  if (!status.geldig || status.wallet !== wallet) throw new PurchaseError([`${passName(p, number)} staat niet in deze wallet.`]);
+  if (!status.geldig || status.wallet !== wallet) throw new PurchaseError([m.notInWallet(passName(p, number))]);
   return { code: activationCode(authority, cfg, p.id, number, env), productId: p.id, number, websites: p.websites };
 }
 

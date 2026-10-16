@@ -2,11 +2,18 @@
   "account": "@marketingscan",
   "timezone": "Europe/Brussels",
   "paused": false,
+  "defaultLang": "en",
   "offer": {
     "verkoopActief": false,
     "legalReviewDone": false,
-    "required": "Geen investering",
-    "noticeWhenNotLive": "Nog geen verkoop",
+    "required": {
+      "en": "Not an investment",
+      "nl": "Geen investering"
+    },
+    "noticeWhenNotLive": {
+      "en": "Not on sale yet",
+      "nl": "Nog geen verkoop"
+    },
     "voorwaardenUrl": "https://community.marketingscan.be/voorwaarden"
   },
   "links": {

@@ -2,9 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import YAML from "yaml";
-import { reviewCalendar, materializeTemplates, renderText, approve, revoke, templateVars } from "../src/calendar.js";
-import { approvalHash, weightedLength, MAX_WEIGHTED_LENGTH } from "../src/text.js";
-import { ABOUT_GENESIS } from "../src/compliance.js";
+import { reviewCalendar, materializeTemplates, renderText, approve, revoke, templateVars, withLang, textVariants } from "../src/calendar.js";
+import { approvalHash, weightedLength, extractLinks, MAX_WEIGHTED_LENGTH } from "../src/text.js";
+import { ABOUT_GENESIS, offerTexts } from "../src/compliance.js";
 
 const config = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8"));
 
@@ -27,29 +27,80 @@ test("de meegeleverde kalender heeft geen fouten en geen waarschuwingen", () => 
   for (const r of reviewed) assert.deepEqual(r.issues, [], `${r.id}: ${JSON.stringify(r.issues)}`);
 });
 
-test("de meegeleverde kalender: alles concept, Genesis-posts met beide vermeldingen, binnen 280 tekens", () => {
+test("de meegeleverde kalender: alles concept, Genesis-posts met beide vermeldingen in hun taal, binnen 280 tekens", () => {
   const reviewed = reviewCalendar({ posts: shipped.posts, templates: shipped.sjablonen }, config);
   for (const r of reviewed) {
     assert.equal(r.status, "concept", r.id);
     assert.ok(weightedLength(r.tekst) <= MAX_WEIGHTED_LENGTH, r.id);
     if (ABOUT_GENESIS.has(r.categorie)) {
-      assert.match(r.tekst, /Geen investering/i, r.id);
-      assert.match(r.tekst, /Nog geen verkoop/i, r.id);
+      const { required, notice } = offerTexts(config, r.lang);
+      assert.ok(r.tekst.includes(required), `${r.id}: ${required}`);
+      assert.ok(r.tekst.includes(notice), `${r.id}: ${notice}`);
     }
     assert.ok(!r.tekst.includes("\u2014"), `${r.id} bevat een lang streepje`);
+    assert.doesNotMatch(r.tekst, /pre-?sale/i, r.id);
+    assert.ok((r.tekst.match(/(^|\s)#[a-z]\w*/gi) ?? []).length <= 2, `${r.id}: max 2 hashtags`);
+    for (const link of extractLinks(r.tekst)) {
+      if (link.raw.includes("community.marketingscan.be")) assert.ok(link.raw.endsWith(`?lang=${r.lang}`), `${r.id}: ${link.raw}`);
+    }
   }
   const categories = new Set(reviewed.map((r) => r.categorie));
   for (const c of ["product", "genesis", "uitleg", "transparantie"]) assert.ok(categories.has(c), c);
   assert.equal(categories.has("verkoop"), false);
 });
 
-test("placeholders worden ingevuld vanuit config", () => {
+test("de meegeleverde kalender is Engels eerst: hooguit 3 Nederlandse posts", () => {
+  const reviewed = reviewCalendar({ posts: shipped.posts, templates: shipped.sjablonen }, config);
+  const posts = reviewed.filter((r) => r.soort === "post");
+  const dutch = posts.filter((r) => r.lang === "nl");
+  assert.ok(posts.length >= 12);
+  assert.ok(dutch.length <= 3, dutch.map((r) => r.id).join(", "));
+  assert.ok(posts.filter((r) => r.lang === "en").length >= posts.length - 3);
+  for (const r of dutch) assert.equal(r.categorie, "product", r.id);
+  for (const p of shipped.posts) assert.ok(p.moment >= "2026-10-27", p.id);
+  const [weekly] = shipped.sjablonen;
+  assert.equal(weekly.lang, "en");
+  assert.deepEqual(Object.keys(weekly.tekst).sort(), ["en", "nl"]);
+});
+
+test("placeholders worden ingevuld vanuit config, links naar de site krijgen ?lang", () => {
   assert.equal(renderText("Scan: {scan}", config), `Scan: ${config.links.scan}`);
-  assert.equal(renderText("{genesis}", config), `${config.links.site}/genesis`);
-  assert.equal(renderText("{transparantie}", config), `${config.links.site}/transparantie`);
-  assert.equal(renderText("{voorwaarden}", config), config.offer.voorwaardenUrl);
+  assert.equal(renderText("{scan}", config, {}, "nl"), config.links.scan);
+  assert.equal(renderText("{genesis}", config), `${config.links.site}/genesis?lang=en`);
+  assert.equal(renderText("{transparantie}", config), `${config.links.site}/transparantie?lang=en`);
+  assert.equal(renderText("{voorwaarden}", config), `${config.offer.voorwaardenUrl}?lang=en`);
+  assert.equal(renderText("{site}", config), `${config.links.site}/?lang=en`);
+  assert.equal(renderText("{genesis} {site}", config, {}, "nl"), `${config.links.site}/genesis?lang=nl ${config.links.site}/?lang=nl`);
   assert.equal(renderText("{onbekend}", config), "{onbekend}");
   assert.equal(renderText("{docs}", config), "{docs}");
+});
+
+test("?lang komt er enkel bij als de link nog geen query heeft", () => {
+  assert.equal(withLang("https://community.marketingscan.be/genesis", "nl"), "https://community.marketingscan.be/genesis?lang=nl");
+  assert.equal(withLang("https://community.marketingscan.be/genesis?ref=x", "nl"), "https://community.marketingscan.be/genesis?ref=x");
+  assert.equal(withLang("https://community.marketingscan.be/genesis?lang=en", "nl"), "https://community.marketingscan.be/genesis?lang=en");
+  assert.equal(withLang("https://community.marketingscan.be/voorwaarden#refund", "en"), "https://community.marketingscan.be/voorwaarden?lang=en#refund");
+  assert.equal(withLang("", "en"), "");
+  const custom = { ...config, links: { ...config.links, genesis: "https://community.marketingscan.be/genesis?utm_source=x" } };
+  assert.equal(renderText("{genesis}", custom), "https://community.marketingscan.be/genesis?utm_source=x");
+});
+
+test("een link met ?lang telt nog altijd als 23 tekens", () => {
+  assert.equal(weightedLength(renderText("Zie {genesis}", config)), 4 + 23);
+  assert.equal(weightedLength(renderText("{site}.", config, {}, "nl")), 23 + 1);
+});
+
+test("een post met lang: nl krijgt ?lang=nl en moet de Nederlandse vermeldingen hebben", () => {
+  const nl = post({ categorie: "genesis", lang: "nl", tekst: "De Genesis Pass. Geen investering. Nog geen verkoop. {genesis}" });
+  const [ok] = reviewCalendar({ posts: [nl], templates: [] }, config);
+  assert.equal(ok.lang, "nl");
+  assert.match(ok.tekst, /\/genesis\?lang=nl$/);
+  assert.deepEqual(ok.issues, []);
+  const [wrong] = reviewCalendar({ posts: [{ ...nl, lang: undefined }], templates: [] }, config);
+  assert.equal(wrong.lang, "en");
+  assert.ok(errors(wrong).includes("disclaimer-ontbreekt"));
+  const [unknown] = reviewCalendar({ posts: [{ ...nl, lang: "fr" }], templates: [] }, config);
+  assert.ok(errors(unknown).includes("taal"));
 });
 
 test("{voorwaarden} zonder voorwaardenUrl wordt gemeld", () => {
@@ -119,6 +170,7 @@ const template = {
   elke: "maandag",
   om: "10:00",
   status: "concept",
+  lang: "nl",
   tekst:
     "Week {week}: {passes}/250 passes, {agency}/25 agency-passes, {supporters} supporters, €{opgehaald} van €50.000, {gebruikers} wekelijkse gebruikers. Stand: {stand}.\n\nGeen investering. Nog geen verkoop. {transparantie}",
 };
@@ -141,8 +193,103 @@ test("sjabloon wordt ingevuld met recente Genesis-cijfers", () => {
   assert.ok(current);
   assert.equal(current.moment.toISOString(), "2026-10-26T09:00:00.000Z");
   assert.match(current.tekst, /^Week 44: 42\/250 passes, 3\/25 agency-passes, 17 supporters, €12\.345,50 van €50\.000, 1\.234 wekelijkse gebruikers\. Stand: rechtsvorm bij de boekhouder\.\n/);
-  assert.match(current.tekst, /https:\/\/community\.marketingscan\.be\/transparantie$/);
+  assert.match(current.tekst, /https:\/\/community\.marketingscan\.be\/transparantie\?lang=nl$/);
+  assert.equal(current.lang, "nl");
   assert.deepEqual(current.issues.filter((i) => i.niveau === "fout"), []);
+});
+
+const templateEn = {
+  ...template,
+  lang: "en",
+  tekst:
+    "Week {week}: {passes}/250 passes, {agency}/25 agency passes, {supporters} supporters, €{opgehaald} of €50,000, {gebruikers} weekly users. Status: {stand}.\n\nNot an investment. Not on sale yet. {transparantie}",
+};
+const cijfersEn = { ...cijfers, stand: { en: "legal form with the accountant.", nl: "rechtsvorm bij de boekhouder." } };
+
+test("Engels sjabloon: Engelse cijfernotatie en Engelse stand", () => {
+  const now = new Date("2026-10-26T09:30:00Z");
+  const current = materializeTemplates([templateEn], cijfersEn, config, now).find((i) => i.id === "transparantie-wekelijks-2026-w44");
+  assert.equal(current.lang, "en");
+  assert.match(current.tekst, /^Week 44: 42\/250 passes, 3\/25 agency passes, 17 supporters, €12,345\.50 of €50,000, 1,234 weekly users\. Status: legal form with the accountant\.\n/);
+  assert.match(current.tekst, /\/transparantie\?lang=en$/);
+  assert.deepEqual(errors(current), []);
+});
+
+test("cijfernotatie per taal", () => {
+  const data = { wekelijkseGebruikers: 1234, opgehaaldEur: 12345.5, stand: { en: "en text", nl: "nl tekst" } };
+  assert.equal(templateVars(data, 44, "en").vars.gebruikers, "1,234");
+  assert.equal(templateVars(data, 44, "en").vars.opgehaald, "12,345.50");
+  assert.equal(templateVars(data, 44, "nl").vars.gebruikers, "1.234");
+  assert.equal(templateVars(data, 44, "nl").vars.opgehaald, "12.345,50");
+  assert.equal(templateVars(data, 44, "en").vars.stand, "en text");
+  assert.equal(templateVars(data, 44, "nl").vars.stand, "nl tekst");
+});
+
+test("een gewone string als stand telt als Nederlands: het Engelse sjabloon blijft dan geblokkeerd", () => {
+  const { vars, problems } = templateVars({ stand: "rechtsvorm bij de boekhouder" }, 44, "en");
+  assert.equal(vars.stand, "");
+  assert.match(problems.stand, /\{stand\}/);
+  assert.equal(templateVars({ stand: "rechtsvorm bij de boekhouder" }, 44, "nl").vars.stand, "rechtsvorm bij de boekhouder");
+  const items = materializeTemplates([templateEn], cijfers, config, new Date("2026-10-26T09:30:00Z"));
+  assert.ok(items.every((i) => i.issues.some((x) => x.regel === "cijfers" && /\{stand\}/.test(x.bericht))));
+});
+
+const bilingual = { ...template, lang: undefined, tekst: { en: templateEn.tekst, nl: template.tekst } };
+
+test("sjabloon met een tekst per taal: lang kiest de tekst, standaard Engels", () => {
+  const tv = textVariants(bilingual, config);
+  assert.equal(tv.lang, "en");
+  assert.equal(tv.selected, templateEn.tekst);
+  const now = new Date("2026-10-26T09:30:00Z");
+  const enItem = materializeTemplates([bilingual], cijfersEn, config, now).find((i) => i.id === "transparantie-wekelijks-2026-w44");
+  assert.match(enItem.tekst, /Not an investment\. Not on sale yet\./);
+  assert.deepEqual(errors(enItem), []);
+  const nlItem = materializeTemplates([{ ...bilingual, lang: "nl" }], cijfersEn, config, now).find((i) => i.id === "transparantie-wekelijks-2026-w44");
+  assert.match(nlItem.tekst, /Geen investering\. Nog geen verkoop\./);
+  assert.match(nlItem.tekst, /€12\.345,50/);
+  assert.deepEqual(errors(nlItem), []);
+  const [reviewed] = reviewCalendar({ posts: [], templates: [bilingual] }, config);
+  assert.deepEqual(reviewed.issues, []);
+  assert.equal(reviewed.lang, "en");
+});
+
+test("sjabloon met een tekst per taal: elke taalversie wordt gecontroleerd", () => {
+  const broken = { ...bilingual, tekst: { en: templateEn.tekst, nl: "Week {week}: mooi rendement. Geen investering. Nog geen verkoop." } };
+  const [reviewed] = reviewCalendar({ posts: [], templates: [broken] }, config);
+  const fout = reviewed.issues.find((i) => i.regel === "verboden-taal");
+  assert.ok(fout);
+  assert.match(fout.bericht, /^\[nl\] /);
+  const missing = reviewCalendar({ posts: [], templates: [{ ...bilingual, lang: "nl", tekst: { en: templateEn.tekst } }] }, config)[0];
+  assert.ok(errors(missing).includes("taal"));
+  const items = materializeTemplates([{ ...bilingual, lang: "nl", tekst: { en: templateEn.tekst } }], cijfersEn, config, new Date("2026-10-26T09:30:00Z"));
+  assert.ok(items.every((i) => i.issues.some((x) => x.regel === "taal")));
+  const unknown = reviewCalendar({ posts: [], templates: [{ ...bilingual, tekst: { ...bilingual.tekst, fr: "Semaine {week}." } }] }, config)[0];
+  assert.ok(errors(unknown).includes("taal"));
+});
+
+test("goedkeuren van een sjabloon met tekst per taal koppelt de hash aan de gekozen tekst", () => {
+  const src = [
+    "sjablonen:",
+    "  - id: wekelijks",
+    "    categorie: transparantie",
+    "    elke: maandag",
+    '    om: "15:00"',
+    "    status: concept",
+    "    lang: en",
+    "    tekst:",
+    "      en: |-",
+    "        Week {week}: {passes}/250 passes. Not an investment. Not on sale yet. {transparantie}",
+    "      nl: |-",
+    "        Week {week}: {passes}/250 passes. Geen investering. Nog geen verkoop. {transparantie}",
+    "",
+  ].join("\n");
+  const doc = YAML.parseDocument(src);
+  const res = approve(doc, "wekelijks", { door: "f", now: new Date("2026-10-20T08:00:00Z"), config });
+  const entry = doc.toJS().sjablonen[0];
+  assert.equal(res.hash, approvalHash(renderText(entry.tekst.en, config, {}, "en")));
+  assert.deepEqual(errors(reviewCalendar({ posts: [], templates: [entry] }, config)[0]), []);
+  const switched = reviewCalendar({ posts: [], templates: [{ ...entry, lang: "nl" }] }, config)[0];
+  assert.ok(errors(switched).includes("goedkeuring"), "van taal wisselen laat de goedkeuring vervallen");
 });
 
 test("nul is een geldig cijfer", () => {

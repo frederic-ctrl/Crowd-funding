@@ -13,7 +13,7 @@ import { plan, STATE } from "./planner.js";
 import { createXClient, publish } from "./poster.js";
 import { fetchWaitlistCount } from "./metrics.js";
 import { weightedLength, MAX_WEIGHTED_LENGTH } from "./text.js";
-import { hasErrors, saleLive } from "./compliance.js";
+import { hasErrors, saleLive, defaultLang } from "./compliance.js";
 
 const BASE = process.env.X_PROMO_DIR || fileURLToPath(new URL("..", import.meta.url));
 const PATHS = {
@@ -61,13 +61,13 @@ function cmdLint() {
   let warnings = 0;
   const offer = config.offer ?? {};
   console.log(
-    `Kalender: ${calendar.posts.length} posts, ${calendar.templates.length} sjabloon(en). ` +
+    `Kalender: ${calendar.posts.length} posts, ${calendar.templates.length} sjabloon(en). Standaardtaal: ${defaultLang(config)}. ` +
       `Verkoop: ${saleLive(config) ? "live" : "nog niet live"} (verkoopActief: ${offer.verkoopActief === true}, legalReviewDone: ${offer.legalReviewDone === true}).\n`,
   );
   for (const r of reviewed) {
     const len = weightedLength(r.tekst);
     const bad = hasErrors(r.issues);
-    console.log(`${bad ? "FOUT" : "OK  "}  ${r.id}  (${r.soort}, ${r.categorie}, ${r.status}, ${len}/${MAX_WEIGHTED_LENGTH})`);
+    console.log(`${bad ? "FOUT" : "OK  "}  ${r.id}  (${r.soort}, ${r.categorie}, ${r.lang}, ${r.status}, ${len}/${MAX_WEIGHTED_LENGTH})`);
     for (const i of r.issues) {
       console.log(`      ${i.niveau} [${i.regel}] ${i.bericht}`);
       if (i.niveau === "fout") errors += 1;
@@ -114,7 +114,7 @@ async function cmdPlan(args) {
   let cost = 0;
   for (const i of shown) {
     cost += i.kostUsd;
-    console.log(`${fmtMoment(i.moment, config.timezone).padEnd(22)} ${i.plan.padEnd(22)} $${i.kostUsd.toFixed(3)}  ${i.id}`);
+    console.log(`${fmtMoment(i.moment, config.timezone).padEnd(22)} ${i.plan.padEnd(22)} $${i.kostUsd.toFixed(3)}  ${String(i.lang ?? "").padEnd(2)}  ${i.id}`);
   }
   console.log(`\n${shown.length} post(s), geschatte kost: $${cost.toFixed(2)} (link: $${config.pricingUsd.postWithUrl}, zonder link: $${config.pricingUsd.post}).`);
   const done = items.filter((i) => i.plan === STATE.geplaatst).length;

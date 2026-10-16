@@ -1,0 +1,92 @@
+// Meldingen voor kopers, in het Nederlands en het Engels. Gedeeld door de rekenregels, de server en de API.
+// De site stuurt de taal mee ("en" of "nl"); zonder taal antwoorden we in het Nederlands.
+
+const nl = {
+  nameTooLong: () => "Je publieke naam mag maximaal 24 tekens zijn.",
+  nameChars: () => "Gebruik enkel letters, cijfers, spaties en @ . _ - ' in je publieke naam.",
+  onePerWallet: (p) => `Je hebt al een ${p}. Er is er één per wallet.`,
+  maxPerWallet: (held, p, max) => `Je hebt al ${held} keer de ${p}. Het maximum is ${max} per wallet.`,
+  notEnoughForPass: (p, price) => `Je hebt niet genoeg saldo: de ${p} kost € ${price}.`,
+  enterAmount: () => "Vul een bedrag in.",
+  minimum: (m) => `Het minimum is €${m}.`,
+  maximum: (m) => `Het maximum is €${m.toLocaleString("nl-BE")} per keer.`,
+  notEnoughForSupport: () => "Je hebt niet genoeg saldo voor deze steun.",
+  saleOver: () => "De Genesis-verkoop is afgelopen.",
+  saleNotOpen: () => "De Genesis-verkoop is nog niet open.",
+  soldOut: (p) => `De ${p} is uitverkocht.`,
+  unknownProduct: (id) => `Onbekend product "${id}".`,
+  unknownNumber: () => "Onbekend nummer.",
+  passMissing: (name) => `${name} bestaat niet.`,
+  alreadyRefunded: (name) => `${name} werd al teruggegeven.`,
+  notInWallet: (name) => `${name} staat niet in deze wallet.`,
+  purchaseNotFound: () => "De aankoop van deze pass werd niet gevonden.",
+  refundOver: (days, date) => `De bedenktijd van ${days} dagen liep af op ${date}.`,
+  signedTextWrong: () => "De ondertekende tekst klopt niet.",
+  signatureExpired: () => "De handtekening is verlopen. Probeer opnieuw.",
+  signatureWrong: () => "De handtekening klopt niet.",
+  nothingToWithdraw: () => "Er valt niets op te nemen.",
+  faucetMainnet: () => "Testgeld bestaat niet op mainnet.",
+  faucetEnough: (amount, sym) => `Je hebt al ${amount} ${sym}. Meer testgeld is niet nodig.`,
+  faucetFailed: () => "Testgeld sturen lukte niet. Probeer zo meteen opnieuw.",
+  usePost: () => "Gebruik POST.",
+  useGet: () => "Gebruik GET.",
+  badRequest: () => "Ongeldige aanvraag.",
+  badWallet: () => "Ongeldig walletadres.",
+  badSignature: () => "Ongeldige handtekening.",
+  unknownCode: () => "Onbekende code.",
+  notActive: () => "Genesis is nog niet geactiveerd op dit netwerk.",
+  demoNotActive: () => "De demo is nog niet geactiveerd.",
+  chainDown: () => "De blockchain is even niet bereikbaar. Probeer zo meteen opnieuw.",
+  failed: (what) => `Er ging iets mis bij ${{ prepare: "het voorbereiden van je aankoop", refund: "het voorbereiden van je terugbetaling", activate: "het activeren", code: "het controleren van de code" }[what] ?? "je aanvraag"}. Probeer opnieuw.`,
+  dateLocale: "nl-BE",
+};
+
+const en = {
+  nameTooLong: () => "Your public name can be at most 24 characters.",
+  nameChars: () => "Use only letters, numbers, spaces and @ . _ - ' in your public name.",
+  onePerWallet: (p) => `You already have a ${p}. It’s one per wallet.`,
+  maxPerWallet: (held, p, max) => `You already have ${held} ${p}${held === 1 ? "" : "es"}. The maximum is ${max} per wallet.`,
+  notEnoughForPass: (p, price) => `Not enough balance: the ${p} costs €${price}.`,
+  enterAmount: () => "Enter an amount.",
+  minimum: (m) => `The minimum is €${m}.`,
+  maximum: (m) => `The maximum is €${m.toLocaleString("en-IE")} per payment.`,
+  notEnoughForSupport: () => "Not enough balance for this amount.",
+  saleOver: () => "The Genesis sale has ended.",
+  saleNotOpen: () => "The Genesis sale isn’t open yet.",
+  soldOut: (p) => `The ${p} is sold out.`,
+  unknownProduct: (id) => `Unknown product "${id}".`,
+  unknownNumber: () => "Unknown number.",
+  passMissing: (name) => `${name} doesn’t exist.`,
+  alreadyRefunded: (name) => `${name} has already been refunded.`,
+  notInWallet: (name) => `${name} isn’t in this wallet.`,
+  purchaseNotFound: () => "We couldn’t find the purchase of this pass.",
+  refundOver: (days, date) => `The ${days}-day refund window ended on ${date}.`,
+  signedTextWrong: () => "The signed message doesn’t match.",
+  signatureExpired: () => "The signature has expired. Please try again.",
+  signatureWrong: () => "The signature isn’t valid.",
+  nothingToWithdraw: () => "Nothing to withdraw.",
+  faucetMainnet: () => "Test money doesn’t exist on mainnet.",
+  faucetEnough: (amount, sym) => `You already have ${amount} ${sym}. No more test money needed.`,
+  faucetFailed: () => "Sending test money didn’t work. Please try again shortly.",
+  usePost: () => "Use POST.",
+  useGet: () => "Use GET.",
+  badRequest: () => "Invalid request.",
+  badWallet: () => "Invalid wallet address.",
+  badSignature: () => "Invalid signature.",
+  unknownCode: () => "Unknown code.",
+  notActive: () => "Genesis isn’t active on this network yet.",
+  demoNotActive: () => "The demo isn’t active yet.",
+  chainDown: () => "The blockchain can’t be reached right now. Please try again shortly.",
+  failed: (what) => `Something went wrong while ${{ prepare: "preparing your purchase", refund: "preparing your refund", activate: "activating", code: "checking the code" }[what] ?? "handling your request"}. Please try again.`,
+  dateLocale: "en-IE",
+};
+
+/** De meldingen in de gevraagde taal ("en" of "nl"; alles anders wordt Nederlands). */
+export function msg(lang) {
+  return lang === "en" ? en : nl;
+}
+
+/** Leest de taal uit een waarde van de site. */
+export function langOf(value) {
+  return value === "en" ? "en" : "nl";
+}

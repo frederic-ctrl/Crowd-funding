@@ -196,3 +196,13 @@ test("geschiedenis: enkel transacties van de serversleutel tellen", () => {
   assert.equal(parseGenesisTx(tx({ memo: "hallo" }), dep, cfg, "x"), null);
   assert.equal(parseGenesisTx(null, dep, cfg, "x"), null);
 });
+
+test("meldingen in het Engels als de site Engels is", () => {
+  const base = { cfg, product: pass, held: 0, network: "devnet", lang: "en" };
+  assert.match(checkPassPurchase({ ...base, nextNumber: 51, balanceMicro: 100 * EUR })[0], /Not enough balance: the Genesis Pass costs €149\.00/);
+  assert.match(checkPassPurchase({ ...base, product: agency, nextNumber: 1, held: 1 })[0], /one per wallet/);
+  assert.match(checkPassPurchase({ ...base, network: "mainnet-beta", nextNumber: 1 })[0], /isn’t open yet/);
+  assert.match(checkSupport({ cfg, network: "devnet", balanceMicro: 50 * EUR, eurMicro: parseEuro("0.50"), lang: "en" })[0], /The minimum is €1/);
+  assert.match(cleanName("x".repeat(25), "en").fout, /at most 24 characters/);
+  assert.match(cleanName("x".repeat(25)).fout, /maximaal 24 tekens/, "zonder taal blijft het Nederlands");
+});

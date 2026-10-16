@@ -7,10 +7,119 @@ import { activationMessage, formatNumber, refundDeadline } from "../../../shared
 import { useAsync, useBalance, useGenesis } from "../lib/hooks";
 import { confirmSignature, decodeTransaction, explainError, holdsPass } from "../lib/chain";
 import { ApiError, activatePass, prepareRefund, type GenesisEvent } from "../lib/api";
-import { dateTime, euro, shortAddress } from "../lib/format";
+import { dateLong, dateTime, euro, shortAddress } from "../lib/format";
 import { explorerAddress, explorerTx } from "../lib/explorer";
 import { useWalletUi } from "../components/Wallet";
-import { PassCard, productOf } from "../components/genesis";
+import { PassBack, PassCard, productOf } from "../components/genesis";
+import { SpinningPass } from "../components/SpinningPass";
+import { useLang, useT } from "../i18n";
+
+const T = {
+  en: {
+    title: "Your Genesis.",
+    titleOther: (a: string) => `Wallet ${a}.`,
+    titleOut: "My pass.",
+    sub: "Straight from the blockchain: your pass, your payment, your support.",
+    notActive: "Genesis isn’t active on this network yet.",
+    signInText: `Sign in with the wallet you used. You’ll see your pass, can activate it, and can get a refund within ${genesis.bedenktijdDagen} days.`,
+    signIn: "Sign in with wallet",
+    lookup: "Or look up any wallet",
+    lookupPlaceholder: "Solana address",
+    lookupBtn: "Look up",
+    viewing: "View only.",
+    back: "Back to your own wallet",
+    loading: "Loading…",
+    loadFailed: "Couldn’t load.",
+    emptyTitle: "No Genesis Pass yet.",
+    emptyText: isTestnet ? "Claim your numbered pass and get Marketing Scan Pro for life. On devnet it’s free, with test euros." : "Claim your numbered pass and get Marketing Scan Pro for life.",
+    emptyCta: "Claim your pass",
+    status: "Status",
+    inWallet: "In your wallet",
+    notInWallet: "Not found in this wallet",
+    checking: "Checking…",
+    refunded: "Refunded",
+    bought: "Purchased",
+    paid: "Paid",
+    plan: "Plan",
+    planValue: (n: number) => `Pro, for life, ${n === 1 ? "1 website" : `${n} websites`}`,
+    refund: "Refund",
+    refundUntil: (d: string) => `until ${d}`,
+    refundOver: "window closed",
+    mint: "Token",
+    codeLabel: "Your activation code",
+    codeNote: "Enter this code in Marketing Scan (Account › Genesis). You can request it again with your wallet anytime.",
+    copy: "Copy",
+    copied: "Copied",
+    activate: "Activate in Marketing Scan",
+    activating: "Sign in your wallet…",
+    noSign: "Your wallet can’t sign messages. Try Phantom or Solflare.",
+    refundBtn: "Request refund",
+    confirmText: (n: string, a: string) => <><strong>Are you sure?</strong> Pass {n} will be burned and that number won’t come back. You get {a} back in the same transaction.</>,
+    confirmYes: (a: string) => `Yes, refund ${a}`,
+    confirmNo: "Keep my pass",
+    refundBusy: "Confirm in your wallet…",
+    refundedMsg: (a: string) => `Refunded: ${a} is back in your wallet. Your pass has been burned.`,
+    readOnly: "You’re viewing this wallet without signing in. Only the owner can activate or request a refund.",
+    supporter: "Supporter.",
+    supportText: (n: number, a: string) => `You supported Marketing Scan ${n === 1 ? "once" : `${n} times`}, ${a} in total. Thank you.`,
+    tx: "Transaction",
+    balance: (b: string) => `Test euro balance: ${b}.`,
+    more: "Claim another",
+  },
+  nl: {
+    title: "Jouw Genesis.",
+    titleOther: (a: string) => `Wallet ${a}.`,
+    titleOut: "Mijn pass.",
+    sub: "Rechtstreeks van de blockchain: je pass, je betaling en je steun.",
+    notActive: "Genesis is nog niet actief op dit netwerk.",
+    signInText: `Log in met de wallet waarmee je kocht. Je ziet je pass, kan hem activeren en binnen ${genesis.bedenktijdDagen} dagen je geld terugvragen.`,
+    signIn: "Inloggen met wallet",
+    lookup: "Of bekijk een wallet",
+    lookupPlaceholder: "Solana-adres",
+    lookupBtn: "Bekijk",
+    viewing: "Alleen bekijken.",
+    back: "Terug naar je eigen wallet",
+    loading: "Laden…",
+    loadFailed: "Laden lukte niet.",
+    emptyTitle: "Nog geen Genesis Pass.",
+    emptyText: isTestnet ? "Claim je genummerde pass en krijg levenslang Marketing Scan Pro. Op het testnet gratis, met test-euro." : "Claim je genummerde pass en krijg levenslang Marketing Scan Pro.",
+    emptyCta: "Claim je pass",
+    status: "Status",
+    inWallet: "In je wallet",
+    notInWallet: "Niet gevonden in deze wallet",
+    checking: "Nakijken…",
+    refunded: "Teruggegeven",
+    bought: "Gekocht",
+    paid: "Betaald",
+    plan: "Abonnement",
+    planValue: (n: number) => `Pro, levenslang, ${n === 1 ? "1 website" : `${n} websites`}`,
+    refund: "Geld terug",
+    refundUntil: (d: string) => `tot ${d}`,
+    refundOver: "bedenktijd voorbij",
+    mint: "Token",
+    codeLabel: "Je activatiecode",
+    codeNote: "Vul deze code in bij Marketing Scan (Account › Genesis). Je kan hem altijd opnieuw opvragen met je wallet.",
+    copy: "Kopieer",
+    copied: "Gekopieerd",
+    activate: "Activeer in Marketing Scan",
+    activating: "Onderteken in je wallet…",
+    noSign: "Je wallet kan geen berichten ondertekenen. Probeer Phantom of Solflare.",
+    refundBtn: "Geld terugvragen",
+    confirmText: (n: string, a: string) => <><strong>Zeker?</strong> Pass {n} wordt verbrand en dat nummer komt niet terug. Je krijgt {a} terug in dezelfde transactie.</>,
+    confirmYes: (a: string) => `Ja, stort ${a} terug`,
+    confirmNo: "Pass houden",
+    refundBusy: "Bevestig in je wallet…",
+    refundedMsg: (a: string) => `Teruggestort: ${a} staat terug in je wallet. Je pass is verbrand.`,
+    readOnly: "Je bekijkt deze wallet zonder in te loggen. Activeren en geld terugvragen kan enkel de eigenaar.",
+    supporter: "Supporter.",
+    supportText: (n: number, a: string) => `Je steunde Marketing Scan ${n === 1 ? "één keer" : `${n} keer`}, samen ${a}. Bedankt.`,
+    tx: "Transactie",
+    balance: (b: string) => `Saldo test-euro: ${b}.`,
+    more: "Nog iets claimen",
+  },
+};
+
+type Copy = (typeof T)["en"];
 
 function validAddress(value: string): boolean {
   try {
@@ -21,15 +130,14 @@ function validAddress(value: string): boolean {
   }
 }
 
-const dateLong = (ms: number) => new Intl.DateTimeFormat("nl-BE", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(ms));
-
 function toBase64(bytes: Uint8Array): string {
   let s = "";
   bytes.forEach((b) => (s += String.fromCharCode(b)));
   return btoa(s);
 }
 
-function PassBlock({ e, owner, own, onChange }: { e: GenesisEvent; owner: string; own: boolean; onChange: () => void }) {
+function PassRow({ e, owner, own, onChange, t }: { e: GenesisEvent; owner: string; own: boolean; onChange: () => void; t: Copy }) {
+  const { lang } = useLang();
   const { connection } = useConnection();
   const { signMessage, signTransaction } = useWallet();
   const product = productOf(e.productId)!;
@@ -37,14 +145,15 @@ function PassBlock({ e, owner, own, onChange }: { e: GenesisEvent; owner: string
   const [code, setCode] = useState<string | null>(null);
   const [busy, setBusy] = useState<"" | "activeren" | "terug">("");
   const [confirmRefund, setConfirmRefund] = useState(false);
-  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ kind: "ok" | "bad"; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const deadline = e.time ? refundDeadline(genesis, e.time) : 0;
   const canRefund = own && !e.teruggegeven && Date.now() < deadline;
+  const label = formatNumber(product, e.number!);
 
   async function activate() {
-    if (!signMessage) return setMsg({ kind: "err", text: "Je wallet ondersteunt geen handtekeningen. Probeer Phantom of Solflare." });
+    if (!signMessage) return setMsg({ kind: "bad", text: t.noSign });
     setBusy("activeren");
     setMsg(null);
     try {
@@ -53,7 +162,7 @@ function PassBlock({ e, owner, own, onChange }: { e: GenesisEvent; owner: string
       const res = await activatePass(owner, product.id, e.number!, message, toBase64(signature));
       setCode(res.code);
     } catch (err) {
-      setMsg({ kind: "err", text: err instanceof ApiError ? err.message : explainError(err) });
+      setMsg({ kind: "bad", text: err instanceof ApiError ? err.message : explainError(err, lang) });
     } finally {
       setBusy("");
     }
@@ -67,12 +176,12 @@ function PassBlock({ e, owner, own, onChange }: { e: GenesisEvent; owner: string
       const prepared = await prepareRefund(owner, product.id, e.number!);
       const signed = await signTransaction(decodeTransaction(prepared.transaction));
       const signature = await connection.sendRawTransaction(signed.serialize());
-      await confirmSignature(connection, signature);
-      setMsg({ kind: "ok", text: `Teruggestort: ${euro(prepared.amountMicro)} staat terug in je wallet. Je pass is verbrand.` });
+      await confirmSignature(connection, signature, lang);
+      setMsg({ kind: "ok", text: t.refundedMsg(euro(prepared.amountMicro)) });
       setConfirmRefund(false);
       onChange();
     } catch (err) {
-      setMsg({ kind: "err", text: err instanceof ApiError ? err.message : explainError(err) });
+      setMsg({ kind: "bad", text: err instanceof ApiError ? err.message : explainError(err, lang) });
     } finally {
       setBusy("");
     }
@@ -90,53 +199,61 @@ function PassBlock({ e, owner, own, onChange }: { e: GenesisEvent; owner: string
   }
 
   return (
-    <article className="pass-block">
-      <PassCard variant={product.id} number={e.number} holder={owner} status={e.teruggegeven ? "teruggegeven" : "actief"} />
-      <div className="pass-side">
-        <h2>{product.naam} {formatNumber(product, e.number!)}</h2>
-        <dl className="kv">
-          <div><dt>Status</dt><dd>{e.teruggegeven ? "Teruggegeven" : inWallet.data === undefined || inWallet.data === null ? "Wordt nagekeken..." : inWallet.data ? <span className="ok">✓ Staat in je wallet</span> : <span className="bad">Niet gevonden in deze wallet</span>}</dd></div>
-          <div><dt>Gekocht</dt><dd>{dateTime(e.time)}</dd></div>
-          <div><dt>Betaald</dt><dd>{euro(e.amountMicro)} {SYMBOL}</dd></div>
-          <div><dt>Abonnement</dt><dd>Pro, levenslang, {product.websites === 1 ? "1 website" : `${product.websites} websites`}</dd></div>
-          {!e.teruggegeven && e.time && <div><dt>Geld terug</dt><dd>{Date.now() < deadline ? `kan tot ${dateLong(deadline)}` : "bedenktijd voorbij"}</dd></div>}
-          {e.mint && <div><dt>Munt</dt><dd><a className="mono" href={explorerAddress(e.mint)} target="_blank" rel="noreferrer">{shortAddress(e.mint)}</a></dd></div>}
+    <article className="my-pass">
+      <SpinningPass
+        label={`${product.naam} ${label}`}
+        front={<PassCard variant={product.id} number={e.number} holder={owner} status={e.teruggegeven ? "teruggegeven" : "actief"} />}
+        back={<PassBack variant={product.id} />}
+      />
+      <div className="my-side">
+        <h2>{product.naam} {label}</h2>
+        <dl className="group">
+          <div>
+            <dt>{t.status}</dt>
+            <dd>{e.teruggegeven ? t.refunded : inWallet.data === null ? t.checking : inWallet.data ? <span className="ok">{t.inWallet}</span> : <span className="bad">{t.notInWallet}</span>}</dd>
+          </div>
+          <div><dt>{t.bought}</dt><dd>{dateTime(e.time)}</dd></div>
+          <div><dt>{t.paid}</dt><dd>{euro(e.amountMicro)} {SYMBOL}</dd></div>
+          <div><dt>{t.plan}</dt><dd>{t.planValue(product.websites)}</dd></div>
+          {!e.teruggegeven && e.time && <div><dt>{t.refund}</dt><dd>{Date.now() < deadline ? t.refundUntil(dateLong(deadline)) : t.refundOver}</dd></div>}
+          {e.mint && <div><dt>{t.mint}</dt><dd><a className="mono" href={explorerAddress(e.mint)} target="_blank" rel="noreferrer">{shortAddress(e.mint)}</a></dd></div>}
         </dl>
 
         {code && (
-          <div className="code-box" role="status">
-            <span>Je activatiecode</span>
+          <div className="code" role="status">
+            <span className="code-label">{t.codeLabel}</span>
             <div className="code-row">
               <code>{code}</code>
-              <button type="button" className="btn btn-small btn-ghost" onClick={copy}>{copied ? "Gekopieerd" : "Kopieer"}</button>
+              <button type="button" className="btn btn-sm btn-quiet" onClick={copy}>{copied ? t.copied : t.copy}</button>
             </div>
-            <small>Vul deze code in bij Marketing Scan (Account › Genesis). Je kan hem altijd opnieuw opvragen met je wallet.</small>
+            <span className="fine">{t.codeNote}</span>
           </div>
         )}
-        {msg && <p className={`notice ${msg.kind === "ok" ? "notice-ok" : "notice-bad"}`}>{msg.text}</p>}
+        {msg && <p className={`notice ${msg.kind}`}>{msg.text}</p>}
 
-        {own && !e.teruggegeven && (
-          <div className="pass-actions">
-            {!code && <button type="button" className="btn" disabled={busy !== ""} onClick={activate}>{busy === "activeren" ? "Onderteken in je wallet..." : "Activeer in Marketing Scan"}</button>}
-            {canRefund && !confirmRefund && <button type="button" className="btn btn-ghost" disabled={busy !== ""} onClick={() => setConfirmRefund(true)}>Geld terug</button>}
+        {own && !e.teruggegeven && !confirmRefund && (
+          <div className="actions">
+            {!code && <button type="button" className="btn" disabled={busy !== ""} onClick={activate}>{busy === "activeren" ? t.activating : t.activate}</button>}
+            {canRefund && <button type="button" className="linkbtn danger" disabled={busy !== ""} onClick={() => setConfirmRefund(true)}>{t.refundBtn}</button>}
           </div>
         )}
         {confirmRefund && (
           <div className="confirm">
-            <p><strong>Zeker?</strong> Je pass {formatNumber(product, e.number!)} wordt verbrand en dat nummer komt niet meer terug. Je krijgt {euro(e.amountMicro)} terug in dezelfde transactie.</p>
-            <div className="pass-actions">
-              <button type="button" className="btn btn-danger" disabled={busy !== ""} onClick={refund}>{busy === "terug" ? "Bevestig in je wallet..." : `Ja, stort ${euro(e.amountMicro)} terug`}</button>
-              <button type="button" className="btn btn-ghost" disabled={busy !== ""} onClick={() => setConfirmRefund(false)}>Toch niet</button>
+            <p>{t.confirmText(label, euro(e.amountMicro))}</p>
+            <div className="actions">
+              <button type="button" className="btn btn-danger" disabled={busy !== ""} onClick={refund}>{busy === "terug" ? t.refundBusy : t.confirmYes(euro(e.amountMicro))}</button>
+              <button type="button" className="linkbtn" disabled={busy !== ""} onClick={() => setConfirmRefund(false)}>{t.confirmNo}</button>
             </div>
           </div>
         )}
-        {!own && <p className="muted" style={{ fontSize: "0.9rem" }}>Je bekijkt deze wallet zonder in te loggen. Activeren en geld terug kan enkel de eigenaar.</p>}
+        {!own && <p className="fine">{t.readOnly}</p>}
       </div>
     </article>
   );
 }
 
 export default function MyPass() {
+  const t = useT(T);
   const { publicKey } = useWallet();
   const { open } = useWalletUi();
   const [params, setParams] = useSearchParams();
@@ -159,76 +276,69 @@ export default function MyPass() {
   }
 
   return (
-    <>
-      <section className="page-hero">
+    <div className="page-alt-wrap">
+      <header className="page-head">
         <div className="container">
-          <p className="eyebrow" style={{ color: "var(--pill)" }}>Mijn pass</p>
-          <h1>{owner ? (viewing && !own ? `Wallet ${shortAddress(owner)}` : "Jouw Genesis") : "Log in om je pass te zien"}</h1>
-          <p>Alles hieronder komt rechtstreeks van de blockchain: je pass, je betaling en je steun.</p>
+          <h1>{owner ? (viewing && !own ? t.titleOther(shortAddress(owner)) : t.title) : t.titleOut}</h1>
+          <p>{t.sub}</p>
         </div>
-      </section>
-      <div className="container page-body">
-        {!deployment && <p className="notice"><strong>Genesis is nog niet geactiveerd op dit netwerk.</strong></p>}
+      </header>
+      <div className="container wide page">
+        {!deployment && <p className="notice">{t.notActive}</p>}
 
         {!owner && (
-          <div className="login-card">
-            <p className="muted">Log in met de wallet waarmee je je pass claimde. Je ziet je pass, kan hem activeren en binnen {genesis.bedenktijdDagen} dagen je geld terugvragen.</p>
-            <button type="button" className="btn btn-large" onClick={open}>Inloggen met wallet</button>
-            <div className="card">
-              <h3 style={{ fontSize: "1.05rem" }}>Of bekijk een wallet</h3>
-              <form className="view-form" onSubmit={submitLookup}>
-                <label className="sr-only" htmlFor="adres">Walletadres</label>
-                <input id="adres" className="input input-paper" placeholder="Solana-adres" value={lookup} onChange={(e) => setLookup(e.target.value)} style={{ flex: 1, minWidth: 0 }} />
-                <button type="submit" className="btn btn-ghost">Bekijk</button>
-              </form>
-            </div>
+          <div className="signin">
+            <p className="lead">{t.signInText}</p>
+            <button type="button" className="btn btn-lg" onClick={open}>{t.signIn}</button>
+            <form onSubmit={submitLookup}>
+              <label className="sr-only" htmlFor="adres">{t.lookup}</label>
+              <input id="adres" className="input" placeholder={t.lookupPlaceholder} value={lookup} onChange={(e) => setLookup(e.target.value)} />
+              <button type="submit" className="btn btn-quiet">{t.lookupBtn}</button>
+            </form>
+            <span className="fine">{t.lookup}</span>
           </div>
         )}
 
         {owner && (
-          <>
+          <div className="my">
             {viewing && !own && (
-              <p className="notice notice-info">
-                <strong>Alleen bekijken.</strong> <button type="button" className="link-button" onClick={() => setParams({})}>Terug naar je eigen wallet</button>
-              </p>
+              <p className="notice"><strong>{t.viewing}</strong> <button type="button" className="linkbtn" onClick={() => setParams({})}>{t.back}</button></p>
             )}
-            {state.error && <p className="notice notice-bad"><strong>Laden lukte niet.</strong> {state.error}</p>}
-            {!state.data && !state.error && <p className="muted">Laden...</p>}
+            {state.error && <p className="notice bad"><strong>{t.loadFailed}</strong> {state.error}</p>}
+            {!state.data && !state.error && <p className="muted center">{t.loading}</p>}
             {state.data && passes.length === 0 && support.length === 0 && (
-              <div className="empty-state">
-                <PassCard variant="pass" number={null} holder={owner} status="voorbeeld" footer="Nog geen pass in deze wallet" />
+              <div className="empty">
+                <PassCard variant="pass" number={null} holder={owner} />
                 <div>
-                  <h2>Nog geen Genesis Pass</h2>
-                  <p className="muted">Claim je genummerde pass en krijg levenslang Marketing Scan Pro. {isTestnet ? "Op het testnet kan dat gratis, met test-euro." : ""}</p>
-                  <Link className="btn" to="/genesis">Claim je Genesis Pass</Link>
+                  <h2>{t.emptyTitle}</h2>
+                  <p className="lead">{t.emptyText}</p>
+                  <Link className="btn btn-lg" to="/genesis">{t.emptyCta}</Link>
                 </div>
               </div>
             )}
             {passes.map((e) => (
-              <PassBlock key={e.signature} e={e} owner={owner} own={own} onChange={() => { state.refresh(); balance.refresh(); }} />
+              <PassRow key={e.signature} e={e} owner={owner} own={own} t={t} onChange={() => { state.refresh(); balance.refresh(); }} />
             ))}
             {support.length > 0 && (
-              <section className="pass-block" aria-labelledby="h-steun">
-                <PassCard variant="steun" holder={owner} footer="Supporter-badge · niet overdraagbaar" />
-                <div className="pass-side">
-                  <h2 id="h-steun">Supporter</h2>
-                  <p className="muted">Je steunde Marketing Scan {support.length === 1 ? "één keer" : `${support.length} keer`}, samen {euro(supportTotal)}. Bedankt.</p>
-                  <ul className="mini-list">
+              <article className="my-pass">
+                <PassCard variant="steun" holder={owner} />
+                <div className="my-side">
+                  <h2>{t.supporter}</h2>
+                  <p className="lead">{t.supportText(support.length, euro(supportTotal))}</p>
+                  <dl className="group">
                     {support.map((e) => (
-                      <li key={e.signature}><span>{dateTime(e.time)}</span><span>{euro(e.amountMicro)}</span><a href={explorerTx(e.signature)} target="_blank" rel="noreferrer">transactie</a></li>
+                      <div key={e.signature}><dt>{dateTime(e.time)}</dt><dd><a href={explorerTx(e.signature)} target="_blank" rel="noreferrer">{euro(e.amountMicro)}</a></dd></div>
                     ))}
-                  </ul>
+                  </dl>
                 </div>
-              </section>
+              </article>
             )}
-            {own && isTestnet && (
-              <p className="muted" style={{ fontSize: "0.9rem" }}>
-                Saldo test-euro: {balance.data === null ? "-" : `${euro(balance.data)} ${SYMBOL}`}. <Link to="/genesis">Nog iets claimen</Link>
-              </p>
+            {own && isTestnet && state.data && (
+              <p className="fine center">{t.balance(balance.data === null ? "-" : `${euro(balance.data)} ${SYMBOL}`)} <Link to="/genesis">{t.more}</Link></p>
             )}
-          </>
+          </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

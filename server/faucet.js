@@ -7,14 +7,16 @@ import {
   unpackAccount,
 } from "@solana/spl-token";
 import { EUR } from "../shared/genesis.js";
+import { msg } from "../shared/messages.js";
 
 export const FAUCET_AMOUNT = 1000 * EUR;
 export const FAUCET_MAX_BALANCE = 1000 * EUR;
 
 export class FaucetError extends Error {}
 
-export async function sendTestEuro({ connection, deployment, cfg, authority, recipient, amountMicro = FAUCET_AMOUNT }) {
-  if (deployment.network === "mainnet-beta") throw new FaucetError("Testgeld bestaat niet op mainnet.");
+export async function sendTestEuro({ connection, deployment, cfg, authority, recipient, amountMicro = FAUCET_AMOUNT, lang = "nl" }) {
+  const m = msg(lang);
+  if (deployment.network === "mainnet-beta") throw new FaucetError(m.faucetMainnet());
   const paymentMint = new PublicKey(deployment.paymentMint);
   const paymentProgram = new PublicKey(deployment.paymentProgram);
   const ata = getAssociatedTokenAddressSync(paymentMint, recipient, false, paymentProgram);
@@ -22,7 +24,7 @@ export async function sendTestEuro({ connection, deployment, cfg, authority, rec
   const info = await connection.getAccountInfo(ata);
   const balance = info ? Number(unpackAccount(ata, info, paymentProgram).amount) : 0;
   if (balance >= FAUCET_MAX_BALANCE) {
-    throw new FaucetError(`Je hebt al ${(balance / EUR).toLocaleString("nl-BE")} ${cfg.betaalmunt.symbool}. Meer testgeld is niet nodig.`);
+    throw new FaucetError(m.faucetEnough((balance / EUR).toLocaleString(m.dateLocale), cfg.betaalmunt.symbool));
   }
 
   const tx = new Transaction().add(

@@ -104,31 +104,31 @@ try {
 
   // 1. Een Genesis Pass claimen
   await page.goto(`${SITE}/genesis`, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Inloggen met wallet" }).click();
+  await page.getByRole("button", { name: "Sign in with wallet" }).click();
   await page.getByRole("button", { name: /Testwallet/ }).click();
-  await page.getByText("Ingelogd als").waitFor({ timeout: 15000 });
+  await page.getByText("Signed in", { exact: true }).waitFor({ timeout: 15000 });
   console.log("ingelogd als", buyer.publicKey.toBase58());
 
-  await page.getByRole("button", { name: /Ontvang 1\.000 tEUR/ }).click();
-  await page.getByText(/Je kreeg/).waitFor({ timeout: 30000 });
+  await page.getByRole("button", { name: /Get 1,000 tEUR/ }).click();
+  await page.getByText(/You received/).waitFor({ timeout: 30000 });
   console.log("testgeld ontvangen");
 
   await page.fill("#naam", "@testkoper");
   await page.check("#a-terms");
   await page.check("#a-nature");
   await page.check("#a-demo");
-  const claim = page.getByRole("button", { name: /Claim Genesis Pass #\d{3} voor € 99/ });
+  const claim = page.getByRole("button", { name: /Claim Genesis Pass #\d{3} for €99/ });
   await claim.waitFor({ timeout: 20000 });
   await shot(page, "genesis-claim.png");
   await claim.click();
-  await page.getByText(/Welkom bij Genesis, #\d{3}/).waitFor({ timeout: 60000 });
+  await page.getByText(/Welcome to Genesis, #\d{3}/).waitFor({ timeout: 60000 });
   await shot(page, "genesis-geclaimd.png");
   console.log("pass geclaimd:", await page.locator(".claimed-copy h2").innerText());
 
   // 2. Activeren met een gratis handtekening
-  await page.getByRole("link", { name: "Activeer mijn pass" }).click();
-  await page.getByText("✓ Staat in je wallet").waitFor({ timeout: 30000 });
-  await page.getByRole("button", { name: "Activeer in Marketing Scan" }).click();
+  await page.getByRole("link", { name: "Activate my pass" }).click();
+  await page.getByText("In your wallet", { exact: true }).waitFor({ timeout: 30000 });
+  await page.getByRole("button", { name: "Activate in Marketing Scan" }).click();
   const code = page.locator(".code-row code");
   await code.waitFor({ timeout: 30000 });
   const codeText = await code.innerText();
@@ -138,13 +138,13 @@ try {
 
   // 3. Steunen vanaf €1
   await page.goto(`${SITE}/genesis?product=steun`, { waitUntil: "networkidle" });
-  await page.getByText("Ingelogd als").waitFor({ timeout: 15000 });
-  await page.fill("#bedrag", "12,50");
+  await page.getByText("Signed in", { exact: true }).waitFor({ timeout: 15000 });
+  await page.fill("#bedrag", "12.50");
   await page.check("#a-terms");
   await page.check("#a-nature");
   await page.check("#a-demo");
-  await page.getByRole("button", { name: /Steun met € 12,50/ }).click();
-  await page.getByText("Bedankt voor je steun").waitFor({ timeout: 60000 });
+  await page.getByRole("button", { name: /Support with €12\.50/ }).click();
+  await page.getByText("Thank you for your support.").waitFor({ timeout: 60000 });
   console.log("steun gelukt");
 
   // 4. Overzichtspagina's, ook op gsm
@@ -152,6 +152,8 @@ try {
     ["overzicht", "/", { width: 1280, height: 900 }],
     ["transparantie", "/transparantie", { width: 1280, height: 900 }],
     ["voorwaarden", "/voorwaarden", { width: 1280, height: 900 }],
+    ["overzicht-nl", "/?lang=nl", { width: 1280, height: 900 }],
+    ["claim", "/genesis?lang=en", { width: 1280, height: 900 }],
     ["overzicht-gsm", "/", { width: 390, height: 844 }],
     ["claim-gsm", "/genesis", { width: 390, height: 844 }],
     ["mijn-pass-gsm", "/mijn-pass", { width: 390, height: 844 }],
@@ -164,16 +166,16 @@ try {
   }
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`${SITE}/transparantie`, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Controleer in mijn browser" }).click();
-  await page.getByText("Alles klopt.").waitFor({ timeout: 60000 });
+  await page.getByRole("button", { name: "Verify in my browser" }).click();
+  await page.getByText("Everything matches.").waitFor({ timeout: 90000 });
   console.log("browsercontrole: alles klopt");
 
   // 5. Geld terug binnen 14 dagen
   await page.goto(`${SITE}/mijn-pass`, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Geld terug" }).click();
-  await page.getByRole("button", { name: /Ja, stort € 99,00 terug/ }).click();
-  await page.getByText(/Teruggestort: €\s99,00/).waitFor({ timeout: 60000 });
-  await page.getByText("Teruggegeven", { exact: true }).first().waitFor({ timeout: 30000 });
+  await page.getByRole("button", { name: "Request refund" }).click();
+  await page.getByRole("button", { name: /Yes, refund €99\.00/ }).click();
+  await page.getByText(/Refunded: €99\.00/).waitFor({ timeout: 60000 });
+  await page.getByText("Refunded", { exact: true }).first().waitFor({ timeout: 30000 });
   await shot(page, "mijn-pass-terug.png");
   console.log("geld terug gelukt");
 } catch (err) {

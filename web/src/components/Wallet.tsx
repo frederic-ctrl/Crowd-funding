@@ -1,10 +1,46 @@
-// Inloggen met een Solana-wallet (Phantom, Solflare, Backpack, ...), in het Nederlands.
+// Inloggen met een Solana-wallet (Phantom, Solflare, Backpack, ...), in het Engels of Nederlands.
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState, type WalletName } from "@solana/wallet-adapter-base";
 import { isTestnet, network } from "../config";
 import { shortAddress } from "../lib/format";
+import { useT } from "../i18n";
+
+const T = {
+  en: {
+    title: "Sign in with your wallet",
+    intro: "Your wallet is your login. We never ask for your secret phrase.",
+    found: "detected",
+    connecting: "connecting…",
+    none: "No wallet found in this browser.",
+    openIn: (w: string) => `Open in the ${w} app`,
+    install: (w: string) => `Install ${w}`,
+    recommended: "recommended",
+    devnet: `Demo on Solana ${network === "localnet" ? "localnet" : "devnet"}. In Phantom: Settings › Developer settings › Testnet mode.`,
+    close: "Close",
+    signIn: "Sign in",
+    myPass: "My pass",
+    claim: "Claim a pass",
+    signOut: "Sign out",
+  },
+  nl: {
+    title: "Inloggen met je wallet",
+    intro: "Je wallet is je login. We vragen nooit je geheime zin.",
+    found: "gevonden",
+    connecting: "verbinden…",
+    none: "Geen wallet gevonden in deze browser.",
+    openIn: (w: string) => `Openen in de ${w}-app`,
+    install: (w: string) => `${w} installeren`,
+    recommended: "aanbevolen",
+    devnet: `Demo op het Solana-${network === "localnet" ? "localnet" : "testnet (devnet)"}. In Phantom: Instellingen › Ontwikkelaarsinstellingen › Testnetmodus.`,
+    close: "Sluiten",
+    signIn: "Inloggen",
+    myPass: "Mijn pass",
+    claim: "Pass claimen",
+    signOut: "Uitloggen",
+  },
+};
 
 type WalletUi = { open: () => void };
 const WalletUiContext = createContext<WalletUi>({ open: () => {} });
@@ -27,6 +63,7 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
 }
 
 function WalletModal({ onClose }: { onClose: () => void }) {
+  const t = useT(T);
   const { wallets, select, connected, connecting } = useWallet();
   const installed = wallets.filter((w) => w.readyState === WalletReadyState.Installed || w.readyState === WalletReadyState.Loadable);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -49,12 +86,10 @@ function WalletModal({ onClose }: { onClose: () => void }) {
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="wallet-title" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h2 id="wallet-title" style={{ fontSize: "1.4rem" }}>Inloggen met je wallet</h2>
-          <button ref={closeRef} type="button" className="modal-close" onClick={onClose} aria-label="Sluiten">×</button>
+          <h2 id="wallet-title">{t.title}</h2>
+          <button ref={closeRef} type="button" className="modal-close" onClick={onClose} aria-label={t.close}>×</button>
         </div>
-        <p className="muted" style={{ fontSize: "0.95rem" }}>
-          Je wallet is je login. We vragen nooit je geheime zin of wachtwoord.
-        </p>
+        <p className="muted" style={{ fontSize: 15 }}>{t.intro}</p>
 
         {installed.length > 0 ? (
           <ul className="wallet-list">
@@ -63,48 +98,39 @@ function WalletModal({ onClose }: { onClose: () => void }) {
                 <button type="button" className="wallet-option" disabled={connecting} onClick={() => select(w.adapter.name as WalletName)}>
                   <img src={w.adapter.icon} alt="" />
                   {w.adapter.name}
-                  <small>{connecting ? "verbinden..." : "gevonden"}</small>
+                  <small>{connecting ? t.connecting : t.found}</small>
                 </button>
               </li>
             ))}
           </ul>
         ) : (
-          <div style={{ display: "grid", gap: "0.75rem" }}>
-            <p style={{ fontSize: "0.95rem" }}>Geen wallet gevonden in deze browser.</p>
-            {isMobile() ? (
-              <ul className="wallet-list">
-                <li>
-                  <a className="wallet-option" href={`https://phantom.app/ul/browse/${encodeURIComponent(here)}?ref=${encodeURIComponent(origin)}`}>
-                    Openen in de Phantom-app <small>aanbevolen</small>
-                  </a>
-                </li>
-                <li>
-                  <a className="wallet-option" href={`https://solflare.com/ul/v1/browse/${encodeURIComponent(here)}?ref=${encodeURIComponent(origin)}`}>
-                    Openen in de Solflare-app
-                  </a>
-                </li>
-              </ul>
-            ) : (
-              <ul className="wallet-list">
-                <li><a className="wallet-option" href="https://phantom.com/download" target="_blank" rel="noreferrer">Phantom installeren <small>aanbevolen</small></a></li>
-                <li><a className="wallet-option" href="https://solflare.com/download" target="_blank" rel="noreferrer">Solflare installeren</a></li>
-                <li><a className="wallet-option" href="https://backpack.app/download" target="_blank" rel="noreferrer">Backpack installeren</a></li>
-              </ul>
-            )}
+          <div style={{ display: "grid", gap: 12 }}>
+            <p style={{ fontSize: 15 }}>{t.none}</p>
+            <ul className="wallet-list">
+              {isMobile() ? (
+                <>
+                  <li><a className="wallet-option" href={`https://phantom.app/ul/browse/${encodeURIComponent(here)}?ref=${encodeURIComponent(origin)}`}>{t.openIn("Phantom")} <small>{t.recommended}</small></a></li>
+                  <li><a className="wallet-option" href={`https://solflare.com/ul/v1/browse/${encodeURIComponent(here)}?ref=${encodeURIComponent(origin)}`}>{t.openIn("Solflare")}</a></li>
+                </>
+              ) : (
+                <>
+                  <li><a className="wallet-option" href="https://phantom.com/download" target="_blank" rel="noreferrer">{t.install("Phantom")} <small>{t.recommended}</small></a></li>
+                  <li><a className="wallet-option" href="https://solflare.com/download" target="_blank" rel="noreferrer">{t.install("Solflare")}</a></li>
+                  <li><a className="wallet-option" href="https://backpack.app/download" target="_blank" rel="noreferrer">{t.install("Backpack")}</a></li>
+                </>
+              )}
+            </ul>
           </div>
         )}
 
-        {isTestnet && (
-          <p className="notice notice-info">
-            <strong>Testnet-demo.</strong> Zet je wallet op {network === "localnet" ? "localnet" : "Devnet"}. In Phantom: Instellingen › Ontwikkelaarsinstellingen › Testnetmodus.
-          </p>
-        )}
+        {isTestnet && <p className="notice">{t.devnet}</p>}
       </div>
     </div>
   );
 }
 
-export function AccountButton({ compact = false }: { compact?: boolean }) {
+export function AccountButton() {
+  const t = useT(T);
   const { publicKey, disconnect, connecting } = useWallet();
   const { open } = useWalletUi();
   const [menu, setMenu] = useState(false);
@@ -121,21 +147,21 @@ export function AccountButton({ compact = false }: { compact?: boolean }) {
 
   if (!publicKey) {
     return (
-      <button type="button" className={`btn ${compact ? "btn-small" : ""}`} onClick={open} disabled={connecting}>
-        {connecting ? "Verbinden..." : "Inloggen"}
+      <button type="button" className="account-btn" onClick={open} disabled={connecting}>
+        {connecting ? t.connecting : t.signIn}
       </button>
     );
   }
   return (
-    <div className="account-menu" ref={ref}>
-      <button type="button" className="btn btn-small btn-ghost on-night" onClick={() => setMenu((m) => !m)} aria-expanded={menu}>
-        <span className="mono">{shortAddress(publicKey.toBase58())}</span>
+    <div className="account" ref={ref}>
+      <button type="button" className="account-btn mono" onClick={() => setMenu((m) => !m)} aria-expanded={menu}>
+        {shortAddress(publicKey.toBase58())}
       </button>
       {menu && (
         <div className="account-pop">
-          <Link to="/mijn-pass" onClick={() => setMenu(false)}>Mijn pass</Link>
-          <Link to="/genesis" onClick={() => setMenu(false)}>Genesis Pass claimen</Link>
-          <button type="button" onClick={() => { setMenu(false); void disconnect(); }}>Uitloggen</button>
+          <Link to="/mijn-pass" onClick={() => setMenu(false)}>{t.myPass}</Link>
+          <Link to="/genesis" onClick={() => setMenu(false)}>{t.claim}</Link>
+          <button type="button" onClick={() => { setMenu(false); void disconnect(); }}>{t.signOut}</button>
         </div>
       )}
     </div>

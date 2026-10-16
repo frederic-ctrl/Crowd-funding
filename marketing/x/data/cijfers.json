@@ -6,5 +6,8 @@
   "supporters": 0,
   "opgehaaldEur": 0,
   "wachtlijst": 0,
-  "stand": "demo op het Solana-testnet, de boekhouder kiest de rechtsvorm"
+  "stand": {
+    "en": "demo on Solana devnet, the accountant is choosing the legal form",
+    "nl": "demo op het Solana-testnet, de boekhouder kiest de rechtsvorm"
+  }
 }

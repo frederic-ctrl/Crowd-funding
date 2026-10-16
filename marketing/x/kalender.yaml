@@ -2,157 +2,208 @@
 #
 # Zo werkt het:
 # - Elke post heeft een id, een moment (met tijdzone), een categorie, een status en de tekst.
+# - Taal: posts zijn Engels (defaultLang "en" in config.json). Een Nederlandse post krijgt "lang: nl".
+#   De verplichte vermeldingen moeten in de taal van de post staan; de verboden woorden gelden in beide talen.
 # - Placeholders: {site} = community-site, {scan} = marketingscan.be, {genesis} = {site}/genesis,
 #   {transparantie} = {site}/transparantie, {voorwaarden} = offer.voorwaardenUrl uit config.json.
+#   {site}, {genesis}, {transparantie} en {voorwaarden} krijgen automatisch ?lang=en of ?lang=nl,
+#   zodat de site in de taal van de post opent. {scan} blijft zoals hij is.
 # - Categorieën:
 #     product        over de scan zelf. Mag niet over Genesis, passes, wallets of de voorverkoop gaan.
-#     genesis        over de Genesis Pass, de voorverkoop, de prijsladder en de Genesis-muur.
-#     uitleg         hoe het werkt: wallet, soulbound, geld terug, transparantie.
+#     genesis        over de Genesis Pass, de prijsladder, de Genesis-muur en de roadmap.
+#     uitleg         hoe het werkt: wallet, soulbound, geld terug, de demo.
 #     transparantie  cijfers en stand van zaken.
 #     verkoop        directe koopoproepen. Kan pas als de verkoop live is (verkoopActief en legalReviewDone).
-# - Elke post in genesis, uitleg, transparantie en verkoop vermeldt letterlijk "Geen investering".
-#   Zolang de verkoop niet live is ook "Nog geen verkoop", en geen koopoproepen ("koop nu", "claim je pass", ...).
+# - Elke post in genesis, uitleg, transparantie en verkoop vermeldt letterlijk "Not an investment"
+#   (Nederlands: "Geen investering"). Zolang de verkoop niet live is ook "Not on sale yet"
+#   (Nederlands: "Nog geen verkoop"), en geen koopoproepen ("buy now", "claim your pass", "koop nu", ...).
+# - Engels: schrijf nooit "presale" (klinkt als een token sale). Zeg "early access" of "founding members".
 # - Status "concept" wordt nooit gepost. Goedkeuren gebeurt via GitHub: Actions > "X: post goedkeuren".
 #   De goedkeuring is gekoppeld aan de exacte tekst: pas je de tekst nadien aan, dan vervalt ze.
 # - Lengte: max 280 tekens, een link telt als 23. Een post met link kost $0.20, zonder link $0.015.
+# - Engelse posts staan om 15:00 (Brussel): dan lezen Europa en de Amerikaanse oostkust allebei mee.
 
 posts:
-  - id: 2026-10-27-gratis-scan
-    moment: 2026-10-27T10:00:00+01:00
+  - id: 2026-10-27-free-scan
+    moment: 2026-10-27T15:00:00+01:00
     categorie: product
     status: concept
     tekst: |-
-      Hoe zichtbaar is jouw bedrijf écht online? Marketing Scan checkt je website, Google, reviews, social media, tracking, e-mail en beveiliging. Meer dan 30 controlepunten, resultaat in 60 seconden. Gratis, zonder account.
+      How visible is your business online, really?
+
+      Marketing Scan checks your website, Google, reviews, socials, tracking, email and security. 30+ checks. Results in 60 seconds. Free, no account.
 
       {scan}
 
-  - id: 2026-10-29-waarom-genesis
-    moment: 2026-10-29T10:00:00+01:00
+  - id: 2026-10-29-why-genesis
+    moment: 2026-10-29T15:00:00+01:00
     categorie: genesis
     status: concept
     tekst: |-
-      Eerlijk over waar we staan: Marketing Scan heeft een tiental wekelijkse gebruikers en nog geen betalende klant. Om sneller te bouwen, werken we aan Marketing Scan Genesis: 250 genummerde passes voor levenslang Pro.
+      Building in public means real numbers. Marketing Scan has about 10 weekly users and 0 paying customers.
 
-      Geen investering. Nog geen verkoop. {genesis}
+      To build faster, we're preparing Marketing Scan Genesis: 250 numbered passes for lifetime Pro.
+
+      Not an investment. Not on sale yet. #buildinpublic
+      {genesis}
 
   - id: 2026-11-03-google-bedrijfsprofiel
     moment: 2026-11-03T10:00:00+01:00
     categorie: product
     status: concept
+    lang: nl
     tekst: |-
       Je Google Bedrijfsprofiel is vaak het eerste wat een klant van je ziet. Kloppen je openingsuren, foto's en reviews? Marketing Scan checkt het mee in je gratis scan.
 
       {scan}
 
-  - id: 2026-11-05-prijsladder
-    moment: 2026-11-05T10:00:00+01:00
+  - id: 2026-11-05-price-ladder
+    moment: 2026-11-05T15:00:00+01:00
     categorie: genesis
     status: concept
     tekst: |-
-      De Genesis Pass heeft een vaste prijsladder. De prijs stijgt per 50 verkochte passes: #001 tot #050 kost €99, daarna €149, €199, €249 en €299. Vroeger instappen is goedkoper, en je prijs ligt vast bij je nummer.
+      Your number sets your price.
 
-      Geen investering. Nog geen verkoop. {genesis}
+      Genesis Pass #001 to #050: €99. Then €149, €199, €249 and €299, up to #250. The price rises every 50 passes. Earlier is cheaper. That's the whole ladder.
+
+      Not an investment. Not on sale yet.
+      {genesis}
 
   - id: 2026-11-10-soulbound
-    moment: 2026-11-10T10:00:00+01:00
+    moment: 2026-11-10T15:00:00+01:00
     categorie: uitleg
     status: concept
     tekst: |-
-      Je Genesis Pass is soulbound: een token op Solana dat vastzit aan je wallet. Je pass is van jou en niet verhandelbaar, dus geen speculatie. Het is gewoon je bewijs van levenslang Marketing Scan Pro.
+      Your Genesis Pass is soulbound. A numbered token on Solana, bound to your wallet.
 
-      Geen investering. Nog geen verkoop.
+      Not transferable. No speculation. Just proof that you have lifetime Marketing Scan Pro.
 
-  - id: 2026-11-12-correct-voor-snel
-    moment: 2026-11-12T10:00:00+01:00
+      Not an investment. Not on sale yet.
+
+  - id: 2026-11-12-correct-over-fast
+    moment: 2026-11-12T15:00:00+01:00
     categorie: transparantie
     status: concept
     tekst: |-
-      Waarom de verkoop nog niet open is: de boekhouder beslist eerst of Marketing Scan een eenmanszaak blijft of een BV wordt. Liever correct dan snel. Tot dan draait Genesis enkel als demo op het Solana-testnet.
+      Why there's no sale yet: our accountant first decides the legal form. Sole proprietorship or company.
 
-      Geen investering. Nog geen verkoop.
+      Correct beats fast. Until then, Genesis runs as a demo on Solana devnet.
 
-  - id: 2026-11-17-ai-zichtbaarheid
-    moment: 2026-11-17T10:00:00+01:00
+      Not an investment. Not on sale yet.
+
+  - id: 2026-11-17-ai-visibility
+    moment: 2026-11-17T15:00:00+01:00
     categorie: product
     status: concept
     tekst: |-
-      Noemen ChatGPT, Gemini en Perplexity jouw bedrijf als iemand een aanrader zoekt? Marketing Scan checkt ook je zichtbaarheid in AI-assistenten. Gratis, resultaat in 60 seconden.
+      Someone asks ChatGPT, Gemini or Perplexity for a recommendation. Does your business come up?
+
+      Marketing Scan checks your visibility in AI assistants too. Free. Results in 60 seconds.
 
       {scan}
 
-  - id: 2026-11-19-geld-terug
-    moment: 2026-11-19T10:00:00+01:00
+  - id: 2026-11-19-one-click-refund
+    moment: 2026-11-19T15:00:00+01:00
     categorie: uitleg
     status: concept
     tekst: |-
-      Van gedacht veranderd? Tot 14 dagen na je Genesis Pass krijg je je geld terug met één klik. Je pass wordt verbrand en het geld gaat terug in dezelfde transactie, publiek zichtbaar op Solana.
+      Changed your mind? You have 14 days.
 
-      Geen investering. Nog geen verkoop.
+      One click burns your Genesis Pass and sends your money back in the same transaction. On-chain, public, on Solana. No forms, no emails.
 
-  - id: 2026-11-24-elke-euro-zichtbaar
-    moment: 2026-11-24T10:00:00+01:00
+      Not an investment. Not on sale yet.
+
+  - id: 2026-11-24-every-euro-on-chain
+    moment: 2026-11-24T15:00:00+01:00
     categorie: transparantie
     status: concept
     tekst: |-
-      Elke euro van Marketing Scan Genesis staat publiek op Solana: elke pass, elke terugbetaling en elke opname uit de kas. Je hoeft ons niet op ons woord te geloven, je kan alles zelf nakijken.
+      Every euro in Marketing Scan Genesis is public on Solana. Every pass, every refund, every withdrawal from the treasury.
 
-      Geen investering. Nog geen verkoop. {transparantie}
+      Don't take our word for it. Check it yourself.
+
+      Not an investment. Not on sale yet.
+      {transparantie}
 
   - id: 2026-11-26-genesis-agency
-    moment: 2026-11-26T10:00:00+01:00
+    moment: 2026-11-26T15:00:00+01:00
     categorie: genesis
     status: concept
     tekst: |-
-      Voor bureaus en freelancers met meerdere klanten: Genesis Agency geeft levenslang Marketing Scan Pro voor tot 10 websites. 25 genummerde passes, #01 tot #25, aan €799, met support rechtstreeks bij de oprichter.
+      For agencies and freelancers with multiple clients: Genesis Agency.
 
-      Geen investering. Nog geen verkoop. {genesis}
+      Lifetime Marketing Scan Pro for up to 10 websites. 25 numbered passes, #01 to #25, €799 each. Support straight from the founder.
+
+      Not an investment. Not on sale yet.
+      {genesis}
 
   - id: 2026-12-01-snelle-website
     moment: 2026-12-01T10:00:00+01:00
     categorie: product
     status: concept
+    lang: nl
     tekst: |-
       Een trage website kost je klanten nog voor ze zien wat je doet. Marketing Scan meet de snelheid van je site en zegt wat je eerst moet aanpakken. Gratis, resultaat in 60 seconden.
 
       {scan}
 
-  - id: 2026-12-03-supporter-muur
-    moment: 2026-12-03T10:00:00+01:00
+  - id: 2026-12-03-genesis-wall
+    moment: 2026-12-03T15:00:00+01:00
     categorie: genesis
     status: concept
     tekst: |-
-      Mee bouwen kan ook zonder abonnement. Als Supporter steun je Marketing Scan vanaf €1: je krijgt een supporter-badge in je wallet en je naam op de Genesis-muur, naast iedereen met een pass.
+      You can back the build without a subscription.
 
-      Geen investering. Nog geen verkoop. {genesis}
+      Supporter starts at €1. A badge in your wallet and your name on the Genesis wall, next to everyone with a pass. Every euro counts toward the €50,000 goal.
+
+      Not an investment. Not on sale yet.
+      {genesis}
 
   - id: 2026-12-08-roadmap
-    moment: 2026-12-08T10:00:00+01:00
+    moment: 2026-12-08T15:00:00+01:00
     categorie: genesis
     status: concept
     tekst: |-
-      Wat er na de scan komt: een SEO-suite, mailings en social posting. Met een Genesis Pass krijg je elke nieuwe Pro-functie zonder meerprijs, en stem je mee over de volgorde waarin we ze bouwen.
+      After the scan: an SEO suite, email campaigns and social posting.
 
-      Geen investering. Nog geen verkoop. {genesis}
+      Every Genesis Pass includes each new Pro feature at no extra cost. Plus a vote on the order we build them in.
 
-  - id: 2026-12-10-demo-testnet
-    moment: 2026-12-10T10:00:00+01:00
+      Not an investment. Not on sale yet.
+      {genesis}
+
+  - id: 2026-12-10-devnet-demo
+    moment: 2026-12-10T15:00:00+01:00
     categorie: uitleg
     status: concept
     tekst: |-
-      Probeer Marketing Scan Genesis nu al uit op het Solana-testnet: verbind je wallet, haal test-euro op en maak een testpass aan. Zonder echt geld, zodat je precies ziet hoe het werkt.
+      Want to see how Genesis works? The full flow already runs on Solana devnet: connect a wallet, pick up test euros, mint a test pass, refund it.
 
-      Geen investering. Nog geen verkoop. {genesis}
+      No real money involved.
+
+      Not an investment. Not on sale yet. #Solana
+      {genesis}
 
 # Sjablonen worden elke week automatisch ingevuld met de cijfers uit data/cijfers.json.
 # Ze posten enkel als die cijfers de voorbije 8 dagen bijgewerkt zijn ("bijgewerkt" in cijfers.json).
 # Variabelen: {week}, {passes}, {agency}, {supporters}, {opgehaald}, {gebruikers}, {wachtlijst}, {stand}.
+# Een sjabloon heeft een tekst per taal. "lang" kiest welke gepost wordt (beide worden gecontroleerd).
+# Cijfers volgen de notatie van de taal: Engels 1,234 en €12,345.50, Nederlands 1.234 en €12.345,50.
+# {stand} komt uit "stand" in cijfers.json: { "en": "...", "nl": "..." }.
 sjablonen:
   - id: transparantie-wekelijks
     categorie: transparantie
     elke: maandag
-    om: "10:00"
+    om: "15:00"
     status: concept
-    tekst: |-
-      Genesis-update week {week}: {passes}/250 passes, {agency}/25 agency-passes, {supporters} supporters en €{opgehaald} van €50.000. Marketing Scan telt {gebruikers} wekelijkse gebruikers. Stand: {stand}.
+    lang: en # zet op nl om de Nederlandse tekst te posten (keur daarna opnieuw goed)
+    tekst:
+      en: |-
+        Genesis update, week {week}: {passes}/250 passes, {agency}/25 agency passes, {supporters} supporters, €{opgehaald} of €50,000. Marketing Scan has {gebruikers} weekly users. Status: {stand}.
 
-      Geen investering. Nog geen verkoop. {transparantie}
+        Not an investment. Not on sale yet.
+        {transparantie}
+      nl: |-
+        Genesis-update week {week}: {passes}/250 passes, {agency}/25 agency-passes, {supporters} supporters en €{opgehaald} van €50.000. Marketing Scan telt {gebruikers} wekelijkse gebruikers. Stand: {stand}.
+
+        Geen investering. Nog geen verkoop.
+        {transparantie}

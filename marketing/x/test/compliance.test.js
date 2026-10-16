@@ -1,13 +1,27 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkPost, hasErrors, aboutGenesis, saleLive, CATEGORIES, ABOUT_GENESIS } from "../src/compliance.js";
+import {
+  checkPost,
+  hasErrors,
+  aboutGenesis,
+  saleLive,
+  offerTexts,
+  postLang,
+  CATEGORIES,
+  ABOUT_GENESIS,
+  LANGS,
+  DEFAULT_LANG,
+} from "../src/compliance.js";
 
+// Zelfde vorm als config.json. De Nederlandse tests hieronder draaien met standaardtaal nl,
+// de Engelse tests verderop met standaardtaal en.
 const config = {
+  defaultLang: "nl",
   offer: {
     verkoopActief: false,
     legalReviewDone: false,
-    required: "Geen investering",
-    noticeWhenNotLive: "Nog geen verkoop",
+    required: { en: "Not an investment", nl: "Geen investering" },
+    noticeWhenNotLive: { en: "Not on sale yet", nl: "Nog geen verkoop" },
     voorwaardenUrl: "https://community.marketingscan.be/voorwaarden",
   },
   links: { allowedDomains: ["marketingscan.be", "explorer.solana.com"] },
@@ -258,4 +272,265 @@ test("stijlwaarschuwingen blokkeren niet", () => {
   assert.equal(hasErrors(issues), false);
   const regels = issues.map((i) => i.regel);
   for (const r of ["hoofdletters", "uitroeptekens", "emoji", "vermelding"]) assert.ok(regels.includes(r), r);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Talen: Engels is de standaard, Nederlands per post met lang: "nl".
+
+const en = { ...config, defaultLang: "en" };
+const enLive = { ...live, defaultLang: "en" };
+const EN_OK = " Not an investment. Not on sale yet.";
+
+test("talen: en en nl, Engels is de standaard", () => {
+  assert.deepEqual(LANGS, ["en", "nl"]);
+  assert.equal(DEFAULT_LANG, "en");
+  assert.equal(postLang({}, {}), "en");
+  assert.equal(postLang({}, { defaultLang: "nl" }), "nl");
+  assert.equal(postLang({ lang: "nl" }, { defaultLang: "en" }), "nl");
+  assert.deepEqual(offerTexts(en, "en"), { required: "Not an investment", notice: "Not on sale yet" });
+  assert.deepEqual(offerTexts(en, "nl"), { required: "Geen investering", notice: "Nog geen verkoop" });
+});
+
+test("de meegeleverde config.json is Engels eerst, met vermeldingen per taal", async () => {
+  const { readFileSync } = await import("node:fs");
+  const shipped = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8"));
+  assert.equal(shipped.defaultLang, "en");
+  assert.deepEqual(shipped.offer.required, { en: "Not an investment", nl: "Geen investering" });
+  assert.deepEqual(shipped.offer.noticeWhenNotLive, { en: "Not on sale yet", nl: "Nog geen verkoop" });
+});
+
+for (const categorie of ["genesis", "uitleg", "transparantie"]) {
+  test(`Engels, categorie ${categorie}: "Not an investment" en "Not on sale yet" zijn verplicht`, () => {
+    const noDisclaimer = rules(checkPost({ categorie, tekst: "About Marketing Scan. Not on sale yet." }, en));
+    assert.ok(noDisclaimer.includes("disclaimer-ontbreekt"));
+    assert.equal(noDisclaimer.includes("vermelding-ontbreekt"), false);
+    const noNotice = rules(checkPost({ categorie, tekst: "About Marketing Scan. Not an investment." }, en));
+    assert.ok(noNotice.includes("vermelding-ontbreekt"));
+    assert.equal(noNotice.includes("disclaimer-ontbreekt"), false);
+    assert.equal(hasErrors(checkPost({ categorie, tekst: `About Marketing Scan.${EN_OK}` }, en)), false);
+  });
+}
+
+test("Engels: de vermelding moet in de taal van de post staan", () => {
+  const dutchInEnglish = rules(checkPost({ categorie: "genesis", tekst: `The Genesis Pass.${OK}` }, en));
+  assert.ok(dutchInEnglish.includes("disclaimer-ontbreekt"));
+  assert.ok(dutchInEnglish.includes("vermelding-ontbreekt"));
+  const englishInDutch = rules(checkPost({ categorie: "genesis", lang: "nl", tekst: `De Genesis Pass.${EN_OK}` }, en));
+  assert.ok(englishInDutch.includes("disclaimer-ontbreekt"));
+  assert.equal(hasErrors(checkPost({ categorie: "genesis", lang: "nl", tekst: `De Genesis Pass.${OK}` }, en)), false);
+  const msg = checkPost({ categorie: "genesis", tekst: "The Genesis Pass." }, en).map((i) => i.bericht).join(" ");
+  assert.match(msg, /"Not an investment"/);
+  assert.match(msg, /"Not on sale yet"/);
+});
+
+test("Engels: hoofdletters maken niet uit", () => {
+  assert.equal(hasErrors(checkPost({ categorie: "uitleg", tekst: "Your Genesis Pass. NOT AN INVESTMENT. not on sale yet." }, en)), false);
+});
+
+test("zonder defaultLang in config geldt Engels, ook voor de standaardteksten", () => {
+  const { defaultLang, ...noDefault } = config;
+  const bare = { ...noDefault, offer: { verkoopActief: false, legalReviewDone: false } };
+  assert.equal(defaultLang, "nl");
+  assert.equal(hasErrors(checkPost({ categorie: "genesis", tekst: `The Genesis Pass.${EN_OK}` }, bare)), false);
+  assert.ok(rules(checkPost({ categorie: "genesis", tekst: `De Genesis Pass.${OK}` }, bare)).includes("disclaimer-ontbreekt"));
+});
+
+test("onbekende taal wordt geblokkeerd", () => {
+  for (const lang of ["fr", "EN", ""]) {
+    assert.ok(rules(checkPost({ categorie: "product", lang, tekst: "Free scan." }, en)).includes("taal"), lang);
+  }
+  assert.ok(rules(checkPost({ categorie: "product", tekst: "Free scan." }, { ...en, defaultLang: "de" })).includes("taal"));
+});
+
+test("oude config met gewone strings blijft werken: de string telt als Nederlands", () => {
+  const old = {
+    ...config,
+    defaultLang: undefined,
+    offer: { ...config.offer, required: "Dit is geen investering", noticeWhenNotLive: "Verkoop nog niet open" },
+  };
+  assert.deepEqual(offerTexts(old, "nl"), { required: "Dit is geen investering", notice: "Verkoop nog niet open" });
+  assert.deepEqual(offerTexts(old, "en"), { required: "Not an investment", notice: "Not on sale yet" });
+  const nl = (tekst) => rules(checkPost({ categorie: "genesis", lang: "nl", tekst }, old));
+  assert.deepEqual(nl("De Genesis Pass. Dit is geen investering. Verkoop nog niet open."), []);
+  assert.ok(nl(`De Genesis Pass.${OK}`).includes("disclaimer-ontbreekt"));
+  assert.deepEqual(rules(checkPost({ categorie: "genesis", tekst: `The Genesis Pass.${EN_OK}` }, old)), []);
+});
+
+// Engelse investeringstaal, hype, druk en crypto-verkooptermen.
+for (const tekst of [
+  "Invest early in Marketing Scan.",
+  "A smart investment.",
+  "Investors welcome.",
+  "Own a piece of Marketing Scan.",
+  "A share in the company.",
+  "Shareholders get perks.",
+  "Equity for early backers.",
+  "Real yield.",
+  "Revenue share for supporters.",
+  "Staking rewards for holders.",
+  "Strong profits ahead.",
+  "Your pass will be worth more.",
+  "Watch it go up in value.",
+  "The value of your pass goes up every 50 passes.",
+  "Massive upside.",
+  "Market cap will grow.",
+  "Price target: €1,000.",
+  "This will skyrocket.",
+  "Resell it later.",
+  "Flip your pass.",
+  "Trade it anytime.",
+  "Fully tradable.",
+  "Transferable to anyone.",
+  "Sell it on OpenSea.",
+  "Floor price rising.",
+  "Listed on major exchanges soon.",
+  "Coming to a DEX.",
+  "We guarantee results.",
+  "Risk-free.",
+  "Zero risk.",
+  "Nothing to lose.",
+  "Passive income.",
+  "Get rich.",
+  "Financial freedom.",
+  "Earn passive rewards.",
+  "10x potential.",
+  "Double your money.",
+  "Ten times your money.",
+  "12% a year.",
+  "8% APY.",
+  "To the moon.",
+  "LFG.",
+  "Diamond hands.",
+  "Bullish on Genesis.",
+  "Hidden gem.",
+  "Limited time only.",
+  "Act now.",
+  "Only 12 passes left.",
+  "Selling fast.",
+  "Don't miss out.",
+  "While supplies last.",
+  "Join the presale.",
+  "Pre-sale soon.",
+  "Token sale soon.",
+  "Airdrop for early users.",
+  "Get on the whitelist.",
+  "Allowlist spots.",
+  "Fair launch.",
+  "Free mint.",
+]) {
+  test(`Engelse verboden taal wordt geblokkeerd: ${tekst}`, () => {
+    assert.ok(rules(checkPost({ categorie: "genesis", tekst: `${tekst}${EN_OK}` }, en)).includes("verboden-taal"), tekst);
+  });
+}
+
+// Engelse ontkenningen vlak voor het woord zijn toegestaan.
+for (const tekst of [
+  "Not an investment.",
+  "This is not an investment.",
+  "This isn't an investment.",
+  "No shares. No returns. No equity.",
+  "Not transferable. No speculation.",
+  "Non-transferable by design.",
+  "Zero returns, zero equity. Just software.",
+  "No guarantees, just honest numbers.",
+  "You can't resell it.",
+  "Without any equity.",
+  "Never a security token.",
+  "No trading, no floor price.",
+  "We don't trade.",
+]) {
+  test(`Engelse ontkenning is toegestaan: ${tekst}`, () => {
+    const issues = checkPost({ categorie: "uitleg", tekst: `Your Genesis Pass. ${tekst}${EN_OK}` }, en);
+    assert.equal(rules(issues).includes("verboden-taal"), false, JSON.stringify(issues));
+  });
+}
+
+test("Engels: een ontkenning verderop in de zin dekt het woord niet", () => {
+  for (const tekst of [
+    "Not an investment, but huge returns.",
+    "No hype. Just returns.",
+    "Not an investment. Great profit though.",
+    "No shares, but you own a piece of it.",
+  ]) {
+    assert.ok(rules(checkPost({ categorie: "uitleg", tekst: `${tekst}${EN_OK}` }, en)).includes("verboden-taal"), tekst);
+  }
+});
+
+test("Engels: feiten over de prijsladder zijn toegestaan", () => {
+  for (const zin of [
+    "The price rises every 50 passes.",
+    "Earlier is cheaper.",
+    "Your number sets your price.",
+    "#001 to #050: €99. Then €149, €199, €249 and €299.",
+    "The price moves to €149 from pass #051.",
+    "Pass #201 to #250 costs €299.",
+  ]) {
+    const issues = checkPost({ categorie: "genesis", tekst: `The Genesis Pass. ${zin}${EN_OK}` }, en);
+    assert.deepEqual(issues, [], `${zin}: ${JSON.stringify(issues)}`);
+  }
+});
+
+test("Engels: geen koopoproep zolang de verkoop niet live is", () => {
+  for (const zin of [
+    "Buy now.",
+    "Mint yours today.",
+    "Claim yours today.",
+    "Claim your Genesis Pass.",
+    "Get yours today.",
+    "Secure your spot.",
+    "Grab a Genesis Pass.",
+    "Buy a Genesis Pass.",
+    "Reserve your number now.",
+    "Lock in your price.",
+    "Pre-order yours today.",
+    "Become a supporter from €1.",
+    "Become a founding member.",
+    "Support us today.",
+    "Join now.",
+    "Get in early.",
+    "The sale is now open.",
+    "Early access is live.",
+    "Mint opens today.",
+    "Now on sale.",
+  ]) {
+    const r = rules(checkPost({ categorie: "genesis", tekst: `${zin}${EN_OK}` }, en));
+    assert.ok(r.includes("koopoproep"), zin);
+  }
+});
+
+test("Engels: dezelfde koopoproep wordt maar één keer gemeld", () => {
+  const issues = checkPost({ categorie: "genesis", tekst: `Buy now.${EN_OK}` }, en).filter((i) => i.regel === "koopoproep");
+  assert.equal(issues.length, 1);
+});
+
+test("Engels: de demo uitleggen en de scan aanbieden is geen koopoproep", () => {
+  const demo = `Try the Genesis demo on Solana devnet: connect a wallet, pick up test euros and mint a test pass. Mint a test pass, refund it. No real money.${EN_OK}`;
+  assert.deepEqual(checkPost({ categorie: "uitleg", tekst: demo }, en), []);
+  const uitleg = `With a Genesis Pass you get lifetime Marketing Scan Pro. Why there's no sale yet: legal form first.${EN_OK}`;
+  assert.deepEqual(checkPost({ categorie: "uitleg", tekst: uitleg }, en), []);
+  assert.deepEqual(checkPost({ categorie: "product", tekst: "Get your free scan today. https://www.marketingscan.be" }, en), []);
+});
+
+test("Engels live: verkooppost met disclaimer en voorwaarden gaat door, enkel in categorie verkoop", () => {
+  const tekst = "Claim your Genesis Pass. Not an investment. https://community.marketingscan.be/voorwaarden?lang=en";
+  assert.ok(rules(checkPost({ categorie: "verkoop", tekst }, { ...en, offer: { ...en.offer, verkoopActief: true } })).includes("verkoop-gesloten"));
+  assert.equal(hasErrors(checkPost({ categorie: "verkoop", tekst }, enLive)), false);
+  assert.ok(rules(checkPost({ categorie: "genesis", tekst }, enLive)).includes("koopoproep"));
+  assert.ok(rules(checkPost({ categorie: "verkoop", tekst: "Claim your Genesis Pass." }, enLive)).includes("disclaimer-ontbreekt"));
+});
+
+test("Engels live: 'Not on sale yet' en een vergeten Nederlandse vermelding geven een waarschuwing", () => {
+  for (const tekst of [`The Genesis Pass.${EN_OK}`, "The Genesis Pass. Not an investment. Nog geen verkoop."]) {
+    const issues = checkPost({ categorie: "genesis", tekst }, enLive);
+    assert.equal(hasErrors(issues), false, JSON.stringify(issues));
+    assert.ok(issues.some((i) => i.regel === "vermelding-verouderd" && i.niveau === "waarschuwing"), tekst);
+  }
+});
+
+test("Engelse Genesis-woorden worden herkend, ook in een productpost", () => {
+  for (const tekst of ["Early access for founding members.", "One-click refund.", "Try it on devnet.", "The price ladder.", "Mint a pass."]) {
+    assert.equal(aboutGenesis(tekst), true, tekst);
+    assert.ok(rules(checkPost({ categorie: "product", tekst }, en)).includes("categorie"), tekst);
+  }
+  assert.equal(aboutGenesis("How visible is your business online? Free scan, results in 60 seconds."), false);
 });

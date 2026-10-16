@@ -6,14 +6,16 @@ import { PublicKey } from "@solana/web3.js";
 import { unpackAccount } from "@solana/spl-token";
 import { json } from "../server/solana.js";
 import { fetchEvents, summarize } from "../shared/history.js";
-import { setup } from "./_common.js";
+import { setup, urlLang } from "./_common.js";
+import { msg } from "../shared/messages.js";
 
 const caches = new Map();
 let last = { key: "", at: 0, body: null };
 
 export async function handle(request, env = process.env, deps = {}) {
-  if (request.method !== "GET") return json(405, { fout: "Gebruik GET." });
-  const ctx = setup(env, deps, { needsAuthority: false });
+  const lang = urlLang(request);
+  if (request.method !== "GET") return json(405, { fout: msg(lang).useGet() });
+  const ctx = setup(env, deps, { needsAuthority: false, lang });
   if (ctx.response) return ctx.response;
   const { deployment, cfg, connection } = ctx;
 
@@ -36,7 +38,7 @@ export async function handle(request, env = process.env, deps = {}) {
     return json(200, body, "public, max-age=5");
   } catch (err) {
     console.error("stand ophalen mislukt", err);
-    return json(502, { fout: "De blockchain is even niet bereikbaar. Probeer zo meteen opnieuw." });
+    return json(502, { fout: msg(lang).chainDown() });
   }
 }
 

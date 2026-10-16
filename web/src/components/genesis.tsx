@@ -1,10 +1,10 @@
-// Bouwstenen van Genesis: de pass zoals hij in je wallet staat, de prijsladder en de Genesis-muur.
-import type { ReactNode } from "react";
+// Bouwstenen van Genesis: de pass (voor- en achterkant), de prijsladder en de Genesis-muur.
 import { AGENCY, PASS, genesis, type Product } from "../config";
 import { formatNumber, ladderState, priceForNumber } from "../../../shared/genesis.js";
-import { ago, count, euro, shortAddress } from "../lib/format";
+import { euro, shortAddress } from "../lib/format";
 import { explorerTx } from "../lib/explorer";
 import type { GenesisEvent, GenesisState } from "../lib/api";
+import { useLang, type Lang } from "../i18n";
 import { LogoMark } from "./ui";
 
 export type PassVariant = "pass" | "agency" | "steun";
@@ -13,100 +13,102 @@ export function productOf(id: string | null): Product | null {
   return id === "agency" ? AGENCY : id === "pass" ? PASS : null;
 }
 
-/** De pass zoals hij in je wallet staat. */
-export function PassCard({
-  variant,
-  number,
-  holder,
-  status,
-  footer,
-}: {
-  variant: PassVariant;
-  number?: number | null;
-  holder?: string | null;
-  status?: "actief" | "voorbeeld" | "teruggegeven";
-  footer?: ReactNode;
-}) {
+const KIND: Record<PassVariant, string> = { pass: "GENESIS", agency: "AGENCY", steun: "SUPPORTER" };
+
+const CARD = {
+  en: { holder: "Holder", yours: "Your wallet", plan: "Lifetime Pro", site: (n: number) => (n === 1 ? "1 website" : `${n} websites`), refunded: "Refunded", thanks: "Thank you", builder: "Builder" },
+  nl: { holder: "Houder", yours: "Jouw wallet", plan: "Levenslang Pro", site: (n: number) => (n === 1 ? "1 website" : `${n} websites`), refunded: "Teruggegeven", thanks: "Bedankt", builder: "Bouwt mee" },
+};
+
+/** De pass zoals hij in je wallet staat: een strakke kaart in zwart titanium (Pass), zilver (Agency) of blauw (Supporter). */
+export function PassCard({ variant, number, holder, status }: { variant: PassVariant; number?: number | null; holder?: string | null; status?: "actief" | "teruggegeven" }) {
+  const { lang } = useLang();
+  const t = CARD[lang];
   const product = productOf(variant);
-  const label = variant === "steun" ? "Supporter" : product!.naam;
-  const big = variant === "steun" ? "♥" : number ? formatNumber(product!, number) : product ? `#${"0".repeat(String(product.max).length)}` : "";
+  const big = variant === "steun" ? "Supporter" : number ? formatNumber(product!, number) : `#${"0".repeat(String(product!.max).length)}`;
   return (
-    <figure className={`pass-card pass-${variant}${status === "teruggegeven" ? " is-void" : ""}`} aria-label={`${label}${number ? ` ${big}` : ""}`}>
-      <div className="pass-glow" aria-hidden="true" />
-      <div className="pass-lines" aria-hidden="true"><span /><span /><span /></div>
+    <figure className={`pass-card pass-${variant}${status === "teruggegeven" ? " is-void" : ""}`} aria-label={variant === "steun" ? "Marketing Scan Supporter" : `${product!.naam} ${number ? big : ""}`}>
       <div className="pass-top">
-        <span className="pass-brand"><LogoMark size={20} /> Marketing Scan</span>
-        <span className="pass-chip">{variant === "steun" ? "SUPPORTER" : "GENESIS"}</span>
+        <span className="pass-brand"><LogoMark /> Marketing Scan</span>
+        <span className="pass-kind">{KIND[variant]}</span>
       </div>
-      <div className="pass-number">{big}</div>
-      <div className="pass-name">{label}</div>
-      <dl className="pass-meta">
-        <div><dt>Houder</dt><dd className="mono">{holder ? shortAddress(holder) : "jouw wallet"}</dd></div>
-        {variant === "steun" ? (
-          <div><dt>Abonnement</dt><dd>geen</dd></div>
-        ) : (
-          <>
-            <div><dt>Geldig</dt><dd>levenslang</dd></div>
-            <div><dt>Websites</dt><dd>{product!.websites}</dd></div>
-          </>
-        )}
-      </dl>
-      <figcaption className="pass-foot">{footer ?? (status === "teruggegeven" ? "Teruggegeven: geld terugbetaald" : "Soulbound op Solana · niet overdraagbaar")}</figcaption>
-      {status === "voorbeeld" && <span className="pass-stamp">volgende</span>}
-      {status === "teruggegeven" && <span className="pass-stamp">teruggegeven</span>}
+      <div className="pass-mid">
+        <span className="pass-number" style={variant === "steun" ? { fontSize: "11cqw" } : undefined}>{big}</span>
+        {variant !== "steun" && <span className="pass-name">{product!.naam}</span>}
+      </div>
+      <div className="pass-bottom">
+        <div>
+          {t.holder}
+          <b className="mono">{holder ? shortAddress(holder) : t.yours}</b>
+        </div>
+        <div>
+          {status === "teruggegeven" ? t.refunded : variant === "steun" ? t.thanks : t.plan}
+          <b>{variant === "steun" ? t.builder : t.site(product!.websites)}</b>
+        </div>
+      </div>
     </figure>
   );
 }
 
-/** De achterkant van de pass, voor als hij ronddraait. */
+const BACK = {
+  en: {
+    pass: (n: number) => [`Marketing Scan Pro for ${n === 1 ? "1 website" : `${n} websites`}`, "Every future Pro feature included", "14-day refund, one click"],
+    steun: ["You help build Marketing Scan", "Your name on the Genesis wall", "No subscription"],
+    fine: "Not an investment · Non-transferable",
+  },
+  nl: {
+    pass: (n: number) => [`Marketing Scan Pro voor ${n === 1 ? "1 website" : `${n} websites`}`, "Elke nieuwe Pro-functie inbegrepen", "14 dagen geld terug, één klik"],
+    steun: ["Je bouwt mee aan Marketing Scan", "Je naam op de Genesis-muur", "Geen abonnement"],
+    fine: "Geen investering · Niet overdraagbaar",
+  },
+};
+
 export function PassBack({ variant }: { variant: PassVariant }) {
+  const { lang } = useLang();
+  const t = BACK[lang];
   const product = productOf(variant);
-  const lines =
-    variant === "steun"
-      ? ["Je bouwt mee aan Marketing Scan", "Je naam op de Genesis-muur", "Geen abonnement, gewoon steun"]
-      : [`Levenslang Marketing Scan Pro voor ${product!.websites === 1 ? "1 website" : `${product!.websites} websites`}`, "Elke nieuwe Pro-functie inbegrepen", "14 dagen geld terug, met één klik"];
+  const lines = variant === "steun" ? t.steun : t.pass(product!.websites);
   return (
     <div className={`pass-card pass-back pass-${variant}`}>
-      <div className="pass-glow" aria-hidden="true" />
-      <span className="pass-strip" aria-hidden="true" />
       <div className="pass-top">
-        <span className="pass-brand"><LogoMark size={20} /> Marketing Scan</span>
-        <span className="pass-chip">{variant === "steun" ? "SUPPORTER" : "GENESIS"}</span>
+        <span className="pass-brand"><LogoMark /> Marketing Scan</span>
+        <span className="pass-kind">{KIND[variant]}</span>
       </div>
-      <ul className="pass-perks">
-        {lines.map((l) => <li key={l}>{l}</li>)}
-      </ul>
-      <div className="pass-foot pass-back-foot">
-        <span>Geen investering · niet overdraagbaar</span>
-        <span>community.marketingscan.be</span>
+      <div className="pass-mid">
+        <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>
+      </div>
+      <div className="pass-bottom">
+        <div>{t.fine}</div>
+        <div>community.marketingscan.be</div>
       </div>
     </div>
   );
 }
 
-/** De prijsladder: hoe vroeger, hoe goedkoper. */
-export function Ladder({ product, used, compact = false }: { product: Product; used: number; compact?: boolean }) {
-  const tiers = ladderState(product, used) as { van: number; tot: number; prijsMicro: number; verkocht: number; beschikbaar: number; status: "uitverkocht" | "nu" | "later" }[];
+type Rung = { van: number; tot: number; prijsMicro: number; verkocht: number; beschikbaar: number; status: "uitverkocht" | "nu" | "later" };
+
+/** De prijsladder als oplopende staven: hoe vroeger, hoe goedkoper. */
+export function Ladder({ product, used }: { product: Product; used: number }) {
+  const rungs = ladderState(product, used) as Rung[];
+  const prices = rungs.map((r) => r.prijsMicro);
+  const lo = Math.min(...prices);
+  const hi = Math.max(...prices);
   return (
-    <ol className={`ladder${compact ? " is-compact" : ""}`} aria-label={`Prijsladder ${product.naam}`}>
-      {tiers.map((t) => {
-        const size = t.tot - t.van + 1;
+    <div className="ladder" role="list">
+      {rungs.map((r) => {
+        const size = r.tot - r.van + 1;
+        const h = hi === lo ? 180 : 96 + ((r.prijsMicro - lo) / (hi - lo)) * 164;
         return (
-          <li key={t.van} className={`tier tier-${t.status}`}>
-            <div className="tier-head">
-              <span className="tier-range mono">{formatNumber(product, t.van)} tot {formatNumber(product, t.tot)}</span>
-              <b className="tier-price">{euro(t.prijsMicro, { whole: true })}</b>
+          <div key={r.van} role="listitem" className={`rung${r.status === "nu" ? " now" : r.status === "uitverkocht" ? " sold" : ""}`}>
+            <span className="rung-price">{euro(r.prijsMicro, { whole: true })}</span>
+            <div className="rung-bar" style={{ ["--h" as string]: `${h}px`, ["--fill" as string]: `${(r.verkocht / size) * 100}%` }} aria-hidden="true">
+              <i />
             </div>
-            <div className="tier-bar" role="img" aria-label={`${t.verkocht} van ${size} verkocht`}>
-              <span style={{ width: `${(t.verkocht / size) * 100}%` }} />
-            </div>
-            <div className="tier-foot">
-              {t.status === "uitverkocht" ? "uitverkocht" : t.status === "nu" ? <strong>nu: nog {count(t.beschikbaar)} aan deze prijs</strong> : `${count(size)} passes`}
-            </div>
-          </li>
+            <span className="rung-range">{formatNumber(product, r.van)}–{formatNumber(product, r.tot).slice(1)}</span>
+          </div>
         );
       })}
-    </ol>
+    </div>
   );
 }
 
@@ -118,37 +120,37 @@ function hue(wallet: string, offset: number) {
 
 /** Een herkenbaar kleurbolletje per wallet, zonder externe diensten. */
 export function Avatar({ wallet }: { wallet: string }) {
-  return <span className="avatar" aria-hidden="true" style={{ background: `linear-gradient(135deg, hsl(${hue(wallet, 0)} 70% 55%), hsl(${hue(wallet, 1)} 75% 45%))` }} />;
+  return <span className="avatar" aria-hidden="true" style={{ background: `linear-gradient(135deg, hsl(${hue(wallet, 0)} 72% 58%), hsl(${hue(wallet, 1)} 76% 44%))` }} />;
 }
 
-export function eventLabel(e: GenesisEvent): string {
+export function eventLabel(e: GenesisEvent, lang: Lang = "en"): string {
   if (e.kind === "steun") return `Supporter · ${euro(e.amountMicro)}`;
   const p = productOf(e.productId);
-  return p && e.number ? `${p.naam} ${formatNumber(p, e.number)}` : "Genesis";
+  if (!p || !e.number) return "Genesis";
+  return `${p.naam} ${formatNumber(p, e.number)}${e.teruggegeven ? (lang === "nl" ? " (teruggegeven)" : " (refunded)") : ""}`;
 }
 
-/** De Genesis-muur: iedereen die meedoet, met naam (als ze dat wilden) en een link naar de transactie. */
-export function Wall({ entries, empty }: { entries: GenesisEvent[]; empty?: ReactNode }) {
-  if (entries.length === 0) return <p className="wall-empty">{empty ?? "Nog niemand op de muur. Word de eerste."}</p>;
+/** De Genesis-muur: iedereen die meedoet, met de naam die die zelf koos, of het walletadres. */
+export function Wall({ entries }: { entries: GenesisEvent[] }) {
+  const { lang } = useLang();
   return (
     <ul className="wall">
-      {entries.map((e) => (
-        <li key={e.signature} className={`wall-item wall-${e.productId}${e.teruggegeven ? " is-void" : ""}`}>
-          <Avatar wallet={e.wallet} />
-          <div className="wall-body">
-            <strong>{e.name || shortAddress(e.wallet)}</strong>
-            <span>{eventLabel(e)}{e.teruggegeven ? " · teruggegeven" : ""}</span>
-          </div>
-          <a className="wall-time" href={explorerTx(e.signature)} target="_blank" rel="noreferrer" title="Bekijk de transactie">
-            {e.time ? ago(e.time * 1000) : "bekijk"}
-          </a>
-        </li>
-      ))}
+      {entries.map((e) => {
+        const p = productOf(e.productId);
+        return (
+          <li key={e.signature} className={`chip${e.teruggegeven ? " void" : ""}`}>
+            <a href={explorerTx(e.signature)} target="_blank" rel="noreferrer" title={eventLabel(e, lang)}>
+              <Avatar wallet={e.wallet} />
+              <strong>{e.name || shortAddress(e.wallet)}</strong>
+              <small>{e.kind === "steun" ? "Supporter" : p && e.number ? formatNumber(p, e.number) : ""}</small>
+            </a>
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
-/** Wat er opgehaald is tegenover het doel. */
 export function goalMicro() {
   return genesis.doelEur * 1_000_000;
 }

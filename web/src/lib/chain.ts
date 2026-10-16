@@ -31,25 +31,26 @@ export function decodeTransaction(base64: string): Transaction {
 }
 
 /** Wacht tot een transactie bevestigd is, zonder websockets (werkt overal, ook achter strikte netwerken). */
-export async function confirmSignature(connection: Connection, signature: string, timeoutMs = 60_000): Promise<void> {
+export async function confirmSignature(connection: Connection, signature: string, lang: "en" | "nl" = "en", timeoutMs = 60_000): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const { value } = await connection.getSignatureStatuses([signature]);
     const status = value[0];
-    if (status?.err) throw new Error("De transactie werd geweigerd door het netwerk.");
+    if (status?.err) throw new Error(lang === "nl" ? "De transactie werd geweigerd door het netwerk." : "The network rejected the transaction.");
     if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") return;
     await new Promise((r) => setTimeout(r, 1000));
   }
-  throw new Error("De bevestiging duurt langer dan verwacht. Kijk zo meteen opnieuw bij Mijn pass.");
+  throw new Error(lang === "nl" ? "De bevestiging duurt langer dan verwacht. Kijk zo meteen opnieuw bij Mijn pass." : "Confirmation is taking longer than expected. Check My pass in a moment.");
 }
 
 /** Vertaalt fouten van de wallet en het netwerk naar gewone taal. */
-export function explainError(err: unknown): string {
+export function explainError(err: unknown, lang: "en" | "nl" = "en"): string {
   const msg = err instanceof Error ? err.message : String(err);
-  if (/reject|declin|cancel|denied/i.test(msg)) return "Je hebt het geannuleerd in je wallet. Er is niets gebeurd.";
-  if (/already in use/i.test(msg)) return "Iemand anders was je net voor met dit nummer. Probeer opnieuw: je krijgt het volgende vrije nummer.";
-  if (/blockhash not found|block height exceeded|expired/i.test(msg)) return "De aanvraag is verlopen. Probeer opnieuw.";
-  return msg || "Er ging iets mis. Er is niets afgeschreven.";
+  const nl = lang === "nl";
+  if (/reject|declin|cancel|denied/i.test(msg)) return nl ? "Je hebt het geannuleerd in je wallet. Er is niets gebeurd." : "You cancelled in your wallet. Nothing happened.";
+  if (/already in use/i.test(msg)) return nl ? "Iemand anders was je net voor met dit nummer. Probeer opnieuw: je krijgt het volgende vrije nummer." : "Someone just beat you to this number. Try again: you’ll get the next free one.";
+  if (/blockhash not found|block height exceeded|expired/i.test(msg)) return nl ? "De aanvraag is verlopen. Probeer opnieuw." : "The request expired. Please try again.";
+  return msg || (nl ? "Er ging iets mis. Er is niets afgeschreven." : "Something went wrong. Nothing was charged.");
 }
 
 export type PassCheck = { checked: number; ok: number; problems: string[] };

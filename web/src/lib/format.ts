@@ -1,30 +1,23 @@
 import { EUR } from "../../../shared/genesis.js";
 
-const eur2 = new Intl.NumberFormat("nl-BE", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const eur0 = new Intl.NumberFormat("nl-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-const int = new Intl.NumberFormat("nl-BE", { maximumFractionDigits: 0 });
+// Getallen en bedragen volgen de taal van de site: €1,684.50 in het Engels, € 1.684,50 in het Nederlands.
+let locale = "en-IE";
+
+export function setLocale(lang: "en" | "nl") {
+  locale = lang === "nl" ? "nl-BE" : "en-IE";
+}
+
+export function currentLocale() {
+  return locale;
+}
 
 export function euro(micro: number | bigint, { whole = false } = {}): string {
   const value = Number(micro) / EUR;
-  return whole ? eur0.format(value) : eur2.format(value);
-}
-
-/** Prijs per aandeel: toont zoveel decimalen als nodig (€ 0,005 of € 0,0125). */
-export function price(micro: number): string {
-  const value = micro / EUR;
-  const decimals = Math.min(6, Math.max(2, (String(value).split(".")[1] ?? "").length));
-  return new Intl.NumberFormat("nl-BE", { style: "currency", currency: "EUR", minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(value);
 }
 
 export function count(n: number | bigint): string {
-  return int.format(Number(n));
-}
-
-/** Percentage met genoeg cijfers om ook heel kleine delen te tonen: 0,0002% of 51%. */
-export function percent(part: number, total: number): string {
-  if (part <= 0) return "0%";
-  const pct = (part / total) * 100;
-  return `${pct.toLocaleString("nl-BE", { maximumSignificantDigits: pct >= 1 ? 4 : 3 })}%`;
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Number(n));
 }
 
 export function shortAddress(address: string, chars = 4): string {
@@ -33,13 +26,20 @@ export function shortAddress(address: string, chars = 4): string {
 
 export function dateTime(unixSeconds: number | null | undefined): string {
   if (!unixSeconds) return "-";
-  return new Intl.DateTimeFormat("nl-BE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(unixSeconds * 1000));
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(unixSeconds * 1000));
+}
+
+export function dateLong(ms: number): string {
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(ms));
 }
 
 export function ago(ms: number): string {
   const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
-  if (s < 5) return "zonet";
-  if (s < 60) return `${s} s geleden`;
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style: "short" });
+  if (s < 60) return rtf.format(-s, "second");
   const m = Math.round(s / 60);
-  return m < 60 ? `${m} min geleden` : `${Math.round(m / 60)} u geleden`;
+  if (m < 60) return rtf.format(-m, "minute");
+  const h = Math.round(m / 60);
+  if (h < 48) return rtf.format(-h, "hour");
+  return rtf.format(-Math.round(h / 24), "day");
 }

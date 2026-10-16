@@ -1,91 +1,147 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { company, isTestnet, network } from "../config";
+import { company, isTestnet } from "../config";
+import { useLang, useT, type Lang } from "../i18n";
 import { LogoMark } from "./ui";
 import { AccountButton } from "./Wallet";
 
-const NAV = [
-  { to: "/", label: "Overzicht", end: true },
-  { to: "/genesis", label: "Genesis Pass" },
-  { to: "/mijn-pass", label: "Mijn pass" },
-  { to: "/transparantie", label: "Transparantie" },
-];
+const T = {
+  en: {
+    nav: [
+      { to: "/genesis", label: "Genesis Pass" },
+      { to: "/mijn-pass", label: "My pass" },
+      { to: "/transparantie", label: "Transparency" },
+    ],
+    skip: "Skip to content",
+    menu: "Menu",
+    ribbon: "This is a demo on Solana devnet. Not on sale yet.",
+    ribbonMore: "How it works",
+    footerNote: isTestnet
+      ? "Marketing Scan Genesis is a demo on Solana devnet. Passes and test euros have no value. Not on sale yet: real sales start once the legal setup is done."
+      : "Marketing Scan Genesis is an early-access sale of lifetime subscriptions to Marketing Scan Pro. Not an investment: passes are non-transferable and earn nothing.",
+    cols: [
+      { title: "Genesis", links: [["/genesis", "Genesis Pass"], ["/mijn-pass", "My pass"], ["/transparantie", "Transparency"]] },
+      { title: "Marketing Scan", links: [["https://www.marketingscan.be", "Free marketing scan"], ["/#faq", "Questions"]] },
+      { title: "Legal", links: [["/voorwaarden", "Terms"], ["/privacy", "Privacy"]] },
+    ],
+    legal: (year: number) => `Copyright © ${year} ${company.merk}.`,
+    entity: company.vennootschap ? `${company.vennootschap}, ${company.adres}, ${company.ondernemingsnummer}.` : "Company details are published before sales start.",
+  },
+  nl: {
+    nav: [
+      { to: "/genesis", label: "Genesis Pass" },
+      { to: "/mijn-pass", label: "Mijn pass" },
+      { to: "/transparantie", label: "Transparantie" },
+    ],
+    skip: "Naar de inhoud",
+    menu: "Menu",
+    ribbon: "Dit is een demo op het Solana-testnet. Nog geen verkoop.",
+    ribbonMore: "Hoe het werkt",
+    footerNote: isTestnet
+      ? "Marketing Scan Genesis is een demo op het Solana-testnet. Passes en test-euro hebben geen waarde. Nog geen verkoop: die start pas als de juridische vorm in orde is."
+      : "Marketing Scan Genesis is een voorverkoop van levenslange abonnementen op Marketing Scan Pro. Geen investering: passes zijn niet overdraagbaar en leveren niets op.",
+    cols: [
+      { title: "Genesis", links: [["/genesis", "Genesis Pass"], ["/mijn-pass", "Mijn pass"], ["/transparantie", "Transparantie"]] },
+      { title: "Marketing Scan", links: [["https://www.marketingscan.be", "Gratis marketingscan"], ["/#faq", "Vragen"]] },
+      { title: "Juridisch", links: [["/voorwaarden", "Voorwaarden"], ["/privacy", "Privacy"]] },
+    ],
+    legal: (year: number) => `Copyright © ${year} ${company.merk}.`,
+    entity: company.vennootschap ? `${company.vennootschap}, ${company.adres}, ${company.ondernemingsnummer}.` : "De bedrijfsgegevens verschijnen vóór de start van de verkoop.",
+  },
+};
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
   useEffect(() => {
-    if (!hash) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    if (hash) {
+      document.getElementById(hash.slice(1))?.scrollIntoView();
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [pathname, hash]);
   return null;
 }
 
-export function Layout({ children }: { children: ReactNode }) {
+export function LangSwitch() {
+  const { lang, setLang } = useLang();
   return (
-    <>
-      <ScrollToTop />
-      <a href="#inhoud" className="skip-link">Naar de inhoud</a>
-      <header className="topbar">
-        <div className="container">
-          <div className="topbar-inner">
-            <Link className="brand" to="/" aria-label="Marketing Scan Genesis, overzicht">
-              <LogoMark />
-              <span className="brand-name">Marketing Scan</span>
-              <span className="brand-sub">Genesis</span>
-            </Link>
-            <nav className="topnav" aria-label="Hoofdmenu">
-              {NAV.map((n) => (
-                <NavLink key={n.to} to={n.to} end={n.end}>{n.label}</NavLink>
-              ))}
-            </nav>
-            <div className="topbar-actions">
-              {isTestnet && <span className="net-badge" title={`Netwerk: ${network}`}>Testnet</span>}
-              <AccountButton compact />
-            </div>
-          </div>
-          <nav className="mobile-nav" aria-label="Hoofdmenu (mobiel)">
-            {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end}>{n.label}</NavLink>
-            ))}
-          </nav>
-        </div>
-      </header>
-      <main id="inhoud">{children}</main>
-      <Footer />
-    </>
+    <span className="lang" role="group" aria-label="Language">
+      {(["en", "nl"] as Lang[]).map((l) => (
+        <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)}>
+          {l.toUpperCase()}
+        </button>
+      ))}
+    </span>
   );
 }
 
-function Footer() {
+function SmartLink({ to, children }: { to: string; children: ReactNode }) {
+  return to.startsWith("http") ? <a href={to}>{children}</a> : <Link to={to}>{children}</Link>;
+}
+
+export function Layout({ children }: { children: ReactNode }) {
+  const t = useT(T);
+  const [menu, setMenu] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => setMenu(false), [pathname]);
+
   return (
-    <footer className="footer">
-      <div className="container footer-grid">
-        <div className="footer-brand">
-          <p className="footer-name"><span className="dot" aria-hidden="true" />Marketing Scan</p>
-          <p>
-            {isTestnet
-              ? "Dit is een demo op het Solana-testnet. De passes en de test-euro hebben geen waarde. Nog geen verkoop: de echte verkoop start pas als de juridische vorm in orde is."
-              : "Marketing Scan Genesis is een voorverkoop van een levenslang abonnement op Marketing Scan Pro. Geen investering: je pass is niet overdraagbaar en levert niets op."}
-          </p>
+    <>
+      <ScrollToTop />
+      <a href="#inhoud" className="skip-link">{t.skip}</a>
+      <header className="nav">
+        <div className="container wide nav-inner">
+          <Link className="brand" to="/" aria-label="Marketing Scan Genesis">
+            <LogoMark size={22} />
+            <span>Marketing Scan</span>
+          </Link>
+          <nav className="nav-links" aria-label="Genesis">
+            {t.nav.map((n) => (
+              <NavLink key={n.to} to={n.to}>{n.label}</NavLink>
+            ))}
+          </nav>
+          <div className="nav-actions">
+            <LangSwitch />
+            <AccountButton />
+          </div>
+          <button type="button" className="menu-btn" aria-expanded={menu} aria-label={t.menu} onClick={() => setMenu((m) => !m)}>
+            <span /><span />
+          </button>
         </div>
-        <nav className="footer-links" aria-label="Genesis">
-          <strong>Genesis</strong>
-          <Link to="/genesis">Genesis Pass</Link>
-          <Link to="/mijn-pass">Mijn pass</Link>
-          <Link to="/transparantie">Transparantie</Link>
+      </header>
+      {menu && (
+        <nav className="menu" aria-label={t.menu}>
+          {t.nav.map((n) => (
+            <Link key={n.to} to={n.to}>{n.label}</Link>
+          ))}
+          <LangSwitch />
         </nav>
-        <nav className="footer-links" aria-label="Meer">
-          <strong>Meer</strong>
-          <a href={company.website ?? "https://www.marketingscan.be"}>Gratis marketingscan</a>
-          <Link to="/voorwaarden">Voorwaarden</Link>
-          <Link to="/privacy">Privacy</Link>
-        </nav>
-        <p className="footer-legal">
-          © 2026 {company.merk}.{" "}
-          {company.vennootschap
-            ? `${company.vennootschap}, ${company.adres}, ondernemingsnummer ${company.ondernemingsnummer}.`
-            : "De bedrijfsgegevens worden gepubliceerd vóór de start van de verkoop."}
+      )}
+      {isTestnet && (
+        <p className="ribbon">
+          {t.ribbon} <Link to="/#hoe">{t.ribbonMore} ›</Link>
         </p>
-      </div>
-    </footer>
+      )}
+      <main id="inhoud">{children}</main>
+      <footer className="footer">
+        <div className="container wide">
+          <p className="footer-top">{t.footerNote}</p>
+          <div className="footer-cols">
+            {t.cols.map((c) => (
+              <div key={c.title}>
+                <strong>{c.title}</strong>
+                {c.links.map(([to, label]) => (
+                  <SmartLink key={to} to={to}>{label}</SmartLink>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="footer-bottom">
+            <span>{t.legal(new Date().getFullYear())} {t.entity}</span>
+            <LangSwitch />
+          </div>
+        </div>
+      </footer>
+    </>
   );
 }

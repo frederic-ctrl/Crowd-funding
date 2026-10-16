@@ -2,6 +2,8 @@
 // zodat iedereen exact hetzelfde rekent. Bedragen in euro staan in basiseenheden van
 // 6 decimalen (1 euro = 1.000.000), zoals tEUR, EURC en USDC op Solana.
 
+import { msg } from "./messages.js";
+
 export const EUR = 1_000_000;
 export const DAY_MS = 86_400_000;
 
@@ -66,11 +68,11 @@ export function ladderState(product, used) {
 }
 
 /** Publieke naam op de muur: optioneel, kort en zonder vreemde tekens. Geeft { naam } of { fout }. */
-export function cleanName(input) {
+export function cleanName(input, lang = "nl") {
   const naam = String(input ?? "").trim().replace(/\s+/g, " ");
   if (!naam) return { naam: "" };
-  if (naam.length > 24) return { fout: "Je publieke naam mag maximaal 24 tekens zijn." };
-  if (!/^[\p{L}\p{N} @._'-]+$/u.test(naam)) return { fout: "Gebruik enkel letters, cijfers, spaties en @ . _ - ' in je publieke naam." };
+  if (naam.length > 24) return { fout: msg(lang).nameTooLong() };
+  if (!/^[\p{L}\p{N} @._'-]+$/u.test(naam)) return { fout: msg(lang).nameChars() };
   return { naam };
 }
 
@@ -105,38 +107,39 @@ export function saleIsOpen(cfg, network, now = new Date()) {
   return true;
 }
 
-function closedMessage(cfg, network, now) {
-  if (cfg.sluit && now > new Date(cfg.sluit)) return "De Genesis-verkoop is afgelopen.";
-  return "De Genesis-verkoop is nog niet open.";
+function closedMessage(cfg, now, lang) {
+  return cfg.sluit && now > new Date(cfg.sluit) ? msg(lang).saleOver() : msg(lang).saleNotOpen();
 }
 
 /**
  * Controleert de aankoop van een pass. Geeft fouten in gewone taal terug (leeg = in orde).
- * @param {{ cfg: object, product: object, nextNumber: number | null, held: number, balanceMicro?: number, network: string, now?: Date }} p
+ * @param {{ cfg: object, product: object, nextNumber: number | null, held: number, balanceMicro?: number, network: string, now?: Date, lang?: "en" | "nl" }} p
  */
-export function checkPassPurchase({ cfg, product, nextNumber, held, balanceMicro, network, now = new Date() }) {
-  if (!saleIsOpen(cfg, network, now)) return [closedMessage(cfg, network, now)];
+export function checkPassPurchase({ cfg, product, nextNumber, held, balanceMicro, network, now = new Date(), lang = "nl" }) {
+  if (!saleIsOpen(cfg, network, now)) return [closedMessage(cfg, now, lang)];
+  const m = msg(lang);
   const errors = [];
   const price = nextNumber ? priceForNumber(product, nextNumber) : null;
-  if (price === null) return [`De ${product.naam} is uitverkocht.`];
+  if (price === null) return [m.soldOut(product.naam)];
   if (held >= product.maxPerWallet) {
-    errors.push(product.maxPerWallet === 1 ? `Je hebt al een ${product.naam}. Er is er één per wallet.` : `Je hebt al ${held} keer de ${product.naam}. Het maximum is ${product.maxPerWallet} per wallet.`);
+    errors.push(product.maxPerWallet === 1 ? m.onePerWallet(product.naam) : m.maxPerWallet(held, product.naam, product.maxPerWallet));
   }
   if (balanceMicro !== undefined && balanceMicro < price) {
-    errors.push(`Je hebt niet genoeg saldo: de ${product.naam} kost € ${formatEur(price)}.`);
+    errors.push(m.notEnoughForPass(product.naam, lang === "en" ? (price / EUR).toFixed(2) : formatEur(price)));
   }
   return errors;
 }
 
 /** Controleert een steun vanaf €1. */
-export function checkSupport({ cfg, eurMicro, balanceMicro, network, now = new Date() }) {
-  if (!saleIsOpen(cfg, network, now)) return [closedMessage(cfg, network, now)];
+export function checkSupport({ cfg, eurMicro, balanceMicro, network, now = new Date(), lang = "nl" }) {
+  if (!saleIsOpen(cfg, network, now)) return [closedMessage(cfg, now, lang)];
+  const m = msg(lang);
   const s = cfg.steun;
-  if (!Number.isFinite(eurMicro) || eurMicro <= 0) return ["Vul een bedrag in."];
+  if (!Number.isFinite(eurMicro) || eurMicro <= 0) return [m.enterAmount()];
   const errors = [];
-  if (eurMicro < s.minimumEur * EUR) errors.push(`Het minimum is €${s.minimumEur}.`);
-  if (eurMicro > s.maximumEur * EUR) errors.push(`Het maximum is €${s.maximumEur.toLocaleString("nl-BE")} per keer.`);
-  if (balanceMicro !== undefined && eurMicro > balanceMicro) errors.push("Je hebt niet genoeg saldo voor deze steun.");
+  if (eurMicro < s.minimumEur * EUR) errors.push(m.minimum(s.minimumEur));
+  if (eurMicro > s.maximumEur * EUR) errors.push(m.maximum(s.maximumEur));
+  if (balanceMicro !== undefined && eurMicro > balanceMicro) errors.push(m.notEnoughForSupport());
   return errors;
 }
 
