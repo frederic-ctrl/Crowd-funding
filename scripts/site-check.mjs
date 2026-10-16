@@ -1,11 +1,14 @@
 // Controle vóór een deploy van de site.
 // - Bedrijfsgegevens in shared/bedrijf.json (vennootschap, adres, ondernemingsnummer, privacy-e-mail).
 // - De deelafbeelding voor X en de afbeeldingen en metadata van de passes bestaan.
+// - Directe steun (shared/directe-steun.json): staat die aan, dan moeten ontvanger, e-mail en alle
+//   adressen kloppen. Anders faalt de build altijd, want daar gaat echt geld naartoe.
 // Zodra er echt verkocht kan worden (een build voor mainnet, of verkoopActief in shared/genesis.json)
 // of met --strict faalt de build zolang er iets ontbreekt. Een testnet-demo geeft enkel een waarschuwing.
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkDirectSupport } from "../shared/directe-steun.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const genesis = JSON.parse(readFileSync(join(root, "shared", "genesis.json"), "utf8"));
@@ -18,6 +21,15 @@ for (const field of ["vennootschap", "adres", "ondernemingsnummer", "privacyEmai
 }
 for (const file of ["og-genesis.png", "icon.svg", ...["pass", "agency", "steun"].flatMap((v) => [`token/${v}.png`, `token/${v}.json`])]) {
   if (!existsSync(join(root, "web", "public", file))) problems.push(`web/public/${file} ontbreekt`);
+}
+
+// Directe steun: een fout adres mag nooit live gaan, ook niet op het testnet (het is echt geld).
+const gift = JSON.parse(readFileSync(join(root, "shared", "directe-steun.json"), "utf8"));
+const giftProblems = checkDirectSupport(gift);
+for (const p of giftProblems) console.log(`FOUT: shared/directe-steun.json: ${p}`);
+if (giftProblems.length > 0) {
+  console.log("site-check: directe steun staat aan maar is niet in orde. Verbeter het of zet actief op false.");
+  process.exit(1);
 }
 
 if (problems.length === 0) {

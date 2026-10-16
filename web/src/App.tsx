@@ -12,6 +12,7 @@ const MyPass = lazy(() => import("./pages/MyPass"));
 const Transparency = lazy(() => import("./pages/Transparency"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
+const Gift = lazy(() => import("./pages/Gift"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 export function App() {
@@ -30,6 +31,7 @@ export function App() {
                     <Route path="/transparantie" element={<Transparency />} />
                     <Route path="/voorwaarden" element={<Terms />} />
                     <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/steun" element={<Gift />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

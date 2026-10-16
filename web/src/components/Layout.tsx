@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { company, isTestnet } from "../config";
+import { company, giftActive, isTestnet } from "../config";
 import { useLang, useT, type Lang } from "../i18n";
 import { LogoMark } from "./ui";
 import { AccountButton } from "./Wallet";
@@ -15,17 +15,18 @@ const T = {
     skip: "Skip to content",
     menu: "Menu",
     ribbon: "This is a demo on Solana devnet. Not on sale yet.",
+    ribbonGift: "Gifts on this page are real crypto, sent straight to the founder. Genesis passes are still a demo.",
     ribbonMore: "How it works",
     footerNote: isTestnet
       ? "Marketing Scan Genesis is a demo on Solana devnet. Passes and test money have no value. Not on sale yet: real sales start once the legal setup is done."
       : "Marketing Scan Genesis is an early-access sale of lifetime subscriptions to Marketing Scan Pro. Not an investment: passes are non-transferable and earn nothing.",
     cols: [
-      { title: "Genesis", links: [["/genesis", "Genesis Pass"], ["/mijn-pass", "My pass"], ["/transparantie", "Transparency"]] },
+      { title: "Genesis", links: [["/genesis", "Genesis Pass"], ["/mijn-pass", "My pass"], ["/transparantie", "Transparency"], ...(giftActive ? [["/steun", "Support directly"]] : [])] },
       { title: "Marketing Scan", links: [["https://www.marketingscan.be", "Free marketing scan"], ["/#faq", "Questions"]] },
       { title: "Legal", links: [["/voorwaarden", "Terms"], ["/privacy", "Privacy"]] },
     ],
     legal: (year: number) => `Copyright © ${year} ${company.merk}.`,
-    entity: company.vennootschap ? `${company.vennootschap}, ${company.adres}, ${company.ondernemingsnummer}.` : "Company details are published before sales start.",
+    entity: company.vennootschap ? `${[company.vennootschap, company.adres, company.ondernemingsnummer].filter(Boolean).join(", ")}.` : "Company details are published before sales start.",
   },
   nl: {
     nav: [
@@ -36,17 +37,18 @@ const T = {
     skip: "Naar de inhoud",
     menu: "Menu",
     ribbon: "Dit is een demo op het Solana-testnet. Nog geen verkoop.",
+    ribbonGift: "Giften op deze pagina zijn echte crypto, rechtstreeks naar de oprichter. Genesis-passes zijn nog een demo.",
     ribbonMore: "Hoe het werkt",
     footerNote: isTestnet
       ? "Marketing Scan Genesis is een demo op het Solana-testnet. Passes en testgeld hebben geen waarde. Nog geen verkoop: die start pas als de juridische vorm in orde is."
       : "Marketing Scan Genesis is een voorverkoop van levenslange abonnementen op Marketing Scan Pro. Geen investering: passes zijn niet overdraagbaar en leveren niets op.",
     cols: [
-      { title: "Genesis", links: [["/genesis", "Genesis Pass"], ["/mijn-pass", "Mijn pass"], ["/transparantie", "Transparantie"]] },
+      { title: "Genesis", links: [["/genesis", "Genesis Pass"], ["/mijn-pass", "Mijn pass"], ["/transparantie", "Transparantie"], ...(giftActive ? [["/steun", "Rechtstreeks steunen"]] : [])] },
       { title: "Marketing Scan", links: [["https://www.marketingscan.be", "Gratis marketingscan"], ["/#faq", "Vragen"]] },
       { title: "Juridisch", links: [["/voorwaarden", "Voorwaarden"], ["/privacy", "Privacy"]] },
     ],
     legal: (year: number) => `Copyright © ${year} ${company.merk}.`,
-    entity: company.vennootschap ? `${company.vennootschap}, ${company.adres}, ${company.ondernemingsnummer}.` : "De bedrijfsgegevens verschijnen vóór de start van de verkoop.",
+    entity: company.vennootschap ? `${[company.vennootschap, company.adres, company.ondernemingsnummer].filter(Boolean).join(", ")}.` : "De bedrijfsgegevens verschijnen vóór de start van de verkoop.",
   },
 };
 
@@ -117,11 +119,13 @@ export function Layout({ children }: { children: ReactNode }) {
           <LangSwitch />
         </nav>
       )}
-      {isTestnet && (
+      {isTestnet && pathname === "/steun" && giftActive ? (
+        <p className="ribbon">{t.ribbonGift}</p>
+      ) : isTestnet ? (
         <p className="ribbon">
           {t.ribbon} <Link to="/#hoe">{t.ribbonMore} ›</Link>
         </p>
-      )}
+      ) : null}
       <main id="inhoud">{children}</main>
       <footer className="footer">
         <div className="container wide">

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useConnection } from "@solana/wallet-adapter-react";
-import { AGENCY, PASS, deployment, genesis, isTestnet, metrics } from "../config";
+import { AGENCY, PASS, deployment, genesis, giftActive, isTestnet, metrics } from "../config";
 import { EUR, formatNumber } from "../../../shared/genesis.js";
 import { useAsync, useGenesis } from "../lib/hooks";
 import { count, euro } from "../lib/format";
@@ -388,6 +388,24 @@ function Trust({ s, t }: { s: GenesisState | null; t: Copy }) {
   );
 }
 
+const GIFT = {
+  en: { head: "Just want to chip in?", text: "Send SOL, USDC, USDT or BTC straight to the founder. Real crypto, a gift with nothing in return.", cta: "Support directly" },
+  nl: { head: "Gewoon een duwtje geven?", text: "Stuur SOL, USDC, USDT of BTC rechtstreeks naar de oprichter. Echte crypto, een gift zonder iets terug.", cta: "Rechtstreeks steunen" },
+};
+
+function GiftBand() {
+  const t = useT(GIFT);
+  return (
+    <section className="section tight center" aria-labelledby="h-gift">
+      <div className="container">
+        <h2 id="h-gift" className="headline">{t.head}</h2>
+        <p className="lead" style={{ margin: "16px auto 28px", maxWidth: 620 }}>{t.text}</p>
+        <Link className="btn btn-lg" to="/steun">{t.cta}</Link>
+      </div>
+    </section>
+  );
+}
+
 function Statement({ lines, text, alt }: { lines: string[]; text: string; alt?: boolean }) {
   return (
     <section className={`section statement${alt ? " alt" : ""}`}>
@@ -544,6 +562,7 @@ export function Home() {
       <Pro t={t} />
       <Price s={s} t={t} />
       <Plans s={s} t={t} />
+      {giftActive && <GiftBand />}
       <Trust s={s} t={t} />
       <Statement lines={t.refundHead} text={t.refundText} />
       <Statement lines={t.notHead} text={t.notText} alt />

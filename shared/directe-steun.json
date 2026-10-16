@@ -1,0 +1,9 @@
+{
+  "actief": false,
+  "ontvanger": null,
+  "email": null,
+  "adressen": [
+    { "netwerk": "Solana", "schema": "solana", "munten": ["SOL", "USDC", "USDT"], "adres": null },
+    { "netwerk": "Bitcoin", "schema": "bitcoin", "munten": ["BTC"], "adres": null }
+  ]
+}

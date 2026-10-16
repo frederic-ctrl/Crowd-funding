@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { AGENCY, PASS, company, genesis, isTestnet } from "../config";
+import { AGENCY, PASS, company, genesis, gift, giftActive, isTestnet } from "../config";
 import { EUR, maxRevenueMicro } from "../../../shared/genesis.js";
 import { euro } from "../lib/format";
 import { useT } from "../i18n";
@@ -67,6 +67,7 @@ const T: Record<"en" | "nl", { title: string; sub: string; draft: string; testne
       { title: "10. If Marketing Scan stops", body: <p>If Marketing Scan ever shuts down, we’ll announce it at least 6 months in advance and you can export all your data.</p> },
       { title: "11. Liability", body: <p>We do our best to keep Marketing Scan good and available, but we don’t promise uninterrupted service. Our liability is limited to the amount you paid for your pass. This limit does not apply in case of fraud, intent or gross negligence, nor where the law forbids it. Your statutory consumer rights always apply.</p> },
       { title: "12. Privacy and governing law", body: <p>How we handle your data is in the <Link to="/privacy">privacy statement</Link>. These terms are governed by Belgian law.</p> },
+      ...(giftActive ? [{ title: "13. Direct gifts", body: <p>On the <Link to="/steun">support page</Link> you can send crypto straight to {gift.ontvanger}, founder of Marketing Scan. That is a voluntary gift, separate from Genesis: you get no pass, no subscription, no shares or tokens and no refund. Only send coins on the network shown; coins sent on another network are lost and can’t be recovered by us. Questions: {gift.email}.</p> }] : []),
     ],
   },
   nl: {
@@ -117,6 +118,7 @@ const T: Record<"en" | "nl", { title: string; sub: string; draft: string; testne
       { title: "10. Als Marketing Scan stopt", body: <p>Stopt Marketing Scan ooit, dan laten we dat minstens 6 maanden vooraf weten en kan je al je gegevens exporteren.</p> },
       { title: "11. Aansprakelijkheid", body: <p>We doen ons best om Marketing Scan goed en beschikbaar te houden, maar beloven geen ononderbroken werking. Onze aansprakelijkheid is beperkt tot het bedrag dat je voor je pass betaalde. Die beperking geldt niet bij bedrog, opzet of zware fout, en niet waar de wet ze verbiedt. Je wettelijke rechten als consument blijven altijd gelden.</p> },
       { title: "12. Privacy en toepasselijk recht", body: <p>Hoe we met je gegevens omgaan, lees je in de <Link to="/privacy">privacyverklaring</Link>. Op deze voorwaarden is Belgisch recht van toepassing.</p> },
+      ...(giftActive ? [{ title: "13. Rechtstreekse giften", body: <p>Op de <Link to="/steun">steunpagina</Link> kan je crypto rechtstreeks naar {gift.ontvanger} sturen, oprichter van Marketing Scan. Dat is een vrijwillige gift, los van Genesis: je krijgt geen pass, geen abonnement, geen aandelen of tokens en geen terugbetaling. Stuur munten enkel op het vermelde netwerk; munten op een ander netwerk zijn verloren en kunnen wij niet terughalen. Vragen: {gift.email}.</p> }] : []),
     ],
   },
 };

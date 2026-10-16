@@ -3,6 +3,8 @@ import genesisJson from "../../shared/genesis.json";
 import companyJson from "../../shared/bedrijf.json";
 import metricsJson from "../../shared/cijfers.json";
 import { coinsOf } from "../../shared/munten.js";
+import giftJson from "../../shared/directe-steun.json";
+import { shownAddresses } from "../../shared/directe-steun.js";
 
 export type Tier = { tot: number; prijsEur: number };
 
@@ -77,3 +79,9 @@ export const COINS = coinsOf(deployment, genesis) as Coin[];
 export function coinOf(id: string | null | undefined): Coin | null {
   return COINS.find((c) => c.id === id) ?? null;
 }
+
+/** Directe steun: een gift in crypto rechtstreeks naar de oprichter (shared/directe-steun.json). */
+export type GiftAddress = { netwerk: string; schema: string; munten: string[]; adres: string };
+export const gift = giftJson as unknown as { actief: boolean; ontvanger: string | null; email: string | null; adressen: (Omit<GiftAddress, "adres"> & { adres: string | null })[] };
+export const giftAddresses = shownAddresses(gift) as GiftAddress[];
+export const giftActive = giftAddresses.length > 0;
