@@ -7,6 +7,16 @@
       "url": "https://x.com/i/web/status/2111048327181570055",
       "geplaatstOp": "2026-10-16T10:55:17.042Z",
       "kostUsd": 0.2
+    },
+    {
+      "id": "2026-10-16-steun-a-info",
+      "hash": "b390bcb00c995d93",
+      "tweetId": "2111155739590844729",
+      "url": "https://x.com/i/web/status/2111155739590844729",
+      "geplaatstOp": "2026-10-16T18:02:06.063Z",
+      "kostUsd": 0.2,
+      "test": "steun-1",
+      "variant": "info-kaart"
     }
   ]
 }
