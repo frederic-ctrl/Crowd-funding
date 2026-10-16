@@ -72,6 +72,51 @@ posts:
       op: 2026-10-16T10:08:43.744Z
       hash: ce6f505cd853300d
 
+  - id: 2026-10-17-security-check
+    moment: 2026-10-17T10:00:00+02:00
+    categorie: product
+    status: goedgekeurd
+    tekst: |-
+      A padlock in the browser is only the start of website security.
+
+      Marketing Scan also checks your security headers and email protection, and tells you what to fix first. Free, no account, results in 60 seconds.
+
+      {scan}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-16T10:57:58.918Z
+      hash: 2c6c576e06e7250c
+
+  - id: 2026-10-17-pay-usdc-eurc
+    moment: 2026-10-17T15:00:00+02:00
+    categorie: genesis
+    status: goedgekeurd
+    tekst: |-
+      How you would pay for Genesis: in USDC or EURC, from your own wallet. Prices are set in euro: €99 for Genesis Pass #001, €1 minimum for a Supporter.
+
+      Not an investment. Not on sale yet.
+      {genesis}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-16T10:57:59.049Z
+      hash: bc3fa29cb78c50ce
+
+  - id: 2026-10-17-what-the-goal-is-for
+    moment: 2026-10-17T20:00:00+02:00
+    categorie: transparantie
+    status: goedgekeurd
+    tekst: |-
+      The Genesis goal is €50,000, and so far we have raised €0. Honest start.
+
+      The plan is to fund the next Pro features after the scan. Everything stays visible on Solana, from the first euro on.
+
+      Not an investment. Not on sale yet. #buildinpublic
+      {transparantie}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-16T10:57:59.176Z
+      hash: 865d94ec443b7a87
+
   - id: 2026-10-27-free-scan
     moment: 2026-10-27T15:00:00+01:00
     categorie: product
