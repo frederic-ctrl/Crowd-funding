@@ -2,7 +2,7 @@
   "name": "Marketing Scan Genesis",
   "symbol": "MSGEN",
   "description": "Genesis Pass: levenslang Marketing Scan Pro voor één website. Genummerd, soulbound (niet overdraagbaar). Een abonnement, geen investering.",
-  "image": "https://community.marketingscan.be/genesis/pass.png",
+  "image": "https://community.marketingscan.be/token/pass.png",
   "external_url": "https://community.marketingscan.be/genesis",
   "attributes": [
     { "trait_type": "Product", "value": "Genesis Pass" },

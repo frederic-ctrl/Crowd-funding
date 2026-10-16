@@ -32,7 +32,7 @@ Alle adressen komen in `shared/deployments/<netwerk>.json`. De site leest dat be
 
 Elke pass is een **eigen munt**:
 
-- Token-2022 met de extensies **MetadataPointer** + **TokenMetadata** (naam "Marketing Scan Genesis #007", symbool MSGEN, link naar `genesis/pass.json`) en **NonTransferable** (soulbound).
+- Token-2022 met de extensies **MetadataPointer** + **TokenMetadata** (naam "Marketing Scan Genesis #007", symbool MSGEN, link naar `token/pass.json`) en **NonTransferable** (soulbound).
 - 0 decimalen, voorraad precies 1, muntrecht ingetrokken in dezelfde transactie, **geen bevriesrecht**.
 - De pass-account van de koper is een gewone ATA; door NonTransferable kan de pass die nooit verlaten. Enkel verbranden kan, en dat kan enkel de eigenaar.
 

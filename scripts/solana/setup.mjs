@@ -138,7 +138,7 @@ async function main() {
   console.log(`Saldo serversleutel: ${balance} SOL\n`);
 
   const base = arg("uri", cfg.metadataBasis);
-  const site = base.replace(/\/genesis$/, "");
+  const site = base.replace(/\/(genesis|token)$/, "");
 
   let paymentMint;
   let paymentProgram;

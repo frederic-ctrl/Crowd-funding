@@ -8,7 +8,6 @@
       "includeFiles": "shared/**"
     }
   },
-  "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
     {

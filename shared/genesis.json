@@ -6,7 +6,7 @@
   "sluit": null,
   "doelEur": 50000,
   "bedenktijdDagen": 14,
-  "metadataBasis": "https://community.marketingscan.be/genesis",
+  "metadataBasis": "https://community.marketingscan.be/token",
   "producten": [
     {
       "id": "pass",
