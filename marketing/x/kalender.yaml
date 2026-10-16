@@ -25,6 +25,53 @@
 #   De dagelijkse routine voegt elke dag drie Engelse posts toe, om 10:00, 15:00 en 20:00 (max 3 per dag).
 
 posts:
+  - id: 2026-10-16-email-setup
+    moment: 2026-10-16T10:00:00+02:00
+    categorie: product
+    status: goedgekeurd
+    tekst: |-
+      Do your emails reach the inbox, or the spam folder?
+
+      Marketing Scan checks your email setup (SPF, DKIM, DMARC) next to your site speed and security. Free, no account, results in 60 seconds.
+
+      {scan}
+    goedkeuring:
+      door: claude
+      op: 2026-10-16T10:08:43.462Z
+      hash: 2fe657c5ec6512d5
+
+  - id: 2026-10-16-hard-cap
+    moment: 2026-10-16T15:00:00+02:00
+    categorie: genesis
+    status: goedgekeurd
+    tekst: |-
+      Genesis has a hard cap: 250 Genesis Passes and 25 Genesis Agency passes. No extra batch later.
+
+      One wallet can claim at most 3 Genesis Passes, so it stays a community of founding members.
+
+      Not an investment. Not on sale yet.
+      {genesis}
+    goedkeuring:
+      door: claude
+      op: 2026-10-16T10:08:43.599Z
+      hash: 66b21be4bfa17dfc
+
+  - id: 2026-10-16-where-we-stand
+    moment: 2026-10-16T20:00:00+02:00
+    categorie: transparantie
+    status: goedgekeurd
+    tekst: |-
+      Where we stand today: 0 passes, 0 agency passes, 0 supporters, €0 raised. About 10 weekly users on Marketing Scan.
+
+      Genesis runs as a demo on Solana devnet, payable in test USDC or test EURC.
+
+      Not an investment. Not on sale yet.
+      {transparantie}
+    goedkeuring:
+      door: claude
+      op: 2026-10-16T10:08:43.744Z
+      hash: ce6f505cd853300d
+
   - id: 2026-10-27-free-scan
     moment: 2026-10-27T15:00:00+01:00
     categorie: product
