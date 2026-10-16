@@ -30,6 +30,23 @@ test("adressen: Solana-wallets en Bitcoin-adressen, de rest niet", () => {
   assert.equal(paymentUri("bitcoin", "bc1qx"), "bitcoin:bc1qx");
 });
 
+test("controlesommen vangen tikfouten op", () => {
+  // Bitcoin bech32 (BIP-173 testvector) en taproot (bech32m, BIP-350)
+  assert.equal(validAddress("bitcoin", "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4"), true);
+  assert.equal(validAddress("bitcoin", "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5"), false, "één teken anders");
+  assert.equal(validAddress("bitcoin", "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0"), true);
+  assert.equal(validAddress("bitcoin", "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdx"), false);
+  // Bitcoin base58check
+  assert.equal(validAddress("bitcoin", "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN3"), false, "één teken anders");
+  // Ethereum en Polygon: EIP-55 (testvectoren uit de EIP)
+  assert.equal(validAddress("ethereum", "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"), true);
+  assert.equal(validAddress("ethereum", "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAeD"), false, "hoofdletter fout");
+  assert.equal(validAddress("polygon", "0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359"), true, "enkel kleine letters: geen controlesom");
+  assert.equal(validAddress("ethereum", "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeA"), false, "te kort");
+  assert.equal(paymentUri("polygon", "0xabc"), "ethereum:0xabc@137");
+  assert.equal(paymentUri("ethereum", "0xabc"), "ethereum:0xabc");
+});
+
 test("configuratie: niet actief is altijd in orde, actief vraagt ontvanger, e-mail en geldige adressen", () => {
   assert.deepEqual(checkDirectSupport({ actief: false }), []);
   assert.deepEqual(checkDirectSupport(cfg()), []);

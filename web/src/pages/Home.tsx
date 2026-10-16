@@ -389,8 +389,8 @@ function Trust({ s, t }: { s: GenesisState | null; t: Copy }) {
 }
 
 const GIFT = {
-  en: { head: "Just want to chip in?", text: "Send SOL, USDC, USDT or BTC straight to the founder. Real crypto, a gift with nothing in return.", cta: "Support directly" },
-  nl: { head: "Gewoon een duwtje geven?", text: "Stuur SOL, USDC, USDT of BTC rechtstreeks naar de oprichter. Echte crypto, een gift zonder iets terug.", cta: "Rechtstreeks steunen" },
+  en: { head: "Just want to chip in?", text: "Send SOL, ETH, USDC, USDT or BTC straight to the founder. Real crypto, a gift with nothing in return.", cta: "Support directly" },
+  nl: { head: "Gewoon een duwtje geven?", text: "Stuur SOL, ETH, USDC, USDT of BTC rechtstreeks naar de oprichter. Echte crypto, een gift zonder iets terug.", cta: "Rechtstreeks steunen" },
 };
 
 function GiftBand() {

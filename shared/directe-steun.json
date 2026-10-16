@@ -1,9 +1,11 @@
 {
-  "actief": false,
-  "ontvanger": null,
-  "email": null,
+  "actief": true,
+  "ontvanger": "Frederic Deburchgrave",
+  "email": "info@marketingscan.be",
   "adressen": [
-    { "netwerk": "Solana", "schema": "solana", "munten": ["SOL", "USDC", "USDT"], "adres": null },
-    { "netwerk": "Bitcoin", "schema": "bitcoin", "munten": ["BTC"], "adres": null }
+    { "netwerk": "Solana", "schema": "solana", "munten": ["SOL", "USDC", "USDT"], "adres": "EsrzxftXYS4zWV3HQpmg1W7j5u84WRCe8JxjTVyvWdjE" },
+    { "netwerk": "Ethereum", "schema": "ethereum", "munten": ["ETH", "USDC", "USDT"], "adres": "0x5825b569671A4E4036FFb1023ecD3a0D38c38d17" },
+    { "netwerk": "Polygon", "schema": "polygon", "munten": ["POL", "USDC", "USDT"], "adres": "0x5825b569671A4E4036FFb1023ecD3a0D38c38d17" },
+    { "netwerk": "Bitcoin", "schema": "bitcoin", "munten": ["BTC"], "adres": "bc1qhevy58mhnwdvvae78hv5wwka4x5t2mmuas7lwa" }
   ]
 }
