@@ -9,7 +9,8 @@ import { explorerAddress } from "../lib/explorer";
 import { verifyPasses } from "../lib/chain";
 import { joinWaitlist, ApiError, type GenesisState } from "../lib/api";
 import { Check, Progress, ScanLines, Value } from "../components/ui";
-import { Ladder, PassCard, Wall, eventLabel, goalMicro, view } from "../components/genesis";
+import { Ladder, PassBack, PassCard, Wall, eventLabel, goalMicro, view } from "../components/genesis";
+import { SpinningPass } from "../components/SpinningPass";
 
 const claimLabel = isTestnet ? "Probeer het op het testnet" : "Claim je Genesis Pass";
 
@@ -36,7 +37,11 @@ function Hero({ s }: { s: GenesisState | null }) {
           </ul>
         </div>
         <div className="hero-pass">
-          <PassCard variant="pass" number={v.pass.next ?? PASS.max} status="voorbeeld" footer={v.pass.price ? `Volgende pass: ${euro(v.pass.price, { whole: true })}` : "Uitverkocht"} />
+          <SpinningPass
+            label={`Genesis Pass ${v.pass.next ? `#${String(v.pass.next).padStart(3, "0")}` : ""}, de volgende pass`}
+            front={<PassCard variant="pass" number={v.pass.next ?? PASS.max} status="voorbeeld" footer={v.pass.price ? `Volgende pass: ${euro(v.pass.price, { whole: true })}` : "Uitverkocht"} />}
+            back={<PassBack variant="pass" />}
+          />
         </div>
       </div>
     </section>

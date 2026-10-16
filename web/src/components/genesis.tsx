@@ -58,6 +58,32 @@ export function PassCard({
   );
 }
 
+/** De achterkant van de pass, voor als hij ronddraait. */
+export function PassBack({ variant }: { variant: PassVariant }) {
+  const product = productOf(variant);
+  const lines =
+    variant === "steun"
+      ? ["Je bouwt mee aan Marketing Scan", "Je naam op de Genesis-muur", "Geen abonnement, gewoon steun"]
+      : [`Levenslang Marketing Scan Pro voor ${product!.websites === 1 ? "1 website" : `${product!.websites} websites`}`, "Elke nieuwe Pro-functie inbegrepen", "14 dagen geld terug, met één klik"];
+  return (
+    <div className={`pass-card pass-back pass-${variant}`}>
+      <div className="pass-glow" aria-hidden="true" />
+      <span className="pass-strip" aria-hidden="true" />
+      <div className="pass-top">
+        <span className="pass-brand"><LogoMark size={20} /> Marketing Scan</span>
+        <span className="pass-chip">{variant === "steun" ? "SUPPORTER" : "GENESIS"}</span>
+      </div>
+      <ul className="pass-perks">
+        {lines.map((l) => <li key={l}>{l}</li>)}
+      </ul>
+      <div className="pass-foot pass-back-foot">
+        <span>Geen investering · niet overdraagbaar</span>
+        <span>community.marketingscan.be</span>
+      </div>
+    </div>
+  );
+}
+
 /** De prijsladder: hoe vroeger, hoe goedkoper. */
 export function Ladder({ product, used, compact = false }: { product: Product; used: number; compact?: boolean }) {
   const tiers = ladderState(product, used) as { van: number; tot: number; prijsMicro: number; verkocht: number; beschikbaar: number; status: "uitverkocht" | "nu" | "later" }[];

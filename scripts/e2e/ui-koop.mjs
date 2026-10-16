@@ -4,6 +4,8 @@
 // draaiende site (npm run preview) en een netwerk met een deployment (bv. een lokale validator).
 //
 // Doorloopt: pass claimen, activeren, steunen, de overzichtspagina's (ook op gsm) en geld terug.
+// Een lokale validator gooit standaard oude blokken weg; start hem voor lange sessies met
+// --limit-ledger-size 50000000, anders ziet de controle in de browser niet de volledige geschiedenis.
 // Gebruik: SITE_URL=http://127.0.0.1:4173 SHOTS=./shots node scripts/e2e/ui-koop.mjs
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";

@@ -477,9 +477,8 @@ td.out { color: var(--fail); font-weight: 600; }
 .prose ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.3rem; }
 
 /* ---------- Genesis: de pass ---------- */
-.hero-pass { display: grid; place-items: center; perspective: 1200px; }
-.hero-pass .pass-card { width: min(100%, 25rem); transform: rotateY(-8deg) rotateX(4deg) rotate(-1.5deg); }
-@media (max-width: 960px) { .hero-pass .pass-card { transform: none; } }
+.hero-pass { display: grid; place-items: center; }
+.hero-pass .spin { width: min(100%, 25rem); }
 .pass-card {
   --accent: #7d99ff; --accent-2: #2f5bea;
   position: relative; overflow: hidden; margin: 0; isolation: isolate;
@@ -633,3 +632,40 @@ td.out { color: var(--fail); font-weight: 600; }
 @media (max-width: 860px) { .empty-state { grid-template-columns: minmax(0, 1fr); } }
 .mini-list { list-style: none; margin: 0; padding: 0; display: grid; }
 .mini-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--rule-soft); font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+
+/* ---------- Genesis: draaiende pass ---------- */
+.spin { display: grid; gap: 1rem; justify-items: center; width: 100%; }
+.spin-stage { width: 100%; perspective: 1400px; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; border-radius: 22px; }
+.spin-stage.is-dragging { cursor: grabbing; }
+.spin-stage:focus-visible { outline: 2px solid var(--pill); outline-offset: 6px; }
+.spin-card { position: relative; transform-style: preserve-3d; will-change: transform; transform: rotateX(6deg) rotateY(-22deg); }
+.spin-face { position: relative; border-radius: 22px; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.spin-back { position: absolute; inset: 0; transform: rotateY(180deg); }
+.spin-back .pass-card { height: 100%; min-height: 0; aspect-ratio: auto; }
+.spin-glare { position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.16) 48%, rgba(255, 255, 255, 0.05) 55%, transparent 65%);
+  background-size: 300% 100%; background-position: var(--glare, 50%) 0; mix-blend-mode: screen; }
+.spin-face .pass-card { box-shadow: 0 30px 60px -34px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.spin-controls { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: center; color: var(--on-night-muted); font-size: 0.82rem; }
+.spin-btn { width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--night-line); background: rgba(255, 255, 255, 0.06); color: var(--on-night); font-size: 1.1rem; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.spin-btn:hover:not([disabled]) { background: rgba(255, 255, 255, 0.14); }
+.spin-btn[disabled] { opacity: 0.35; cursor: default; }
+.spin-meter { display: inline-flex; gap: 4px; align-items: flex-end; height: 1rem; }
+.spin-meter i { width: 5px; border-radius: 2px; background: var(--night-line); }
+.spin-meter i:nth-child(1) { height: 30%; } .spin-meter i:nth-child(2) { height: 45%; } .spin-meter i:nth-child(3) { height: 60%; } .spin-meter i:nth-child(4) { height: 80%; } .spin-meter i:nth-child(5) { height: 100%; }
+.spin-meter i.on { background: var(--pill); }
+.spin-hint { flex-basis: 100%; text-align: center; }
+.claimed .spin-controls { color: var(--muted); }
+.claimed .spin-btn { border-color: var(--line); background: var(--surface); color: var(--ink); }
+.claimed .spin-meter i { background: var(--line); }
+.claimed .spin-meter i.on { background: var(--action); }
+
+/* Achterkant van de pass */
+.pass-back { grid-template-rows: auto auto 1fr auto; }
+.pass-strip { position: absolute; left: 0; right: 0; top: 22%; height: 2.6rem; background: linear-gradient(90deg, rgba(0, 0, 0, 0.55), rgba(20, 27, 52, 0.85)); z-index: -1; }
+.pass-back .pass-top { margin-bottom: 3.4rem; }
+.pass-perks { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; align-content: end; }
+.pass-perks li { position: relative; padding-left: 1.3rem; font-size: 0.92rem; color: #f1f3fb; }
+.pass-perks li::before { content: "✓"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+.pass-back-foot { display: flex; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding-top: 0.7rem; border-top: 1px solid rgba(241, 243, 251, 0.14); }
+@media (max-width: 420px) { .pass-back .pass-top { margin-bottom: 2.6rem; } .pass-perks li { font-size: 0.85rem; } }

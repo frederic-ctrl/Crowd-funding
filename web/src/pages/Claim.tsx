@@ -9,7 +9,8 @@ import { ApiError, preparePass, prepareSupport, requestTestEuro } from "../lib/a
 import { euro } from "../lib/format";
 import { explorerTx } from "../lib/explorer";
 import { useWalletUi } from "../components/Wallet";
-import { PassCard, view } from "../components/genesis";
+import { PassBack, PassCard, view } from "../components/genesis";
+import { SpinningPass } from "../components/SpinningPass";
 
 type Choice = "pass" | "agency" | "steun";
 type Phase = "idle" | "preparing" | "signing" | "sending" | "done";
@@ -129,7 +130,12 @@ export default function Claim() {
         <PageHero />
         <div className="container page-body">
           <div className="claimed">
-            <PassCard variant={result.choice} number={result.number} holder={wallet} />
+            <SpinningPass
+              label={result.label}
+              initialSpin={1080}
+              front={<PassCard variant={result.choice} number={result.number} holder={wallet} />}
+              back={<PassBack variant={result.choice} />}
+            />
             <div className="claimed-copy">
               <span className="success-mark" aria-hidden="true">✓</span>
               <h2>{result.choice === "steun" ? "Bedankt voor je steun" : `Welkom bij Genesis, ${result.label.split(" ").pop()}`}</h2>
