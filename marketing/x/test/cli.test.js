@@ -40,6 +40,7 @@ test("lint slaagt op de meegeleverde kalender en faalt op een foute post", () =>
 
 test("goedkeuren en posten: droogtest zonder X_POSTING_ENABLED", () => {
   const dir = workspace();
+  const before = JSON.parse(readFileSync(join(dir, "state", "geplaatst.json"), "utf8")).posts;
   try {
     const approved = run(dir, ["approve", "2026-10-27-free-scan", "--door", "test"]);
     assert.equal(approved.code, 0, approved.out);
@@ -50,7 +51,7 @@ test("goedkeuren en posten: droogtest zonder X_POSTING_ENABLED", () => {
     assert.equal(res.code, 0, res.out);
     assert.match(res.out, /Droogtest/);
     assert.match(res.out, /\[droogtest\] zou nu posten: 2026-10-27-free-scan/);
-    assert.deepEqual(JSON.parse(readFileSync(join(dir, "state", "geplaatst.json"), "utf8")).posts, []);
+    assert.deepEqual(JSON.parse(readFileSync(join(dir, "state", "geplaatst.json"), "utf8")).posts, before, "een droogtest legt niets vast");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -18,7 +18,10 @@
   },
   "links": {
     "site": "https://funding.marketingscan.be",
-    "scan": "https://www.marketingscan.be",
+    "scan": {
+      "nl": "https://www.marketingscan.be",
+      "en": "https://www.marketingscan.be/en"
+    },
     "allowedDomains": [
       "marketingscan.be",
       "explorer.solana.com",

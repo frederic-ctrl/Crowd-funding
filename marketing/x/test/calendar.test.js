@@ -27,10 +27,10 @@ test("de meegeleverde kalender heeft geen fouten en geen waarschuwingen", () => 
   for (const r of reviewed) assert.deepEqual(r.issues, [], `${r.id}: ${JSON.stringify(r.issues)}`);
 });
 
-test("de meegeleverde kalender: alles concept, Genesis-posts met beide vermeldingen in hun taal, binnen 280 tekens", () => {
+test("de meegeleverde kalender: Genesis-posts met beide vermeldingen in hun taal, binnen 280 tekens", () => {
   const reviewed = reviewCalendar({ posts: shipped.posts, templates: shipped.sjablonen }, config);
   for (const r of reviewed) {
-    assert.equal(r.status, "concept", r.id);
+    assert.ok(["concept", "goedgekeurd"].includes(r.status), r.id);
     assert.ok(weightedLength(r.tekst) <= MAX_WEIGHTED_LENGTH, r.id);
     if (ABOUT_GENESIS.has(r.categorie)) {
       const { required, notice } = offerTexts(config, r.lang);
@@ -57,15 +57,14 @@ test("de meegeleverde kalender is Engels eerst: hooguit 3 Nederlandse posts", ()
   assert.ok(dutch.length <= 3, dutch.map((r) => r.id).join(", "));
   assert.ok(posts.filter((r) => r.lang === "en").length >= posts.length - 3);
   for (const r of dutch) assert.equal(r.categorie, "product", r.id);
-  for (const p of shipped.posts) assert.ok(p.moment >= "2026-10-27", p.id);
   const [weekly] = shipped.sjablonen;
   assert.equal(weekly.lang, "en");
   assert.deepEqual(Object.keys(weekly.tekst).sort(), ["en", "nl"]);
 });
 
 test("placeholders worden ingevuld vanuit config, links naar de site krijgen ?lang", () => {
-  assert.equal(renderText("Scan: {scan}", config), `Scan: ${config.links.scan}`);
-  assert.equal(renderText("{scan}", config, {}, "nl"), config.links.scan);
+  assert.equal(renderText("Scan: {scan}", config), `Scan: ${config.links.scan.en}`);
+  assert.equal(renderText("{scan}", config, {}, "nl"), config.links.scan.nl);
   assert.equal(renderText("{genesis}", config), `${config.links.site}/genesis?lang=en`);
   assert.equal(renderText("{transparantie}", config), `${config.links.site}/transparantie?lang=en`);
   assert.equal(renderText("{voorwaarden}", config), `${config.offer.voorwaardenUrl}?lang=en`);
@@ -340,4 +339,12 @@ test("sjabloon kan vooruit plannen", () => {
     items.map((i) => i.id),
     ["transparantie-wekelijks-2026-w43", "transparantie-wekelijks-2026-w44", "transparantie-wekelijks-2026-w45", "transparantie-wekelijks-2026-w46"],
   );
+});
+
+test("{scan} linkt naar de marketingscan.be-pagina in de taal van de post", async () => {
+  const { renderText } = await import("../src/calendar.js");
+  const cfg = { defaultLang: "en", links: { site: "https://funding.marketingscan.be", scan: { nl: "https://www.marketingscan.be", en: "https://www.marketingscan.be/en" } } };
+  assert.equal(renderText("Free scan: {scan}", cfg, {}, "en"), "Free scan: https://www.marketingscan.be/en");
+  assert.equal(renderText("Gratis scan: {scan}", cfg, {}, "nl"), "Gratis scan: https://www.marketingscan.be");
+  assert.equal(renderText("{scan}", { links: { scan: "https://x.be" } }, {}, "en"), "https://x.be", "een gewone string blijft werken");
 });

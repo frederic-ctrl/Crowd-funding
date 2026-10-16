@@ -11,7 +11,8 @@ const ID_RE = /^[a-z0-9][a-z0-9-]{2,80}$/;
 const MOMENT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)$/;
 const LINK_KEYS = ["site", "scan", "genesis", "transparantie", "voorwaarden"];
 // Links naar de community-site krijgen ?lang=<taal van de post>, zodat de site meteen in die taal opent.
-// {scan} (marketingscan.be) blijft zoals hij is.
+// {scan} (marketingscan.be) heeft per taal een eigen adres (links.scan in config.json, bv. /en voor
+// Engels), zodat de linkvoorvertoning op X in de taal van de post staat.
 const LANG_LINK_KEYS = new Set(["site", "genesis", "transparantie", "voorwaarden"]);
 // Hoe oud de cijfers voor een sjabloonpost maximaal mogen zijn.
 const MAX_DATA_AGE_DAYS = 8;
@@ -79,6 +80,12 @@ export function withLang(link, lang) {
   return url.toString();
 }
 
+/** Een link uit config.json: een gewone string, of een adres per taal ({ "nl": "...", "en": "..." }). */
+function localizedLink(value, lang) {
+  if (value && typeof value === "object") return value[lang] ?? value.nl ?? Object.values(value)[0] ?? "";
+  return value ?? "";
+}
+
 /**
  * Vult {site}, {scan}, {genesis}, {transparantie} en {voorwaarden} in uit config, plus eventuele sjabloonvariabelen.
  * Links naar de community-site krijgen ?lang=<lang> (standaard: defaultLang uit config.json).
@@ -87,7 +94,7 @@ export function renderText(text, config, vars = {}, lang = defaultLang(config)) 
   const site = String(config.links?.site ?? "").replace(/\/+$/, "");
   const links = {
     site,
-    scan: config.links?.scan ?? "",
+    scan: localizedLink(config.links?.scan, lang),
     genesis: config.links?.genesis ?? (site ? `${site}/genesis` : ""),
     transparantie: config.links?.transparantie ?? (site ? `${site}/transparantie` : ""),
     voorwaarden: config.offer?.voorwaardenUrl ?? "",

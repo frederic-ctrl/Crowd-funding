@@ -37,8 +37,8 @@ posts:
       {scan}
     goedkeuring:
       door: claude
-      op: 2026-10-16T10:08:43.462Z
-      hash: 2fe657c5ec6512d5
+      op: 2026-10-16T11:02:31.430Z
+      hash: 5d84c2f6ec17a87a
 
   - id: 2026-10-16-hard-cap
     moment: 2026-10-16T15:00:00+02:00
@@ -83,9 +83,9 @@ posts:
 
       {scan}
     goedkeuring:
-      door: claude-routine
-      op: 2026-10-16T10:57:58.918Z
-      hash: 2c6c576e06e7250c
+      door: claude
+      op: 2026-10-16T11:02:31.548Z
+      hash: dd93f6c9050d9e67
 
   - id: 2026-10-17-pay-usdc-eurc
     moment: 2026-10-17T15:00:00+02:00
