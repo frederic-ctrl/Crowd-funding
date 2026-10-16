@@ -76,6 +76,7 @@ test("daglimiet", () => {
     posts: [
       { id: "x", geplaatstOp: "2026-10-27T08:00:00Z" },
       { id: "y", geplaatstOp: "2026-10-27T12:00:00Z" },
+      { id: "w", geplaatstOp: "2026-10-27T14:30:00Z" },
     ],
   };
   const { items, toPost } = plan({ posts: [item("z", "2026-10-27T17:00:00Z")], state, config, now });
@@ -110,4 +111,16 @@ test("juridisch nazicht geldt voor alle Genesis-categorieën en voor Genesis-woo
   assert.equal(needsLegalReview({ categorie: "product", tekst: "Verbind je wallet" }, { ...config, offer }), true);
   assert.equal(needsLegalReview({ categorie: "product", tekst: "Gratis scan" }, { ...config, offer }), false);
   assert.equal(needsLegalReview({ categorie: "genesis", tekst: "Tekst" }, { ...config, offer: { ...offer, legalReviewDone: true } }), false);
+});
+
+test("drie posts per dag: om 10:00, 15:00 en 20:00 gaan ze alle drie de deur uit", () => {
+  const at = (h, m) => new Date(Date.UTC(2026, 10, 3, h - 1, m)); // november: Brussel = UTC+1
+  const posts = [10, 15, 20].map((h, i) => item(`p${i}`, at(h, 0).toISOString()));
+  const state = { posts: [] };
+  for (const h of [10, 15, 20]) {
+    const { toPost } = plan({ posts, state, config, now: at(h, 17) });
+    assert.deepEqual(toPost.map((p) => p.id), [`p${[10, 15, 20].indexOf(h)}`], `om ${h}:17`);
+    state.posts.push({ id: toPost[0].id, geplaatstOp: at(h, 17).toISOString() });
+  }
+  assert.equal(config.schedule.maxPostsPerDay, 3);
 });

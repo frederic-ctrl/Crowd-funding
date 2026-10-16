@@ -22,6 +22,7 @@
 #   De goedkeuring is gekoppeld aan de exacte tekst: pas je de tekst nadien aan, dan vervalt ze.
 # - Lengte: max 280 tekens, een link telt als 23. Een post met link kost $0.20, zonder link $0.015.
 # - Engelse posts staan om 15:00 (Brussel): dan lezen Europa en de Amerikaanse oostkust allebei mee.
+#   De dagelijkse routine voegt elke dag drie Engelse posts toe, om 10:00, 15:00 en 20:00 (max 3 per dag).
 
 posts:
   - id: 2026-10-27-free-scan

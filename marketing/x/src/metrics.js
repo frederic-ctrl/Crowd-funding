@@ -15,3 +15,30 @@ export async function fetchWaitlistCount(env = process.env, fetchImpl = fetch) {
   const total = Number(res.headers.get("content-range")?.split("/")[1]);
   return Number.isFinite(total) ? total : null;
 }
+
+/** Haalt de stand van Genesis op bij de site (dezelfde cijfers als op /transparantie). */
+export async function fetchGenesisState(site, fetchImpl = fetch) {
+  const res = await fetchImpl(`${site.replace(/\/+$/, "")}/api/genesis?lang=en`, { headers: { accept: "application/json" } });
+  if (!res.ok) throw new Error(`De site antwoordde ${res.status} bij het ophalen van de stand van Genesis.`);
+  return res.json();
+}
+
+/**
+ * Zet de stand van Genesis om naar de velden van data/cijfers.json. Enkel echte verkoop (mainnet)
+ * telt: op het testnet zijn het demo-aankopen, die tellen niet als passes of supporters.
+ */
+export function applyGenesisState(data, state, today) {
+  const real = state.netwerk === "mainnet-beta";
+  const claimed = (id) => {
+    const p = state.producten?.[id];
+    return real && p ? p.verkocht - p.teruggegeven : 0;
+  };
+  return {
+    ...data,
+    bijgewerkt: today,
+    passesGeclaimd: claimed("pass"),
+    agencyGeclaimd: claimed("agency"),
+    supporters: real ? (state.steun?.wallets ?? 0) : 0,
+    opgehaaldEur: real ? Math.round((state.opgehaaldMicro ?? 0) / 10_000) / 100 : 0,
+  };
+}

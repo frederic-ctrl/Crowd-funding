@@ -33,7 +33,7 @@
     "maxDelayHours": 12,
     "minGapMinutes": 120,
     "maxPostsPerRun": 1,
-    "maxPostsPerDay": 2
+    "maxPostsPerDay": 3
   },
   "pricingUsd": {
     "post": 0.015,

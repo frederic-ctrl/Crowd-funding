@@ -141,9 +141,15 @@ Het automatisch posten draait enkel vanaf de hoofdbranch (`master`). Merge deze 
 1. **Post schrijven:** open `marketing/x/kalender.yaml` op GitHub (potloodje), voeg een post toe en bewaar. De workflow "Controle" meldt meteen of de post door de controle komt. Lokaal: `npm run x:lint`.
 2. **Goedkeuren:** Actions > **X: post goedkeuren** > Run workflow > id invullen > goedkeuren. De goedkeuring is gekoppeld aan de exacte tekst: pas je de tekst nadien aan, dan vervalt ze.
 3. **Planning bekijken:** lokaal `npm run x:plan`, of de logs van "X: automatisch posten" (elke run toont wat klaar is en waarom iets wacht).
-4. **Elke week:** werk `marketing/x/data/cijfers.json` bij en keur het sjabloon `transparantie-wekelijks` één keer goed.
+4. **Elke week:** `node marketing/x/src/cli.js cijfers` haalt de stand van Genesis van de site en werkt `marketing/x/data/cijfers.json` bij (demo-aankopen op het testnet tellen niet mee). Vul zelf `wekelijkseGebruikers` aan en keur het sjabloon `transparantie-wekelijks` één keer goed.
 
-Er wordt enkel gepost tussen 08:00 en 21:00 (Brusselse tijd), met minstens 2 uur tussen twee posts en max 2 posts per dag. `lint` en `plan` tonen per post de taal (`en` of `nl`). Elke geplaatste post komt met link en tijdstip in `marketing/x/state/geplaatst.json`.
+Er wordt enkel gepost tussen 08:00 en 21:00 (Brusselse tijd), met minstens 2 uur tussen twee posts en max 3 posts per dag. `lint` en `plan` tonen per post de taal (`en` of `nl`). Elke geplaatste post komt met link en tijdstip in `marketing/x/state/geplaatst.json`.
+
+### Dagelijkse routine (Claude)
+
+Elke ochtend om 06:59 (Brussel) start een Claude-routine een nieuwe sessie op deze repository. Die schrijft drie Engelse posts voor die dag (10:00, 15:00 en 20:00), gebruikt een conceptpost die al op die dag staat, vermijdt herhaling met `state/geplaatst.json`, laat `lint` slagen, keurt de posts goed als `claude-routine` en zet ze op `master`. De workflow "X: automatisch posten" plaatst ze daarna op het juiste uur. Posts over Genesis blijven wachten zolang `offer.legalReviewDone` niet `true` is; productposts gaan meteen.
+
+De routine stopzetten of aanpassen: claude.ai > Code > Routines, "Genesis X-posts".
 
 ### Noodstop
 

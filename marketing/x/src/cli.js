@@ -5,14 +5,16 @@
 //   post [--nu <tijdstip>]    plaats wat nu klaar is (droogtest tenzij X_POSTING_ENABLED=true)
 //   approve <id> --door <naam>  keur een post of sjabloon goed (gekoppeld aan de exacte tekst)
 //   revoke <id>               trek een goedkeuring in
+//   cijfers                   werk data/cijfers.json bij met de stand van Genesis op de site
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadCalendar, saveCalendar, reviewCalendar, materializeTemplates, approve, revoke } from "./calendar.js";
 import { plan, STATE } from "./planner.js";
 import { createXClient, publish } from "./poster.js";
-import { fetchWaitlistCount } from "./metrics.js";
+import { fetchWaitlistCount, fetchGenesisState, applyGenesisState } from "./metrics.js";
 import { weightedLength, MAX_WEIGHTED_LENGTH } from "./text.js";
+import { localDateKey } from "./time.js";
 import { hasErrors, saleLive, defaultLang } from "./compliance.js";
 
 const BASE = process.env.X_PROMO_DIR || fileURLToPath(new URL("..", import.meta.url));
@@ -174,12 +176,22 @@ function cmdRevoke(args) {
   return 0;
 }
 
+async function cmdCijfers() {
+  const config = readJson(PATHS.config);
+  const state = await fetchGenesisState(config.links.site);
+  const data = applyGenesisState(readJson(PATHS.data, {}), state, localDateKey(new Date(), config.timezone));
+  writeFileSync(PATHS.data, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  const note = state.netwerk === "mainnet-beta" ? "" : ` (netwerk ${state.netwerk}: demo-aankopen tellen niet mee)`;
+  console.log(`Cijfers bijgewerkt${note}: ${data.passesGeclaimd} passes, ${data.agencyGeclaimd} agency, ${data.supporters} supporters, €${data.opgehaaldEur}.`);
+  return 0;
+}
+
 const [command, ...rest] = process.argv.slice(2);
-const commands = { lint: cmdLint, plan: cmdPlan, post: cmdPost, approve: cmdApprove, revoke: cmdRevoke };
+const commands = { lint: cmdLint, plan: cmdPlan, post: cmdPost, approve: cmdApprove, revoke: cmdRevoke, cijfers: cmdCijfers };
 
 try {
   if (!commands[command]) {
-    console.log("Gebruik: cli.js <lint|plan|post|approve|revoke> [opties]");
+    console.log("Gebruik: cli.js <lint|plan|post|approve|revoke|cijfers> [opties]");
     process.exit(2);
   }
   process.exitCode = await commands[command](rest);
