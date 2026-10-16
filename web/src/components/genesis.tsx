@@ -79,7 +79,7 @@ export function PassBack({ variant }: { variant: PassVariant }) {
       </div>
       <div className="pass-bottom">
         <div>{t.fine}</div>
-        <div>community.marketingscan.be</div>
+        <div>funding.marketingscan.be</div>
       </div>
     </div>
   );

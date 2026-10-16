@@ -22,7 +22,7 @@ const config = {
     legalReviewDone: false,
     required: { en: "Not an investment", nl: "Geen investering" },
     noticeWhenNotLive: { en: "Not on sale yet", nl: "Nog geen verkoop" },
-    voorwaardenUrl: "https://community.marketingscan.be/voorwaarden",
+    voorwaardenUrl: "https://funding.marketingscan.be/voorwaarden",
   },
   links: { allowedDomains: ["marketingscan.be", "explorer.solana.com"] },
   maxHashtags: 2,
@@ -215,7 +215,7 @@ test("de demo op het testnet uitleggen is geen koopoproep", () => {
 });
 
 test("categorie verkoop: geblokkeerd tot verkoopActief en legalReviewDone allebei true zijn", () => {
-  const tekst = "Koop nu je Genesis Pass. Geen investering. https://community.marketingscan.be/voorwaarden";
+  const tekst = "Koop nu je Genesis Pass. Geen investering. https://funding.marketingscan.be/voorwaarden";
   for (const offer of [{}, { verkoopActief: true }, { legalReviewDone: true }]) {
     const cfg = withOffer(offer);
     assert.equal(saleLive(cfg), false);
@@ -512,7 +512,7 @@ test("Engels: de demo uitleggen en de scan aanbieden is geen koopoproep", () => 
 });
 
 test("Engels live: verkooppost met disclaimer en voorwaarden gaat door, enkel in categorie verkoop", () => {
-  const tekst = "Claim your Genesis Pass. Not an investment. https://community.marketingscan.be/voorwaarden?lang=en";
+  const tekst = "Claim your Genesis Pass. Not an investment. https://funding.marketingscan.be/voorwaarden?lang=en";
   assert.ok(rules(checkPost({ categorie: "verkoop", tekst }, { ...en, offer: { ...en.offer, verkoopActief: true } })).includes("verkoop-gesloten"));
   assert.equal(hasErrors(checkPost({ categorie: "verkoop", tekst }, enLive)), false);
   assert.ok(rules(checkPost({ categorie: "genesis", tekst }, enLive)).includes("koopoproep"));

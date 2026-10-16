@@ -240,7 +240,7 @@ export default function Claim() {
   }
 
   if (phase === "done" && result) {
-    const site = company.communitySite ?? "https://community.marketingscan.be";
+    const site = company.communitySite ?? "https://funding.marketingscan.be";
     const text = result.choice === "steun" ? t.shareSupport : t.shareText(result.label);
     const share = `https://x.com/intent/post?text=${encodeURIComponent(`${text}${isTestnet ? " (devnet demo)" : ""}`)}&url=${encodeURIComponent(`${site}/genesis?lang=${lang}`)}`;
     return (

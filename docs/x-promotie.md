@@ -84,14 +84,14 @@ De controles vangen de klassieke fouten op. Ze vervangen geen juridisch nazicht.
 | `defaultLang` | `"en"` | Taal van elke post zonder `lang`: `en` of `nl`. |
 | `offer.required` | `{ "en": "Not an investment", "nl": "Geen investering" }` | Verplichte vermelding in elke Genesis-post, per taal. |
 | `offer.noticeWhenNotLive` | `{ "en": "Not on sale yet", "nl": "Nog geen verkoop" }` | Verplichte vermelding zolang de verkoop niet live is, per taal. |
-| `offer.voorwaardenUrl` | `https://community.marketingscan.be/voorwaarden` | Link voor `{voorwaarden}`, verplicht in verkoopposts. |
+| `offer.voorwaardenUrl` | `https://funding.marketingscan.be/voorwaarden` | Link voor `{voorwaarden}`, verplicht in verkoopposts. |
 | `paused` | `false` | `true` zet alles in droogtest. |
 | `links.site`, `links.scan` | | Basisadressen. `{genesis}` en `{transparantie}` volgen uit `links.site`. |
 | `links.allowedDomains` | | Domeinen waarnaar een post mag linken. |
 
 De oude vorm met een gewone tekst (`"required": "Geen investering"`) werkt nog: die tekst geldt dan voor de Nederlandse posts, en de Engelse posts gebruiken de vaste standaardteksten "Not an investment" en "Not on sale yet". Ontbreekt een taal of een sleutel, dan gelden ook die standaardteksten: een vergeten sleutel schakelt nooit een vermelding uit.
 
-Placeholders in de kalender: `{site}`, `{scan}`, `{genesis}` (= `{site}/genesis`), `{transparantie}` (= `{site}/transparantie`) en `{voorwaarden}`. Alle behalve `{scan}` krijgen `?lang=` in de taal van de post, bv. `https://community.marketingscan.be/genesis?lang=en`.
+Placeholders in de kalender: `{site}`, `{scan}`, `{genesis}` (= `{site}/genesis`), `{transparantie}` (= `{site}/transparantie`) en `{voorwaarden}`. Alle behalve `{scan}` krijgen `?lang=` in de taal van de post, bv. `https://funding.marketingscan.be/genesis?lang=en`.
 
 ## Wekelijkse transparantie-update
 

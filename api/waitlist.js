@@ -1,4 +1,4 @@
-// Wachtlijst van de community-ronde: bewaart een e-mailadres met toestemming in Supabase.
+// Wachtlijst van Marketing Scan Genesis: bewaart een e-mailadres met toestemming in Supabase.
 // Draait als Vercel Function (Web-standaard Request/Response). Zonder SUPABASE_URL en
 // SUPABASE_SECRET_KEY antwoordt de functie 503, zodat de site toont dat de lijst nog niet actief is.
 

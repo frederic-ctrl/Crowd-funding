@@ -2,8 +2,8 @@
   "name": "Marketing Scan Genesis Agency",
   "symbol": "MSGENA",
   "description": "Genesis Agency: levenslang Marketing Scan Pro voor tot 10 websites. Genummerd, soulbound (niet overdraagbaar). Een abonnement, geen investering.",
-  "image": "https://community.marketingscan.be/token/agency.png",
-  "external_url": "https://community.marketingscan.be/genesis?product=agency",
+  "image": "https://funding.marketingscan.be/token/agency.png",
+  "external_url": "https://funding.marketingscan.be/genesis?product=agency",
   "attributes": [
     { "trait_type": "Product", "value": "Genesis Agency" },
     { "trait_type": "Abonnement", "value": "Marketing Scan Pro, levenslang" },

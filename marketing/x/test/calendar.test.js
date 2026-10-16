@@ -41,7 +41,7 @@ test("de meegeleverde kalender: alles concept, Genesis-posts met beide vermeldin
     assert.doesNotMatch(r.tekst, /pre-?sale/i, r.id);
     assert.ok((r.tekst.match(/(^|\s)#[a-z]\w*/gi) ?? []).length <= 2, `${r.id}: max 2 hashtags`);
     for (const link of extractLinks(r.tekst)) {
-      if (link.raw.includes("community.marketingscan.be")) assert.ok(link.raw.endsWith(`?lang=${r.lang}`), `${r.id}: ${link.raw}`);
+      if (link.raw.includes("funding.marketingscan.be")) assert.ok(link.raw.endsWith(`?lang=${r.lang}`), `${r.id}: ${link.raw}`);
     }
   }
   const categories = new Set(reviewed.map((r) => r.categorie));
@@ -76,13 +76,13 @@ test("placeholders worden ingevuld vanuit config, links naar de site krijgen ?la
 });
 
 test("?lang komt er enkel bij als de link nog geen query heeft", () => {
-  assert.equal(withLang("https://community.marketingscan.be/genesis", "nl"), "https://community.marketingscan.be/genesis?lang=nl");
-  assert.equal(withLang("https://community.marketingscan.be/genesis?ref=x", "nl"), "https://community.marketingscan.be/genesis?ref=x");
-  assert.equal(withLang("https://community.marketingscan.be/genesis?lang=en", "nl"), "https://community.marketingscan.be/genesis?lang=en");
-  assert.equal(withLang("https://community.marketingscan.be/voorwaarden#refund", "en"), "https://community.marketingscan.be/voorwaarden?lang=en#refund");
+  assert.equal(withLang("https://funding.marketingscan.be/genesis", "nl"), "https://funding.marketingscan.be/genesis?lang=nl");
+  assert.equal(withLang("https://funding.marketingscan.be/genesis?ref=x", "nl"), "https://funding.marketingscan.be/genesis?ref=x");
+  assert.equal(withLang("https://funding.marketingscan.be/genesis?lang=en", "nl"), "https://funding.marketingscan.be/genesis?lang=en");
+  assert.equal(withLang("https://funding.marketingscan.be/voorwaarden#refund", "en"), "https://funding.marketingscan.be/voorwaarden?lang=en#refund");
   assert.equal(withLang("", "en"), "");
-  const custom = { ...config, links: { ...config.links, genesis: "https://community.marketingscan.be/genesis?utm_source=x" } };
-  assert.equal(renderText("{genesis}", custom), "https://community.marketingscan.be/genesis?utm_source=x");
+  const custom = { ...config, links: { ...config.links, genesis: "https://funding.marketingscan.be/genesis?utm_source=x" } };
+  assert.equal(renderText("{genesis}", custom), "https://funding.marketingscan.be/genesis?utm_source=x");
 });
 
 test("een link met ?lang telt nog altijd als 23 tekens", () => {
@@ -193,7 +193,7 @@ test("sjabloon wordt ingevuld met recente Genesis-cijfers", () => {
   assert.ok(current);
   assert.equal(current.moment.toISOString(), "2026-10-26T09:00:00.000Z");
   assert.match(current.tekst, /^Week 44: 42\/250 passes, 3\/25 agency-passes, 17 supporters, €12\.345,50 van €50\.000, 1\.234 wekelijkse gebruikers\. Stand: rechtsvorm bij de boekhouder\.\n/);
-  assert.match(current.tekst, /https:\/\/community\.marketingscan\.be\/transparantie\?lang=nl$/);
+  assert.match(current.tekst, /https:\/\/funding\.marketingscan\.be\/transparantie\?lang=nl$/);
   assert.equal(current.lang, "nl");
   assert.deepEqual(current.issues.filter((i) => i.niveau === "fout"), []);
 });

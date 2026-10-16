@@ -4,7 +4,7 @@ import { handle, validate, supabaseHeaders } from "../api/waitlist.js";
 
 const env = { SUPABASE_URL: "https://abc.supabase.co", SUPABASE_SECRET_KEY: "sb_secret_x" };
 const req = (body, method = "POST") =>
-  new Request("https://community.marketingscan.be/api/waitlist", {
+  new Request("https://funding.marketingscan.be/api/waitlist", {
     method,
     headers: { "content-type": "application/json" },
     body: method === "POST" ? JSON.stringify(body) : undefined,

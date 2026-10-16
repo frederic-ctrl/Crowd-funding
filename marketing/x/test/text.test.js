@@ -12,7 +12,7 @@ test("euroteken en emoji tellen dubbel, zoals op X", () => {
 });
 
 test("een link telt altijd als 23 tekens", () => {
-  assert.equal(weightedLength("Kijk: https://community.marketingscan.be/een/heel/lang/pad"), 6 + 23);
+  assert.equal(weightedLength("Kijk: https://funding.marketingscan.be/een/heel/lang/pad"), 6 + 23);
   assert.equal(weightedLength("www.marketingscan.be"), 23);
 });
 
@@ -24,7 +24,7 @@ test("leestekens na een link horen niet bij de link", () => {
 test("linkherkenning en host", () => {
   assert.equal(hasLink("geen link hier"), false);
   assert.equal(hasLink("ga naar marketingscan.be"), true);
-  assert.equal(linkHost("https://community.marketingscan.be/x"), "community.marketingscan.be");
+  assert.equal(linkHost("https://funding.marketingscan.be/x"), "funding.marketingscan.be");
   assert.equal(linkHost("marketingscan.be"), "marketingscan.be");
 });
 
