@@ -10,11 +10,19 @@ import { fileURLToPath } from "node:url";
 const base = fileURLToPath(new URL("..", import.meta.url));
 const cli = join(base, "src", "cli.js");
 
-function workspace() {
+function workspace({ offer } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "x-promo-"));
   for (const f of ["config.json", "kalender.yaml", "data", "state", "media"]) cpSync(join(base, f), join(dir, f), { recursive: true });
+  if (offer) {
+    const cfgPath = join(dir, "config.json");
+    const cfg = JSON.parse(readFileSync(cfgPath, "utf8"));
+    writeFileSync(cfgPath, JSON.stringify({ ...cfg, offer: { ...cfg.offer, ...offer } }));
+  }
   return dir;
 }
+
+// Deze tests gaan over de vergrendelde toestand, los van wat er nu in config.json staat.
+const LOCKED = { offer: { verkoopActief: false, legalReviewDone: false } };
 
 function run(dir, args, env = {}) {
   const res = spawnSync(process.execPath, [cli, ...args], {
@@ -97,7 +105,7 @@ test("plan toont de kalender met kostenraming", () => {
 });
 
 test("verkooppost: lint faalt tot verkoopActief en legalReviewDone allebei true zijn", () => {
-  const dir = workspace();
+  const dir = workspace(LOCKED);
   try {
     const path = join(dir, "kalender.yaml");
     const verkoop = [
@@ -144,7 +152,7 @@ test("verkooppost: lint faalt tot verkoopActief en legalReviewDone allebei true 
 });
 
 test("goedgekeurde Genesis-post wacht op juridisch nazicht", () => {
-  const dir = workspace();
+  const dir = workspace(LOCKED);
   try {
     const approved = run(dir, ["approve", "2026-10-29-why-genesis", "--door", "test"]);
     assert.equal(approved.code, 0, approved.out);
