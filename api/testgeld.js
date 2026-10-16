@@ -1,8 +1,7 @@
 // POST /api/testgeld  { wallet }
-// Enkel voor de demo op devnet: stuurt 50 test-euro (tEUR, zonder waarde) naar een wallet.
-import { PublicKey } from "@solana/web3.js";
+// Enkel voor de demo op devnet: stuurt 1.000 test-euro (tEUR, zonder waarde) naar een wallet.
 import { sendTestEuro, FaucetError } from "../server/faucet.js";
-import { loadDeployment, loadOffering, connectionFor, loadAuthority, json } from "../server/solana.js";
+import { loadDeployment, loadGenesis, connectionFor, loadAuthority, json, walletFrom } from "../server/solana.js";
 
 export async function handle(request, env = process.env, deps = {}) {
   if (request.method !== "POST") return json(405, { fout: "Gebruik POST." });
@@ -14,13 +13,8 @@ export async function handle(request, env = process.env, deps = {}) {
     return json(400, { fout: "Ongeldige aanvraag." });
   }
 
-  let recipient;
-  try {
-    recipient = new PublicKey(String(body?.wallet ?? ""));
-    if (!PublicKey.isOnCurve(recipient.toBytes())) throw new Error("niet ondertekenbaar");
-  } catch {
-    return json(400, { fout: "Ongeldig walletadres." });
-  }
+  const recipient = walletFrom(body?.wallet);
+  if (!recipient) return json(400, { fout: "Ongeldig walletadres." });
 
   const deployment = deps.deployment ?? loadDeployment(env.SOLANA_NETWORK || "devnet");
   if (!deployment) return json(503, { fout: "De demo is nog niet geactiveerd." });
@@ -37,7 +31,7 @@ export async function handle(request, env = process.env, deps = {}) {
     const result = await sendTestEuro({
       connection: deps.connection ?? connectionFor(deployment, env.SOLANA_RPC_URL),
       deployment,
-      offering: deps.offering ?? loadOffering(),
+      cfg: deps.cfg ?? loadGenesis(),
       authority,
       recipient,
     });

@@ -3,20 +3,17 @@
   "timezone": "Europe/Brussels",
   "paused": false,
   "offer": {
-    "status": "pre-launch",
+    "verkoopActief": false,
     "legalReviewDone": false,
-    "noticeWhenNotLive": "Nog geen aanbod",
-    "riskShort": "Investeren houdt risico's in",
-    "riskLive": "Je kan je volledige inleg verliezen",
-    "documentsUrl": "",
-    "deMinimisNotice": ""
+    "required": "Geen investering",
+    "noticeWhenNotLive": "Nog geen verkoop",
+    "voorwaardenUrl": "https://community.marketingscan.be/voorwaarden"
   },
   "links": {
     "site": "https://community.marketingscan.be",
     "scan": "https://www.marketingscan.be",
     "allowedDomains": [
       "marketingscan.be",
-      "fsma.be",
       "explorer.solana.com",
       "solscan.io"
     ]

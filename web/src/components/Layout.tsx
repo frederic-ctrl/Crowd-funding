@@ -6,8 +6,8 @@ import { AccountButton } from "./Wallet";
 
 const NAV = [
   { to: "/", label: "Overzicht", end: true },
-  { to: "/investeren", label: "Investeren" },
-  { to: "/portefeuille", label: "Mijn portefeuille" },
+  { to: "/genesis", label: "Genesis Pass" },
+  { to: "/mijn-pass", label: "Mijn pass" },
   { to: "/transparantie", label: "Transparantie" },
 ];
 
@@ -27,10 +27,10 @@ export function Layout({ children }: { children: ReactNode }) {
       <header className="topbar">
         <div className="container">
           <div className="topbar-inner">
-            <Link className="brand" to="/" aria-label="Marketing Scan community-ronde, overzicht">
+            <Link className="brand" to="/" aria-label="Marketing Scan Genesis, overzicht">
               <LogoMark />
               <span className="brand-name">Marketing Scan</span>
-              <span className="brand-sub">Community-ronde</span>
+              <span className="brand-sub">Genesis</span>
             </Link>
             <nav className="topnav" aria-label="Hoofdmenu">
               {NAV.map((n) => (
@@ -63,27 +63,27 @@ function Footer() {
           <p className="footer-name"><span className="dot" aria-hidden="true" />Marketing Scan</p>
           <p>
             {isTestnet
-              ? "Dit is een demo op het Solana-testnet. De tokens en de test-euro hebben geen waarde. Er is nog geen aanbod: de echte ronde start pas na de oprichting van de vennootschap en de publicatie van de documenten."
-              : "Investeren houdt risico's in: je kan je volledige inleg verliezen. Lees de documenten voor je instapt."}
+              ? "Dit is een demo op het Solana-testnet. De passes en de test-euro hebben geen waarde. Nog geen verkoop: de echte verkoop start pas als de juridische vorm in orde is."
+              : "Marketing Scan Genesis is een voorverkoop van een levenslang abonnement op Marketing Scan Pro. Geen investering: je pass is niet overdraagbaar en levert niets op."}
           </p>
         </div>
-        <nav className="footer-links" aria-label="Community-ronde">
-          <strong>Community-ronde</strong>
-          <Link to="/investeren">Investeren</Link>
-          <Link to="/portefeuille">Mijn portefeuille</Link>
+        <nav className="footer-links" aria-label="Genesis">
+          <strong>Genesis</strong>
+          <Link to="/genesis">Genesis Pass</Link>
+          <Link to="/mijn-pass">Mijn pass</Link>
           <Link to="/transparantie">Transparantie</Link>
         </nav>
         <nav className="footer-links" aria-label="Meer">
           <strong>Meer</strong>
           <a href={company.website ?? "https://www.marketingscan.be"}>Gratis marketingscan</a>
+          <Link to="/voorwaarden">Voorwaarden</Link>
           <Link to="/privacy">Privacy</Link>
-          <Link to="/#risicos">Risico's</Link>
         </nav>
         <p className="footer-legal">
           © 2026 {company.merk}.{" "}
           {company.vennootschap
             ? `${company.vennootschap}, ${company.adres}, ondernemingsnummer ${company.ondernemingsnummer}.`
-            : "De vennootschapsgegevens worden gepubliceerd vóór de start van de echte ronde."}
+            : "De bedrijfsgegevens worden gepubliceerd vóór de start van de verkoop."}
         </p>
       </div>
     </footer>

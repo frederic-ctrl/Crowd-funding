@@ -2,28 +2,48 @@
 <html lang="nl-BE">
 <head>
 <meta charset="utf-8">
-<title>OG community-ronde</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
+<title>OG Genesis</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap">
 <style>
-  /* 1200 x 630, in de stijl van de bestaande Marketing Scan-deelafbeelding */
+  /* 1200 x 630: de deelafbeelding van Marketing Scan Genesis voor X en andere sociale media */
   html, body { margin: 0; }
-  body { width: 1200px; height: 630px; background: #f0ebe6; color: #111111; font-family: "Instrument Sans", system-ui, sans-serif; }
-  .card { box-sizing: border-box; width: 1200px; height: 630px; padding: 72px 80px 64px; display: flex; flex-direction: column; }
-  .top { display: flex; align-items: center; gap: 22px; font-size: 34px; letter-spacing: -0.01em; }
-  .pill { font-size: 24px; background: #c9e4a6; border: 2.5px solid #111111; border-radius: 999px; padding: 6px 22px; }
-  h1 { margin: 110px 0 0; font-size: 76px; font-weight: 400; line-height: 1.08; letter-spacing: -0.02em; max-width: 1000px; }
-  .sub { margin-top: 30px; font-size: 30px; color: #6f6a66; }
-  .bottom { margin-top: auto; display: flex; align-items: center; gap: 20px; font-size: 26px; }
-  .dot { width: 26px; height: 26px; border-radius: 50%; background: #f5693c; }
-  .risk { margin-left: auto; font-size: 20px; color: #6f6a66; }
+  body { width: 1200px; height: 630px; background: #0b1024; color: #f1f3fb; font-family: "Instrument Sans", system-ui, sans-serif; overflow: hidden; }
+  .wrap { box-sizing: border-box; width: 1200px; height: 630px; padding: 64px 72px; display: grid; grid-template-columns: 1fr 470px; gap: 56px; align-items: center;
+    background: radial-gradient(700px 420px at 92% 10%, rgba(47, 91, 234, 0.38), transparent 60%), linear-gradient(180deg, #0b1024, #141b34); }
+  .copy { display: flex; flex-direction: column; height: 100%; }
+  .top { display: flex; align-items: center; gap: 18px; font-size: 28px; font-weight: 600; }
+  .pill { font-size: 20px; font-weight: 500; background: #c9e4a6; color: #111; border: 2px solid #111; border-radius: 999px; padding: 4px 18px; }
+  h1 { margin: 64px 0 0; font-family: "Literata", Georgia, serif; font-size: 64px; font-weight: 400; line-height: 1.08; letter-spacing: -0.02em; }
+  h1 em { font-style: italic; color: #a9bcf6; }
+  .sub { margin-top: 26px; font-size: 26px; color: #a6aecb; }
+  .bottom { margin-top: auto; display: flex; align-items: center; gap: 16px; font-size: 22px; color: #a6aecb; white-space: nowrap; }
+  .dot { width: 20px; height: 20px; border-radius: 50%; background: #f5693c; }
+  .card { position: relative; overflow: hidden; height: 330px; border-radius: 30px; padding: 30px; box-sizing: border-box; display: grid; grid-template-rows: auto 1fr auto auto; gap: 6px;
+    background: linear-gradient(150deg, #19234a 0%, #0b1024 55%, #070b1a 100%); border: 1.5px solid rgba(241, 243, 251, 0.16);
+    box-shadow: 0 50px 90px -40px rgba(0, 0, 0, 0.9); transform: rotate(-3deg); }
+  .glow { position: absolute; top: -120px; right: -90px; width: 360px; height: 360px; border-radius: 50%; background: radial-gradient(circle, rgba(125, 153, 255, 0.5), transparent 65%); }
+  .ctop { position: relative; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 20px; }
+  .chip { font-size: 14px; letter-spacing: 0.18em; font-weight: 700; padding: 5px 12px; border-radius: 999px; background: #7d99ff; color: #0b1024; }
+  .num { position: relative; align-self: end; font-family: "Literata", Georgia, serif; font-size: 112px; line-height: 0.95; letter-spacing: -0.02em; }
+  .name { position: relative; font-size: 24px; font-weight: 600; color: #7d99ff; }
+  .meta { position: relative; display: flex; justify-content: space-between; font-size: 16px; color: #a6aecb; border-top: 1px solid rgba(241, 243, 251, 0.16); padding-top: 12px; margin-top: 8px; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <div class="top"><span>Marketing Scan</span><span class="pill">community-ronde</span></div>
-    <h1>Word mede-eigenaar van Marketing Scan.</h1>
-    <p class="sub">Vanaf €1 · je aandelen in je eigen wallet · alles live controleerbaar</p>
-    <div class="bottom"><span class="dot"></span><span>community.marketingscan.be</span><span class="risk">Testnet-demo. Investeren houdt risico's in.</span></div>
+  <div class="wrap">
+    <div class="copy">
+      <div class="top"><span>Marketing Scan</span><span class="pill">Genesis</span></div>
+      <h1>Levenslang Pro. <em>Eén keer betalen.</em></h1>
+      <p class="sub">250 genummerde passes · vanaf €99 · soulbound op Solana · 14 dagen geld terug</p>
+      <div class="bottom"><span class="dot"></span><span>community.marketingscan.be · Geen investering</span></div>
+    </div>
+    <div class="card">
+      <div class="glow"></div>
+      <div class="ctop"><span>Marketing Scan</span><span class="chip">GENESIS</span></div>
+      <div class="num">#001</div>
+      <div class="name">Genesis Pass</div>
+      <div class="meta"><span>Levenslang Pro</span><span>1 website</span><span>Niet overdraagbaar</span></div>
+    </div>
   </div>
 </body>
 </html>

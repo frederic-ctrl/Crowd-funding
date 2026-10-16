@@ -1,145 +1,33 @@
-// Alles wat de site toont over aandelen en geld komt rechtstreeks van de blockchain.
-import { Connection, PublicKey, type ParsedTransactionWithMeta } from "@solana/web3.js";
-import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, unpackAccount, unpackMint } from "@solana/spl-token";
-import type { Deployment } from "../config";
+// Wat de site rechtstreeks van de blockchain leest, zonder tussenkomst van onze server.
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
+import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, getNonTransferable, unpackAccount, unpackMint } from "@solana/spl-token";
+import type { Deployment, Genesis } from "../config";
+import { fetchEvents, summarize } from "../../../shared/history.js";
+import type { GenesisEvent, GenesisState } from "./api";
 
-export type TokenAccountState = { address: string; amount: bigint; frozen: boolean; owner: string } | null;
-
-export type OfferingState = {
-  supply: bigint;
-  mintAuthority: string | null;
-  freezeAuthority: string | null;
-  founder: TokenAccountState;
-  vaults: Record<string, TokenAccountState>;
-  escrowMicro: bigint;
-  investors: number | null;
-  fetchedAt: number;
-};
-
-export type Purchase = {
-  signature: string;
-  time: number | null;
-  buyer: string;
-  tokens: number;
-  paidMicro: number;
-};
-
-export type Holding = {
-  owner: string;
-  shareAccount: string;
-  tokens: bigint;
-  frozen: boolean;
-  exists: boolean;
-  paymentMicro: bigint;
-};
-
-function readAccount(address: PublicKey, info: Parameters<typeof unpackAccount>[1] | null): TokenAccountState {
-  if (!info) return null;
-  const acc = unpackAccount(address, info, TOKEN_2022_PROGRAM_ID);
-  return { address: address.toBase58(), amount: acc.amount, frozen: acc.isFrozen, owner: acc.owner.toBase58() };
+/** Saldo van de betaalmunt (tEUR of EURC) in de wallet. */
+export async function fetchPaymentBalance(connection: Connection, dep: Deployment, owner: PublicKey): Promise<number> {
+  const program = new PublicKey(dep.paymentProgram);
+  const account = getAssociatedTokenAddressSync(new PublicKey(dep.paymentMint), owner, false, program);
+  const info = await connection.getAccountInfo(account, "confirmed");
+  return info ? Number(unpackAccount(account, info, program).amount) : 0;
 }
 
-export async function fetchOfferingState(connection: Connection, dep: Deployment): Promise<OfferingState> {
-  const roundIds = Object.keys(dep.vaults);
-  const keys = [dep.tokenMint, dep.founderTokenAccount, dep.escrow, ...roundIds.map((id) => dep.vaults[id])].map((k) => new PublicKey(k));
-  const infos = await connection.getMultipleAccountsInfo(keys, "confirmed");
-  if (!infos[0]) throw new Error("Token niet gevonden op dit netwerk.");
-  const mint = unpackMint(keys[0], infos[0], TOKEN_2022_PROGRAM_ID);
-  const escrow = readAccount(keys[2], infos[2]);
-  const vaults: Record<string, TokenAccountState> = {};
-  roundIds.forEach((id, i) => (vaults[id] = readAccount(keys[3 + i], infos[3 + i])));
-
-  return {
-    supply: mint.supply,
-    mintAuthority: mint.mintAuthority?.toBase58() ?? null,
-    freezeAuthority: mint.freezeAuthority?.toBase58() ?? null,
-    founder: readAccount(keys[1], infos[1]),
-    vaults,
-    escrowMicro: escrow?.amount ?? 0n,
-    investors: await countInvestors(connection, dep).catch(() => null),
-    fetchedAt: Date.now(),
-  };
+/** Staat deze pass (nog) in de wallet? Rechtstreeks van de keten. */
+export async function holdsPass(connection: Connection, owner: PublicKey, mint: string): Promise<boolean> {
+  const account = getAssociatedTokenAddressSync(new PublicKey(mint), owner, false, TOKEN_2022_PROGRAM_ID);
+  const info = await connection.getAccountInfo(account, "confirmed");
+  return info ? unpackAccount(account, info, TOKEN_2022_PROGRAM_ID).amount === 1n : false;
 }
 
-/** Aantal wallets met aandelen, zonder de oprichter, de kluis en de reserve. */
-async function countInvestors(connection: Connection, dep: Deployment): Promise<number> {
-  const accounts = await connection.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
-    commitment: "confirmed",
-    filters: [{ memcmp: { offset: 0, bytes: dep.tokenMint } }],
-    dataSlice: { offset: 32, length: 40 },
-  });
-  const excluded = new Set([dep.founderWallet, dep.authority, dep.reserveOwner]);
-  let n = 0;
-  for (const { account } of accounts) {
-    const data = account.data;
-    const owner = new PublicKey(data.subarray(0, 32)).toBase58();
-    const amount = new DataView(data.buffer, data.byteOffset + 32, 8).getBigUint64(0, true);
-    if (amount > 0n && !excluded.has(owner)) n += 1;
-  }
-  return n;
+/** Leest de volledige geschiedenis van de kas in de browser en rekent alles zelf na. */
+export async function verifyInBrowser(connection: Connection, dep: Deployment, cfg: Genesis): Promise<Omit<GenesisState, "netwerk" | "kasMicro" | "gebeurtenissen" | "bijgewerkt">> {
+  const events = (await fetchEvents(connection, dep, cfg, { batch: 20 })) as GenesisEvent[];
+  return summarize(cfg, events) as unknown as Omit<GenesisState, "netwerk" | "kasMicro" | "gebeurtenissen" | "bijgewerkt">;
 }
 
-export async function fetchHolding(connection: Connection, dep: Deployment, owner: PublicKey): Promise<Holding> {
-  const shareAccount = getAssociatedTokenAddressSync(new PublicKey(dep.tokenMint), owner, true, TOKEN_2022_PROGRAM_ID);
-  const paymentAccount = getAssociatedTokenAddressSync(new PublicKey(dep.paymentMint), owner, true, new PublicKey(dep.paymentProgram));
-  const [shareInfo, paymentInfo] = await connection.getMultipleAccountsInfo([shareAccount, paymentAccount], "confirmed");
-  const shares = readAccount(shareAccount, shareInfo);
-  const payment = paymentInfo ? unpackAccount(paymentAccount, paymentInfo, new PublicKey(dep.paymentProgram)) : null;
-  return {
-    owner: owner.toBase58(),
-    shareAccount: shareAccount.toBase58(),
-    tokens: shares?.amount ?? 0n,
-    frozen: shares?.frozen ?? true,
-    exists: Boolean(shares),
-    paymentMicro: payment?.amount ?? 0n,
-  };
-}
-
-function tokenDelta(tx: ParsedTransactionWithMeta, mint: string, predicate: (owner: string) => boolean) {
-  const pre = tx.meta?.preTokenBalances ?? [];
-  const post = tx.meta?.postTokenBalances ?? [];
-  let owner = "";
-  let delta = 0;
-  for (const p of post) {
-    if (p.mint !== mint || !p.owner || !predicate(p.owner)) continue;
-    const before = pre.find((b) => b.accountIndex === p.accountIndex);
-    const d = Number(p.uiTokenAmount.amount) - Number(before?.uiTokenAmount.amount ?? 0);
-    if (d !== 0) {
-      owner = p.owner;
-      delta += d;
-    }
-  }
-  return { owner, delta };
-}
-
-function parsePurchase(tx: ParsedTransactionWithMeta | null, dep: Deployment, signature: string, time: number | null): Purchase | null {
-  if (!tx || tx.meta?.err) return null;
-  const shares = tokenDelta(tx, dep.tokenMint, (o) => o !== dep.authority && o !== dep.reserveOwner);
-  const paid = tokenDelta(tx, dep.paymentMint, (o) => o === dep.authority);
-  if (!shares.owner || shares.delta <= 0 || paid.delta <= 0) return null;
-  return { signature, time, buyer: shares.owner, tokens: shares.delta, paidMicro: paid.delta };
-}
-
-async function purchasesFor(connection: Connection, dep: Deployment, address: PublicKey, limit: number): Promise<Purchase[]> {
-  const sigs = await connection.getSignaturesForAddress(address, { limit }, "confirmed");
-  if (sigs.length === 0) return [];
-  const txs = await connection.getParsedTransactions(
-    sigs.map((s) => s.signature),
-    { maxSupportedTransactionVersion: 0, commitment: "confirmed" },
-  );
-  return txs
-    .map((tx, i) => parsePurchase(tx, dep, sigs[i].signature, sigs[i].blockTime ?? null))
-    .filter((p): p is Purchase => p !== null);
-}
-
-/** Laatste aankopen, gelezen uit de geschiedenis van de escrow-rekening. */
-export function fetchRecentPurchases(connection: Connection, dep: Deployment, limit = 10): Promise<Purchase[]> {
-  return purchasesFor(connection, dep, new PublicKey(dep.escrow), limit);
-}
-
-/** Aankopen van één wallet, gelezen uit de geschiedenis van het aandelenaccount van die wallet. */
-export function fetchPurchasesOf(connection: Connection, dep: Deployment, shareAccount: string, limit = 25): Promise<Purchase[]> {
-  return purchasesFor(connection, dep, new PublicKey(shareAccount), limit);
+export function decodeTransaction(base64: string): Transaction {
+  return Transaction.from(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)));
 }
 
 /** Wacht tot een transactie bevestigd is, zonder websockets (werkt overal, ook achter strikte netwerken). */
@@ -152,5 +40,41 @@ export async function confirmSignature(connection: Connection, signature: string
     if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") return;
     await new Promise((r) => setTimeout(r, 1000));
   }
-  throw new Error("De bevestiging duurt langer dan verwacht. Kijk zo meteen opnieuw in je portefeuille.");
+  throw new Error("De bevestiging duurt langer dan verwacht. Kijk zo meteen opnieuw bij Mijn pass.");
+}
+
+/** Vertaalt fouten van de wallet en het netwerk naar gewone taal. */
+export function explainError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/reject|declin|cancel|denied/i.test(msg)) return "Je hebt het geannuleerd in je wallet. Er is niets gebeurd.";
+  if (/already in use/i.test(msg)) return "Iemand anders was je net voor met dit nummer. Probeer opnieuw: je krijgt het volgende vrije nummer.";
+  if (/blockhash not found|block height exceeded|expired/i.test(msg)) return "De aanvraag is verlopen. Probeer opnieuw.";
+  return msg || "Er ging iets mis. Er is niets afgeschreven.";
+}
+
+export type PassCheck = { checked: number; ok: number; problems: string[] };
+
+/**
+ * Controleert elke verkochte pass rechtstreeks op de keten: voorraad 1 (of 0 als hij teruggegeven
+ * is), geen muntrecht meer, geen bevriesrecht, en niet overdraagbaar.
+ */
+export async function verifyPasses(connection: Connection, passes: { mint: string; teruggegeven?: boolean; label: string }[]): Promise<PassCheck> {
+  const problems: string[] = [];
+  let ok = 0;
+  for (let i = 0; i < passes.length; i += 100) {
+    const slice = passes.slice(i, i + 100);
+    const infos = await connection.getMultipleAccountsInfo(slice.map((p) => new PublicKey(p.mint)), "confirmed");
+    infos.forEach((info, j) => {
+      const p = slice[j];
+      if (!info) return problems.push(`${p.label}: munt niet gevonden`);
+      const mint = unpackMint(new PublicKey(p.mint), info, TOKEN_2022_PROGRAM_ID);
+      const supply = p.teruggegeven ? 0n : 1n;
+      if (mint.supply !== supply) return problems.push(`${p.label}: voorraad ${mint.supply}, verwacht ${supply}`);
+      if (mint.mintAuthority) return problems.push(`${p.label}: muntrecht niet ingetrokken`);
+      if (mint.freezeAuthority) return problems.push(`${p.label}: kan bevroren worden`);
+      if (!getNonTransferable(mint)) return problems.push(`${p.label}: is overdraagbaar`);
+      ok += 1;
+    });
+  }
+  return { checked: passes.length, ok, problems };
 }

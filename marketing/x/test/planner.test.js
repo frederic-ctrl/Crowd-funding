@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { plan, STATE } from "../src/planner.js";
+import { plan, STATE, needsLegalReview } from "../src/planner.js";
 
 const config = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8"));
 
@@ -83,14 +83,14 @@ test("daglimiet", () => {
   assert.equal(items[0].plan, STATE.dagmax);
 });
 
-test("posts over de ronde wachten op juridisch nazicht, productposts niet", () => {
+test("posts over Genesis wachten op juridisch nazicht, productposts niet", () => {
   const now = new Date("2026-10-27T09:15:00Z");
   const posts = [
     item("product", "2026-10-27T09:00:00Z"),
-    item("ronde", "2026-10-27T09:05:00Z", { categorie: "ronde", tekst: "Community-ronde. Nog geen aanbod. Investeren houdt risico's in." }),
+    item("genesis", "2026-10-27T09:05:00Z", { categorie: "genesis", tekst: "De Genesis Pass. Geen investering. Nog geen verkoop." }),
   ];
   const blocked = plan({ posts, state: { posts: [] }, config: { ...config, offer: { ...config.offer, legalReviewDone: false } }, now });
-  assert.equal(byId(blocked.items).ronde, STATE.juridisch);
+  assert.equal(byId(blocked.items).genesis, STATE.juridisch);
   assert.deepEqual(blocked.toPost.map((p) => p.id), ["product"]);
 
   const reviewed = plan({
@@ -99,5 +99,15 @@ test("posts over de ronde wachten op juridisch nazicht, productposts niet", () =
     config: { ...config, offer: { ...config.offer, legalReviewDone: true } },
     now,
   });
-  assert.deepEqual(reviewed.toPost.map((p) => p.id), ["ronde"]);
+  assert.deepEqual(reviewed.toPost.map((p) => p.id), ["genesis"]);
+});
+
+test("juridisch nazicht geldt voor alle Genesis-categorieën en voor Genesis-woorden in elke post", () => {
+  const offer = { ...config.offer, legalReviewDone: false };
+  for (const categorie of ["genesis", "uitleg", "transparantie", "verkoop"]) {
+    assert.equal(needsLegalReview({ categorie, tekst: "Tekst" }, { ...config, offer }), true, categorie);
+  }
+  assert.equal(needsLegalReview({ categorie: "product", tekst: "Verbind je wallet" }, { ...config, offer }), true);
+  assert.equal(needsLegalReview({ categorie: "product", tekst: "Gratis scan" }, { ...config, offer }), false);
+  assert.equal(needsLegalReview({ categorie: "genesis", tekst: "Tekst" }, { ...config, offer: { ...offer, legalReviewDone: true } }), false);
 });

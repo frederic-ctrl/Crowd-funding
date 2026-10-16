@@ -9,10 +9,33 @@ export const STATUSES = ["concept", "goedgekeurd"];
 const WEEKDAYS = ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"];
 const ID_RE = /^[a-z0-9][a-z0-9-]{2,80}$/;
 const MOMENT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)$/;
-const LINK_KEYS = ["site", "scan", "docs"];
-const TEMPLATE_KEYS = ["week", "wachtlijst", "juridisch", "volgende_stap"];
+const LINK_KEYS = ["site", "scan", "genesis", "transparantie", "voorwaarden"];
 // Hoe oud de cijfers voor een sjabloonpost maximaal mogen zijn.
 const MAX_DATA_AGE_DAYS = 8;
+
+// Sjabloonvariabelen en het veld in data/cijfers.json waar ze vandaan komen.
+// `max`: hoger kan niet (zie shared/genesis.json), dus dan is het een tikfout en blijft de post geblokkeerd.
+const METRICS = [
+  { key: "passes", veld: "passesGeclaimd", geheel: true, max: 250 },
+  { key: "agency", veld: "agencyGeclaimd", geheel: true, max: 25 },
+  { key: "supporters", veld: "supporters", geheel: true },
+  { key: "opgehaald", veld: "opgehaaldEur", geheel: false },
+  { key: "gebruikers", veld: "wekelijkseGebruikers", geheel: true },
+  { key: "wachtlijst", veld: "wachtlijst", geheel: true },
+];
+export const TEMPLATE_KEYS = ["week", ...METRICS.map((m) => m.key), "stand"];
+
+// Voorbeeldwaarden om een sjabloon al bij het schrijven en goedkeuren te controleren.
+export const SAMPLE_VARS = {
+  week: 44,
+  passes: "123",
+  agency: "12",
+  supporters: "1.234",
+  opgehaald: "23.456",
+  gebruikers: "1.234",
+  wachtlijst: "1.234",
+  stand: "rechtsvorm bij de boekhouder",
+};
 
 export function loadCalendar(path) {
   const doc = YAML.parseDocument(readFileSync(path, "utf8"));
@@ -27,12 +50,15 @@ export function saveCalendar(path, doc) {
   writeFileSync(path, doc.toString({ lineWidth: 0 }), "utf8");
 }
 
-/** Vult {site}, {scan} en {docs} in uit config, plus eventuele sjabloonvariabelen. */
+/** Vult {site}, {scan}, {genesis}, {transparantie} en {voorwaarden} in uit config, plus eventuele sjabloonvariabelen. */
 export function renderText(text, config, vars = {}) {
+  const site = String(config.links?.site ?? "").replace(/\/+$/, "");
   const links = {
-    site: config.links?.site ?? "",
+    site,
     scan: config.links?.scan ?? "",
-    docs: config.offer?.documentsUrl ?? "",
+    genesis: config.links?.genesis ?? (site ? `${site}/genesis` : ""),
+    transparantie: config.links?.transparantie ?? (site ? `${site}/transparantie` : ""),
+    voorwaarden: config.offer?.voorwaardenUrl ?? "",
   };
   return normalize(
     String(text ?? "").replace(/\{(\w+)\}/g, (all, key) => {
@@ -74,8 +100,8 @@ export function reviewCalendar({ posts, templates }, config) {
     if (!CATEGORIES.includes(entry.categorie)) add("fout", "categorie", `Onbekende categorie "${entry.categorie}".`);
     const allowed = soort === "post" ? LINK_KEYS : [...LINK_KEYS, ...TEMPLATE_KEYS];
     for (const key of unknownPlaceholders(entry.tekst, allowed)) add("fout", "placeholder", `Onbekende placeholder {${key}}.`);
-    if (/\{docs\}/.test(String(entry.tekst)) && !config.offer?.documentsUrl) {
-      add("fout", "placeholder", "{docs} gebruikt, maar offer.documentsUrl is leeg.");
+    if (/\{voorwaarden\}/.test(String(entry.tekst)) && !config.offer?.voorwaardenUrl) {
+      add("fout", "placeholder", "{voorwaarden} gebruikt, maar offer.voorwaardenUrl is leeg.");
     }
     return { issues, add };
   };
@@ -104,17 +130,39 @@ export function reviewCalendar({ posts, templates }, config) {
     const approval = approvalIssue(template, tekst);
     if (approval) add("fout", "goedkeuring", approval);
     // Controleer het sjabloon met voorbeeldwaarden, zodat fouten al bij het schrijven opvallen.
-    const sample = renderText(template.tekst, config, {
-      week: 44,
-      wachtlijst: "1.234",
-      juridisch: "structuur bij de advocaat",
-      volgende_stap: "onafhankelijke waardering",
-    });
+    const sample = renderText(template.tekst, config, SAMPLE_VARS);
     issues.push(...checkPost({ categorie: template.categorie, tekst: sample }, config));
     reviewed.push({ id: template.id, soort: "sjabloon", categorie: template.categorie, status: template.status, moment: null, tekst, issues });
   }
 
   return reviewed;
+}
+
+const nlNumber = (n, decimals = 0) =>
+  new Intl.NumberFormat("nl-BE", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n);
+
+/**
+ * Zet de cijfers uit data/cijfers.json om naar sjabloonvariabelen in Belgische notatie ("1.234", "12.345,50").
+ * Een ontbrekend of onmogelijk cijfer wordt "" met een reden in `problems`, zodat de post geblokkeerd blijft.
+ */
+export function templateVars(data, week) {
+  const vars = { week };
+  const problems = {};
+  for (const m of METRICS) {
+    const raw = data?.[m.veld];
+    vars[m.key] = "";
+    if (raw === undefined || raw === null || raw === "") continue;
+    const n = Number(raw);
+    const valid = typeof raw === "number" && Number.isFinite(n) && n >= 0 && (!m.geheel || Number.isInteger(n)) && (m.max === undefined || n <= m.max);
+    if (!valid) {
+      const range = m.max === undefined ? "0 of meer" : `0 tot ${m.max}`;
+      problems[m.key] = `"${m.veld}" in data/cijfers.json moet een ${m.geheel ? "geheel " : ""}getal zijn van ${range}.`;
+      continue;
+    }
+    vars[m.key] = nlNumber(n, Number.isInteger(n) ? 0 : 2);
+  }
+  vars.stand = typeof data?.stand === "string" ? normalize(data.stand).replace(/[.\s]+$/, "") : "";
+  return { vars, problems };
 }
 
 /**
@@ -144,15 +192,11 @@ export function materializeTemplates(templates, data, config, now, { weeksAhead 
       } else if (moment.getTime() - updated.getTime() > MAX_DATA_AGE_DAYS * 86400000) {
         issues.push({ niveau: "fout", regel: "cijfers", bericht: `De cijfers zijn ouder dan ${MAX_DATA_AGE_DAYS} dagen. Werk data/cijfers.json bij.` });
       }
-      const vars = {
-        week: w.week,
-        wachtlijst: Number.isFinite(data?.wachtlijst) ? new Intl.NumberFormat("nl-BE").format(data.wachtlijst) : "",
-        juridisch: data?.juridisch ?? "",
-        volgende_stap: data?.volgende_stap ?? "",
-      };
+      const { vars, problems } = templateVars(data, w.week);
       for (const key of TEMPLATE_KEYS) {
         if (String(template.tekst).includes(`{${key}}`) && vars[key] === "") {
-          issues.push({ niveau: "fout", regel: "cijfers", bericht: `Waarde voor {${key}} ontbreekt in data/cijfers.json.` });
+          const bericht = problems[key] ?? `Waarde voor {${key}} ontbreekt in data/cijfers.json.`;
+          issues.push({ niveau: "fout", regel: "cijfers", bericht });
         }
       }
       const base = renderText(template.tekst, config);
@@ -186,7 +230,7 @@ export function approve(doc, id, { door, now, config }) {
   const toCheck =
     found.soort === "post"
       ? tekst
-      : renderText(entry.tekst, config, { week: 44, wachtlijst: "1.234", juridisch: "x", volgende_stap: "y" });
+      : renderText(entry.tekst, config, SAMPLE_VARS);
   const errors = checkPost({ categorie: entry.categorie, tekst: toCheck }, config).filter((i) => i.niveau === "fout");
   if (errors.length > 0) {
     throw new Error(`Kan "${id}" niet goedkeuren:\n- ${errors.map((e) => e.bericht).join("\n- ")}`);

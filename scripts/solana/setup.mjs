@@ -1,48 +1,33 @@
 #!/usr/bin/env node
-// Zet de aandelentoken en de verkoop op Solana op (localnet of devnet).
+// Zet Marketing Scan Genesis op Solana op (localnet of devnet).
 //
 // Wat het doet:
-// 1. Maakt (of leest) de serversleutel en de reservesleutel in .keys/<netwerk>/ (nooit committen).
-// 2. Maakt de test-euro (tEUR) aan, een Token-2022-munt met naam en symbool, voor de demo.
-// 3. Maakt de aandelentoken MSCAN aan: Token-2022, 0 decimalen, met naam/symbool/link,
-//    "standaard bevroren" (aandelen zijn niet vrij overdraagbaar) en een aparte herstelsleutel
-//    (permanent delegate) om aandelen van een verloren wallet over te zetten. Die sleutel blijft offline.
-// 4. Munt exact 100.000.000 aandelen: 51.000.000 naar de oprichterswallet (bevroren = lock-up),
-//    9.000.000 naar de verkoopkluis van ronde 1, 40.000.000 naar de reserve van ronde 2 (bevroren).
-// 5. Trekt het muntrecht definitief in: niemand kan er ooit nog aandelen bij maken.
-// 6. Maakt de escrow-rekening voor betalingen en schrijft alle adressen naar shared/deployments/<netwerk>.json.
+// 1. Maakt (of leest) de serversleutel in .keys/<netwerk>/authority.json (nooit committen).
+// 2. Maakt de test-euro (tEUR) aan, een Token-2022-munt zonder waarde, voor de demo.
+//    Op mainnet geef je met --payment-mint de echte euro-stablecoin op (bv. EURC).
+// 3. Maakt de supporter-badge aan: Token-2022, 0 decimalen, NonTransferable (niet door te sturen).
+// 4. Maakt de kas aan (betalingen) en de rekening van de oprichter voor opnames.
+// 5. Schrijft alle adressen naar shared/deployments/<netwerk>.json.
 //
-// Gebruik: node scripts/solana/setup.mjs --network devnet [--founder <adres>] [--rpc <url>] [--force]
+// De passen zelf bestaan nog niet: elke pass wordt pas aangemaakt bij de aankoop, met een eigen
+// munt, een vast nummer en voorraad 1 (zie server/genesis.js).
+//
+// Gebruik: node scripts/solana/setup.mjs --network devnet [--founder <adres>] [--rpc <url>] [--payment-mint <adres>] [--force]
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-  LAMPORTS_PER_SOL,
-  sendAndConfirmTransaction,
-} from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from "@solana/web3.js";
 import {
   TOKEN_2022_PROGRAM_ID,
   ExtensionType,
-  AccountState,
-  AuthorityType,
   TYPE_SIZE,
   LENGTH_SIZE,
   getMintLen,
   getAssociatedTokenAddressSync,
   createInitializeMetadataPointerInstruction,
-  createInitializeDefaultAccountStateInstruction,
-  createInitializePermanentDelegateInstruction,
+  createInitializeNonTransferableMintInstruction,
   createInitializeMintInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
-  createThawAccountInstruction,
-  createFreezeAccountInstruction,
-  createMintToCheckedInstruction,
-  createSetAuthorityInstruction,
 } from "@solana/spl-token";
 import { createInitializeInstruction, createUpdateFieldInstruction, pack } from "@solana/spl-token-metadata";
 
@@ -64,9 +49,9 @@ function loadOrCreateKey(path) {
   return kp;
 }
 
-function explorer(network, rpc, kind, value) {
+function explorer(network, rpc, value) {
   const cluster = network === "localnet" ? `cluster=custom&customUrl=${encodeURIComponent(rpc)}` : `cluster=${network}`;
-  return `https://explorer.solana.com/${kind}/${value}?${cluster}`;
+  return `https://explorer.solana.com/address/${value}?${cluster}`;
 }
 
 async function send(connection, tx, signers, label) {
@@ -75,34 +60,21 @@ async function send(connection, tx, signers, label) {
   return sig;
 }
 
-async function createMintWithMetadata(connection, { payer, decimals, freezeAuthority, defaultFrozen, permanentDelegate, name, symbol, uri, extra }) {
+async function createMintWithMetadata(connection, { payer, decimals, nonTransferable, name, symbol, uri, extra }) {
   const mint = Keypair.generate();
   const extensions = [ExtensionType.MetadataPointer];
-  if (defaultFrozen) extensions.push(ExtensionType.DefaultAccountState);
-  if (permanentDelegate) extensions.push(ExtensionType.PermanentDelegate);
+  if (nonTransferable) extensions.push(ExtensionType.NonTransferable);
   const mintLen = getMintLen(extensions);
   const metadata = { mint: mint.publicKey, name, symbol, uri, additionalMetadata: extra, updateAuthority: payer.publicKey };
-  const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;
-  const lamports = await connection.getMinimumBalanceForRentExemption(mintLen + metadataLen);
+  const lamports = await connection.getMinimumBalanceForRentExemption(mintLen + TYPE_SIZE + LENGTH_SIZE + pack(metadata).length);
 
   const create = new Transaction().add(
-    SystemProgram.createAccount({
-      fromPubkey: payer.publicKey,
-      newAccountPubkey: mint.publicKey,
-      space: mintLen,
-      lamports,
-      programId: TOKEN_2022_PROGRAM_ID,
-    }),
+    SystemProgram.createAccount({ fromPubkey: payer.publicKey, newAccountPubkey: mint.publicKey, space: mintLen, lamports, programId: TOKEN_2022_PROGRAM_ID }),
     createInitializeMetadataPointerInstruction(mint.publicKey, payer.publicKey, mint.publicKey, TOKEN_2022_PROGRAM_ID),
   );
-  if (defaultFrozen) {
-    create.add(createInitializeDefaultAccountStateInstruction(mint.publicKey, AccountState.Frozen, TOKEN_2022_PROGRAM_ID));
-  }
-  if (permanentDelegate) {
-    create.add(createInitializePermanentDelegateInstruction(mint.publicKey, permanentDelegate, TOKEN_2022_PROGRAM_ID));
-  }
+  if (nonTransferable) create.add(createInitializeNonTransferableMintInstruction(mint.publicKey, TOKEN_2022_PROGRAM_ID));
   create.add(
-    createInitializeMintInstruction(mint.publicKey, decimals, payer.publicKey, freezeAuthority, TOKEN_2022_PROGRAM_ID),
+    createInitializeMintInstruction(mint.publicKey, decimals, payer.publicKey, null, TOKEN_2022_PROGRAM_ID),
     createInitializeInstruction({
       programId: TOKEN_2022_PROGRAM_ID,
       mint: mint.publicKey,
@@ -118,38 +90,24 @@ async function createMintWithMetadata(connection, { payer, decimals, freezeAutho
 
   if (extra.length > 0) {
     const fields = new Transaction().add(
-      ...extra.map(([field, value]) =>
-        createUpdateFieldInstruction({ programId: TOKEN_2022_PROGRAM_ID, metadata: mint.publicKey, updateAuthority: payer.publicKey, field, value }),
-      ),
+      ...extra.map(([field, value]) => createUpdateFieldInstruction({ programId: TOKEN_2022_PROGRAM_ID, metadata: mint.publicKey, updateAuthority: payer.publicKey, field, value })),
     );
     await send(connection, fields, [payer], `${symbol} extra gegevens`);
   }
   return { mint: mint.publicKey, signature };
 }
 
-async function allocate(connection, { payer, mint, owner, amount, keepFrozen, label }) {
-  const ata = getAssociatedTokenAddressSync(mint, owner, true, TOKEN_2022_PROGRAM_ID);
-  const tx = new Transaction().add(
-    createAssociatedTokenAccountIdempotentInstruction(payer.publicKey, ata, owner, mint, TOKEN_2022_PROGRAM_ID),
-    createThawAccountInstruction(ata, mint, payer.publicKey, [], TOKEN_2022_PROGRAM_ID),
-    createMintToCheckedInstruction(mint, ata, payer.publicKey, BigInt(amount), 0, [], TOKEN_2022_PROGRAM_ID),
-  );
-  if (keepFrozen) tx.add(createFreezeAccountInstruction(ata, mint, payer.publicKey, [], TOKEN_2022_PROGRAM_ID));
-  const signature = await send(connection, tx, [payer], `${label}: ${amount.toLocaleString("nl-BE")} MSCAN${keepFrozen ? " (vergrendeld)" : ""}`);
-  return { account: ata, signature };
-}
-
 async function main() {
   const network = arg("network", "devnet");
   if (network === "mainnet-beta" && !process.argv.includes("--ik-weet-wat-ik-doe")) {
-    throw new Error("Mainnet pas na juridisch groen licht. Gebruik localnet of devnet.");
+    throw new Error("Mainnet pas na het advies van de boekhouder en de juridische check. Gebruik localnet of devnet.");
   }
   const rpc = arg("rpc", RPC[network]);
   if (!rpc) throw new Error(`Onbekend netwerk "${network}".`);
   const founder = new PublicKey(arg("founder", DEFAULT_FOUNDER));
   const keysDir = arg("keys", join(ROOT, ".keys", network));
   const out = arg("out", join(ROOT, "shared", "deployments", `${network}.json`));
-  const offering = JSON.parse(readFileSync(join(ROOT, "shared", "aanbod.json"), "utf8"));
+  const cfg = JSON.parse(readFileSync(join(ROOT, "shared", "genesis.json"), "utf8"));
 
   if (existsSync(out) && !process.argv.includes("--force")) {
     throw new Error(`${out} bestaat al. Gebruik --force om alles opnieuw aan te maken.`);
@@ -157,14 +115,12 @@ async function main() {
 
   const connection = new Connection(rpc, "confirmed");
   const authority = loadOrCreateKey(join(keysDir, "authority.json"));
-  const reserve = loadOrCreateKey(join(keysDir, "reserve.json"));
-  const recovery = loadOrCreateKey(join(keysDir, "herstel.json"));
   console.log(`Netwerk: ${network} (${rpc})`);
   console.log(`Serversleutel: ${authority.publicKey.toBase58()}`);
   console.log(`Oprichterswallet: ${founder.toBase58()}`);
 
   let balance = (await connection.getBalance(authority.publicKey)) / LAMPORTS_PER_SOL;
-  if (balance < MIN_SOL) {
+  if (balance < MIN_SOL && network !== "mainnet-beta") {
     try {
       const sig = await connection.requestAirdrop(authority.publicKey, 2 * LAMPORTS_PER_SOL);
       const bh = await connection.getLatestBlockhash();
@@ -181,72 +137,56 @@ async function main() {
   }
   console.log(`Saldo serversleutel: ${balance} SOL\n`);
 
-  const metadataUri = arg("uri", offering.token.metadataUri);
-  const site = metadataUri.replace(/\/token\/.*$/, "");
-  const payment = await createMintWithMetadata(connection, {
-    payer: authority,
-    decimals: offering.betaalmunt.decimalen,
-    freezeAuthority: null,
-    defaultFrozen: false,
-    name: `${offering.betaalmunt.naam} (testnet)`,
-    symbol: offering.betaalmunt.symbool,
-    uri: `${site}/token/teur.json`,
-    extra: [["gebruik", "enkel voor de demo, geen waarde"]],
-  });
+  const base = arg("uri", cfg.metadataBasis);
+  const site = base.replace(/\/genesis$/, "");
 
-  const shares = await createMintWithMetadata(connection, {
-    payer: authority,
-    decimals: offering.token.decimalen,
-    freezeAuthority: authority.publicKey,
-    defaultFrozen: true,
-    permanentDelegate: recovery.publicKey,
-    name: network === "mainnet-beta" ? offering.token.naam : `${offering.token.naam} (testnet)`,
-    symbol: offering.token.symbool,
-    uri: metadataUri,
-    extra: [
-      ["totaal", String(offering.token.totaal)],
-      ["website", site],
-    ],
-  });
+  let paymentMint;
+  let paymentProgram;
+  const signatures = {};
+  const given = arg("payment-mint");
+  if (given) {
+    paymentMint = new PublicKey(given);
+    const info = await connection.getAccountInfo(paymentMint);
+    if (!info) throw new Error(`Betaalmunt ${given} niet gevonden op ${network}.`);
+    paymentProgram = info.owner;
+    console.log(`  ok  Bestaande betaalmunt ${given}`);
+  } else {
+    if (network === "mainnet-beta") throw new Error("Geef op mainnet de echte betaalmunt op met --payment-mint.");
+    const payment = await createMintWithMetadata(connection, {
+      payer: authority,
+      decimals: cfg.betaalmunt.decimalen,
+      nonTransferable: false,
+      name: `${cfg.betaalmunt.naam} (testnet)`,
+      symbol: cfg.betaalmunt.symbool,
+      uri: `${site}/token/teur.json`,
+      extra: [["gebruik", "enkel voor de demo, geen waarde"]],
+    });
+    paymentMint = payment.mint;
+    paymentProgram = TOKEN_2022_PROGRAM_ID;
+    signatures.betaalmunt = payment.signature;
+  }
 
-  const founderAlloc = await allocate(connection, {
+  const supporter = await createMintWithMetadata(connection, {
     payer: authority,
-    mint: shares.mint,
-    owner: founder,
-    amount: offering.allocaties.oprichter,
-    keepFrozen: true,
-    label: "Oprichter",
+    decimals: 0,
+    nonTransferable: true,
+    name: network === "mainnet-beta" ? cfg.steun.tokenNaam : `${cfg.steun.tokenNaam} (testnet)`,
+    symbol: cfg.steun.symbool,
+    uri: `${base}/steun.json`,
+    extra: [["website", site]],
   });
-  const vault1 = await allocate(connection, {
-    payer: authority,
-    mint: shares.mint,
-    owner: authority.publicKey,
-    amount: offering.allocaties["ronde-1"],
-    keepFrozen: false,
-    label: "Verkoopkluis ronde 1",
-  });
-  const reserve2 = await allocate(connection, {
-    payer: authority,
-    mint: shares.mint,
-    owner: reserve.publicKey,
-    amount: offering.allocaties["ronde-2"],
-    keepFrozen: true,
-    label: "Reserve ronde 2",
-  });
+  signatures.supporterBadge = supporter.signature;
 
-  const revoke = await send(
+  const kas = getAssociatedTokenAddressSync(paymentMint, authority.publicKey, false, paymentProgram);
+  const founderPayment = getAssociatedTokenAddressSync(paymentMint, founder, false, paymentProgram);
+  signatures.kas = await send(
     connection,
-    new Transaction().add(createSetAuthorityInstruction(shares.mint, authority.publicKey, AuthorityType.MintTokens, null, [], TOKEN_2022_PROGRAM_ID)),
+    new Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, kas, authority.publicKey, paymentMint, paymentProgram),
+      createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, founderPayment, founder, paymentMint, paymentProgram),
+    ),
     [authority],
-    "Muntrecht definitief ingetrokken: het totaal blijft 100.000.000",
-  );
-
-  const escrow = getAssociatedTokenAddressSync(payment.mint, authority.publicKey, false, TOKEN_2022_PROGRAM_ID);
-  await send(
-    connection,
-    new Transaction().add(createAssociatedTokenAccountIdempotentInstruction(authority.publicKey, escrow, authority.publicKey, payment.mint, TOKEN_2022_PROGRAM_ID)),
-    [authority],
-    "Escrow-rekening voor betalingen",
+    "Kas en rekening van de oprichter",
   );
 
   const deployment = {
@@ -255,32 +195,22 @@ async function main() {
     createdAt: new Date().toISOString(),
     authority: authority.publicKey.toBase58(),
     founderWallet: founder.toBase58(),
-    reserveOwner: reserve.publicKey.toBase58(),
-    recoveryKey: recovery.publicKey.toBase58(),
-    tokenMint: shares.mint.toBase58(),
-    tokenProgram: TOKEN_2022_PROGRAM_ID.toBase58(),
-    paymentMint: payment.mint.toBase58(),
-    paymentProgram: TOKEN_2022_PROGRAM_ID.toBase58(),
-    escrow: escrow.toBase58(),
-    founderTokenAccount: founderAlloc.account.toBase58(),
-    vaults: { "ronde-1": vault1.account.toBase58(), "ronde-2": reserve2.account.toBase58() },
-    signatures: {
-      tokenAangemaakt: shares.signature,
-      oprichter: founderAlloc.signature,
-      ronde1: vault1.signature,
-      ronde2: reserve2.signature,
-      muntrechtIngetrokken: revoke,
-    },
+    paymentMint: paymentMint.toBase58(),
+    paymentProgram: paymentProgram.toBase58(),
+    kas: kas.toBase58(),
+    founderPaymentAccount: founderPayment.toBase58(),
+    supporterMint: supporter.mint.toBase58(),
+    passProgram: TOKEN_2022_PROGRAM_ID.toBase58(),
+    signatures,
   };
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, `${JSON.stringify(deployment, null, 2)}\n`);
 
   console.log(`\nKlaar. Adressen bewaard in ${out}`);
-  console.log(`Token:      ${explorer(network, rpc, "address", deployment.tokenMint)}`);
-  console.log(`Oprichter:  ${explorer(network, rpc, "address", deployment.founderTokenAccount)}`);
+  console.log(`Kas:              ${explorer(network, rpc, deployment.kas)}`);
+  console.log(`Supporter-badge:  ${explorer(network, rpc, deployment.supporterMint)}`);
   console.log(`\nZet de serversleutel als omgevingsvariabele SALE_AUTHORITY_SECRET (inhoud van ${join(keysDir, "authority.json")}).`);
-  console.log(`Bewaar ${join(keysDir, "reserve.json")} offline: die is enkel nodig om ronde 2 te openen.`);
-  console.log(`Bewaar ${join(keysDir, "herstel.json")} offline: die is enkel nodig om aandelen van een verloren wallet over te zetten.`);
+  console.log("Die sleutel maakt de passen aan en beheert de kas: bewaar hem enkel in Vercel en in je wachtwoordbeheerder.");
 }
 
 main().catch((err) => {

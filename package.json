@@ -2,7 +2,7 @@
   "name": "marketingscan-community",
   "private": true,
   "type": "module",
-  "description": "Community-ronde van Marketing Scan: investeerdersplatform op Solana, wachtlijst en automatische X-promotie met compliance-controles.",
+  "description": "Marketing Scan Genesis: voorverkoop van levenslange abonnementen als soulbound passes op Solana, met transparantie, wachtlijst en automatische X-promotie.",
   "engines": {
     "node": ">=22"
   },

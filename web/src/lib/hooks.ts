@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { deployment } from "../config";
-import { fetchHolding, fetchOfferingState, fetchPurchasesOf, fetchRecentPurchases, type Holding, type OfferingState, type Purchase } from "./chain";
+import { fetchGenesis, type GenesisState } from "./api";
+import { fetchPaymentBalance } from "./chain";
 
 type AsyncState<T> = { data: T | null; error: string | null; loading: boolean; refresh: () => void; updatedAt: number | null };
 
@@ -59,35 +60,15 @@ export function useAsync<T>(load: (() => Promise<T>) | null, deps: unknown[], re
   return { data, error, loading, refresh, updatedAt };
 }
 
-export function useOfferingState(refreshMs = 20_000) {
-  const { connection } = useConnection();
-  const dep = deployment;
-  return useAsync<OfferingState>(dep ? () => fetchOfferingState(connection, dep) : null, [connection], refreshMs);
+/** De stand van Genesis (verkocht, opgehaald, muur), ververst elke 15 seconden. */
+export function useGenesis(refreshMs = 15_000) {
+  return useAsync<GenesisState>(deployment ? fetchGenesis : null, [], refreshMs);
 }
 
-export function useRecentPurchases(limit = 10, refreshMs = 30_000) {
+export function useBalance(owner: string | null, refreshMs = 20_000) {
   const { connection } = useConnection();
   const dep = deployment;
-  return useAsync<Purchase[]>(dep ? () => fetchRecentPurchases(connection, dep, limit) : null, [connection, limit], refreshMs);
-}
-
-export function useHolding(owner: string | null, refreshMs = 30_000) {
-  const { connection } = useConnection();
-  const dep = deployment;
-  return useAsync<Holding>(
-    dep && owner ? () => fetchHolding(connection, dep, new PublicKey(owner)) : null,
-    [connection, owner],
-    refreshMs,
-  );
-}
-
-export function usePurchasesOf(shareAccount: string | null) {
-  const { connection } = useConnection();
-  const dep = deployment;
-  return useAsync<Purchase[]>(
-    dep && shareAccount ? () => fetchPurchasesOf(connection, dep, shareAccount) : null,
-    [connection, shareAccount],
-  );
+  return useAsync<number>(dep && owner ? () => fetchPaymentBalance(connection, dep, new PublicKey(owner)) : null, [connection, owner], refreshMs);
 }
 
 /** Werkt een "x s geleden"-label elke 5 seconden bij. */

@@ -1,129 +1,117 @@
-# Technisch ontwerp (v0.2, werkt op testnet)
+# Technisch ontwerp (v0.3, Genesis)
 
-Hoort bij [plan.md](plan.md). Voor ontwikkelaars, de auditor en de advocaat: wat er on-chain en off-chain gebeurt, en welke regels waar afgedwongen worden.
-
----
+Hoe Marketing Scan Genesis op Solana werkt: welke accounts er zijn, wat elke transactie doet en waarom niemand vals kan spelen. Alles draait zonder eigen smart contract, met de standaardprogramma's van Solana (Token-2022, Associated Token Account, Memo). Daardoor is er geen eigen code op de keten die een audit nodig heeft.
 
 ## 1. Overzicht
 
-```mermaid
-flowchart LR
-  W[Wallet van de investeerder] -->|ondertekent| T[(Aankooptransactie)]
-  S[Server /api/koop] -->|bouwt en ondertekent mee| T
-  T -->|EURC / tEUR| E[Escrow]
-  K[Verkoopkluis ronde 1] -->|aandelen| A[Aandelenaccount investeerder]
-  T --> K
-  O[Oprichterswallet JPmY…8T6] --- F[51.000.000 vergrendeld]
-  R[Reserve ronde 2 offline] --- G[40.000.000 vergrendeld]
-  Site[Website] -->|leest live| Chain[(Solana)]
-```
-
 | Onderdeel | Waar | Wat |
 |---|---|---|
-| Website | `web/` (React, Vite, TypeScript) | overzicht, investeren, portefeuille, transparantie, privacy |
-| Aankoop voorbereiden | `api/koop.js` → `server/purchase.js` | bouwt de atomaire aankooptransactie en ondertekent mee |
-| Testgeld | `api/testgeld.js` → `server/faucet.js` | 50 tEUR per keer, max 100 tEUR saldo, nooit op mainnet |
-| Wachtlijst | `api/waitlist.js` | e-mail met toestemming naar Supabase |
-| Rekenregels | `shared/offering.js`, `shared/aanbod.json` | gedeeld door site, server en scripts |
-| Adressen | `shared/deployments/<netwerk>.json` | aangemaakt door het setupscript |
-| Scripts | `scripts/solana/` | opzetten, demo-aankopen, terugbetalen, vrijgeven |
+| Configuratie | `shared/genesis.json` | pakketten, prijsladder, maxima, doel, bedenktijd, verkoopActief |
+| Rekenregels | `shared/genesis.js` | prijs per nummer, controles, memo's, activatietekst (gedeeld door site, server en tests) |
+| Geschiedenis | `shared/history.js` | leest de kas uit de keten en maakt er een kasboek en de Genesis-muur van (server en browser) |
+| Ketenlogica | `server/genesis.js` | pass kopen, steunen, geld terug, opnemen, activeren |
+| API | `api/*.js` | `genesis` (stand), `koop`, `terugbetaling`, `activeer`, `testgeld`, `waitlist` |
+| Website | `web/` | React, Vite, TypeScript, wallet-adapter (Wallet Standard) |
+| Scripts | `scripts/solana/` | `setup.mjs`, `demo-aankopen.mjs`, `opnemen.mjs` |
 
----
+## 2. Accounts en sleutels
 
-## 2. De token
+`scripts/solana/setup.mjs` maakt per netwerk:
 
-| Eigenschap | Waarde |
+| Account | Wat |
 |---|---|
-| Programma | Token-2022 |
-| Decimalen | 0 (1 token = 1 aandeel) |
-| Voorraad | 100.000.000, muntrecht ingetrokken (`mintAuthority = null`) |
-| Extensies | `MetadataPointer` + `TokenMetadata` (naam, symbool, link, totaal, website), `DefaultAccountState = Frozen`, `PermanentDelegate` = herstelsleutel |
-| Freeze authority | serversleutel (nodig om bij aankoop even te ontdooien) |
+| **Serversleutel** (`.keys/<netwerk>/authority.json`) | betaalt kosten, maakt passen aan, beheert de kas, munt supporter-badges. In Vercel als `SALE_AUTHORITY_SECRET`. |
+| **Betaalmunt** | tEUR (Token-2022, 6 decimalen) op het testnet; op mainnet een bestaande munt via `--payment-mint` (EURC). |
+| **Kas** | het betaalaccount (ATA) van de serversleutel. Alle betalingen komen hier binnen. |
+| **Rekening van de oprichter** | het betaalaccount van de oprichterswallet, voor opnames. |
+| **Supporter-badge** (MSFAN) | Token-2022 met NonTransferable, 0 decimalen, zonder bevriesrecht. |
 
-**Verdeling bij de start** (`scripts/solana/setup.mjs`):
+Alle adressen komen in `shared/deployments/<netwerk>.json`. De site leest dat bestand mee in bij het bouwen.
 
-| Account | Eigenaar | Aantal | Toestand |
-|---|---|---|---|
-| Oprichter | `JPmYxhBGqt9GMe6kfozUce3EyQRAoQZD1hbLGWJR8T6` | 51.000.000 | bevroren |
-| Verkoopkluis ronde 1 | serversleutel | 9.000.000 | ontdooid |
-| Reserve ronde 2 | reservesleutel (offline) | 40.000.000 | bevroren |
+## 3. Een pass
 
-**Sleutels** (`.keys/<netwerk>/`, nooit in git):
+Elke pass is een **eigen munt**:
 
-| Sleutel | Kan | Kan niet | Bewaren |
-|---|---|---|---|
-| `authority.json` (server) | kosten betalen, verkopen uit kluis 1, accounts (ont)vriezen, escrow beheren | aandelen bijmaken, aandelen van investeerders verplaatsen, reserve 2 gebruiken | omgevingsvariabele `SALE_AUTHORITY_SECRET` |
-| `reserve.json` | reserve ronde 2 vrijmaken (samen met de server) | alleen niets | offline |
-| `herstel.json` (permanent delegate) | aandelen van een verloren wallet overzetten, terugbetalingen | geld verplaatsen, bijmaken | offline |
+- Token-2022 met de extensies **MetadataPointer** + **TokenMetadata** (naam "Marketing Scan Genesis #007", symbool MSGEN, link naar `genesis/pass.json`) en **NonTransferable** (soulbound).
+- 0 decimalen, voorraad precies 1, muntrecht ingetrokken in dezelfde transactie, **geen bevriesrecht**.
+- De pass-account van de koper is een gewone ATA; door NonTransferable kan de pass die nooit verlaten. Enkel verbranden kan, en dat kan enkel de eigenaar.
 
----
+**Nummers zijn uniek door de keten zelf.** Het sleutelpaar van pass *n* wordt afgeleid uit de serversleutel: `sha256(geheim deel van de serversleutel, "marketingscan-genesis:<product>:<n>")`. Elk nummer heeft dus één vast adres. De server kiest het laagste vrije nummer; proberen twee kopers tegelijk hetzelfde nummer, dan mislukt de tweede transactie bij het aanmaken van het account ("already in use") en wordt er niets betaald. De site legt dat uit en de koper krijgt het volgende nummer. Een teruggegeven nummer blijft bestaan (voorraad 0) en wordt niet opnieuw verkocht.
 
-## 3. De aankoop (atomair)
+## 4. De transacties
 
-`POST /api/koop { wallet, bedrag, ronde }`
+Elke transactie is atomair: lukt één stap niet, dan gebeurt er niets. De server bouwt ze, ondertekent als betaler van de kosten (en waar nodig als beheerder) en geeft ze aan de wallet van de koper, die ze nog eens volledig toont. Een gewijzigde transactie wordt geweigerd, want de handtekening van de server klopt dan niet meer.
 
-1. Server controleert met `checkPurchase`: ronde open, minimum €1, maximum per persoon, genoeg aandelen in de kluis, genoeg saldo.
-2. Server bouwt één transactie:
-   1. aandelenaccount van de koper aanmaken als het niet bestaat (server betaalt de huur);
-   2. dat account ontdooien;
-   3. betaling: koper → escrow (`transferChecked`, ondertekend door de koper);
-   4. aandelen: kluis → koper (`transferChecked`, ondertekend door de server);
-   5. account opnieuw bevriezen;
-   6. memo: "Marketing Scan Ronde 1: 200 MSCAN voor 1,00 tEUR".
-3. Server is betaler van de kosten en ondertekent gedeeltelijk. De koper ziet in de eigen wallet exact wat er gebeurt en ondertekent.
-4. De site verstuurt en wacht op bevestiging (zonder websockets).
+**Pass kopen** (`buildPassPurchase`, ongeveer 1.020 van de 1.232 bytes):
+1. account voor de munt van nummer *n* aanmaken (server betaalt de opslag)
+2. MetadataPointer, NonTransferable en de munt initialiseren (geen bevriesrecht)
+3. metadata met naam, symbool en link
+4. pass-account van de koper, 1 pass munten, muntrecht intrekken
+5. betaling van de koper naar de kas (de koper ondertekent)
+6. memo: `Marketing Scan Genesis Pass #007 | @naam`
 
-Gevolgen: de koper betaalt enkel bij ontvangst van de aandelen; de koper heeft geen SOL nodig; een gewijzigde transactie is ongeldig, want de serverhandtekening klopt dan niet meer (getest).
+**Steunen** (`buildSupport`): de eerste keer een supporter-badge, daarna enkel de betaling naar de kas, met memo `Marketing Scan Supporter | naam`.
 
----
+**Geld terug** (`buildRefund`), enkel binnen de bedenktijd en door de eigenaar:
+1. de koper verbrandt de pass en sluit het pass-account
+2. de kas betaalt het volledige bedrag van de oorspronkelijke aankoop terug (gelezen uit de eerste transactie van de munt)
+3. memo: `Marketing Scan terugbetaling Genesis Pass #007`
 
-## 4. Einde van een ronde
+**Opnemen** (`scripts/solana/opnemen.mjs`): van de kas naar de rekening van de oprichter, enkel wat buiten de bedenktijd valt, met memo `Marketing Scan opname`. Zonder `--uitvoeren` toont het script enkel het overzicht.
 
-| Situatie | Script | Wat het doet |
-|---|---|---|
-| Minimumdoel gehaald | `vrijgeven.mjs --naar <treasury>` | escrow naar de treasury (weigert zolang het doel niet gehaald is) |
-| Minimumdoel niet gehaald | `terugbetalen.mjs --uitvoeren` | per koper: volledige inleg terug en aandelen terug naar de kluis, met memo |
+## 5. Activeren
 
-Beide scripts tonen eerst een droogtest. Elke stap is een publieke transactie.
+Op Mijn pass ondertekent de koper gratis een tekst (geen transactie):
 
----
+```
+Marketing Scan Genesis
+Ik activeer Marketing Scan Genesis #007 met wallet <adres>.
+Tijdstip: <ISO-tijd>
+```
 
-## 5. De website
+`POST /api/activeer` controleert de ed25519-handtekening, of de tekst hoogstens 10 minuten oud is en of de pass echt in die wallet staat. Dan volgt de code, een HMAC van product en nummer: `MSGEN-007-K7QD-2MXP`. Het geheim is `GENESIS_ACTIVATION_SECRET` of, zonder die variabele, een afleiding van de serversleutel.
 
-- **Inloggen:** Wallet Standard via `@solana/wallet-adapter-react` (Phantom, Solflare, Backpack, ...), met een eigen Nederlandstalig venster. Op gsm: knop om de site in de Phantom- of Solflare-app te openen. Op testnet uitleg om de wallet op Devnet te zetten.
-- **Live gegevens:** `web/src/lib/chain.ts` leest token, kluizen, escrow, aantal investeerders (`getProgramAccounts` met filter op de token) en aankopen (geschiedenis van escrow of aandelenaccount). Ververst elke 15 tot 30 seconden zolang de pagina zichtbaar is.
-- **Waarde:** aantal aandelen × prijs van de laatste gestarte ronde, met bron en de vermelding dat het geen verkoopprijs is.
-- **Netwerk:** `VITE_SOLANA_NETWORK` (standaard `devnet`), optioneel `VITE_SOLANA_RPC_URL`. Zonder deployment toont de site nette "nog niet geactiveerd"-meldingen.
+Voor Marketing Scan zelf: `GET /api/activeer?code=MSGEN-007-K7QD-2MXP` geeft `{ geldig, product, nummer, websites, wallet }`. Een teruggegeven pass geeft `geldig: false`. Marketing Scan bewaart welke code bij welk account hoort (één account per code).
 
----
+## 6. De stand en de geschiedenis
 
-## 6. Testen
+- `GET /api/genesis` leest alle transacties van de kas, houdt enkel die bij die **de serversleutel ondertekende** en een Genesis-memo dragen, en rekent: verkocht per product, teruggegeven, steun, opgehaald, opgenomen, verwacht saldo, de muur en de laatste 100 bewegingen. Transacties veranderen nooit, dus de server bewaart ze in het geheugen en haalt enkel nieuwe op.
+- De site controleert live: kas = binnen - terug - opgenomen, de buffer voor terugbetalingen, en per pass voorraad, muntrecht, bevriesrecht en NonTransferable (rechtstreeks van de keten).
+- **Controle in de browser:** op de transparantiepagina leest de browser de volledige geschiedenis zelf van Solana, met dezelfde code (`shared/history.js`), en vergelijkt het resultaat met de server.
 
-| Soort | Commando | Wat |
-|---|---|---|
-| Unit en API | `npm test` | rekenregels, API-validatie, X-compliance, wachtlijst (77 tests) |
-| Keten | `SOLANA_E2E_DEPLOYMENT=… SOLANA_E2E_AUTHORITY=… node --test test/solana-e2e.test.js` | 7 tests op een echte (lokale) Solana-keten |
-| Browser | `node scripts/e2e/ui-koop.mjs` | inloggen met testwallet, testgeld, aankoop, portefeuille, schermafbeeldingen |
-| Typecontrole | `npm run typecheck` | TypeScript van de site |
+## 7. Testen
 
-Lokale keten: `solana-test-validator`, dan `node scripts/solana/setup.mjs --network localnet` en eventueel `demo-aankopen.mjs`.
+```bash
+npm test                 # 165 tests (rekenregels, geschiedenis, API, X-promotie)
+npm run typecheck
+```
 
----
+Op een echte keten (lokale validator):
 
-## 7. Op het testnet zetten (devnet)
+```bash
+solana-test-validator --reset &
+node scripts/solana/setup.mjs --network localnet --keys /tmp/keys --force
+SOLANA_E2E_DEPLOYMENT=shared/deployments/localnet.json SOLANA_E2E_AUTHORITY=/tmp/keys/authority.json node --test test/solana-e2e.test.js
+```
 
-1. Stuur 2 tot 5 devnet-SOL naar de serversleutel (via https://faucet.solana.com).
-2. `node scripts/solana/setup.mjs --network devnet` → schrijft `shared/deployments/devnet.json` (committen).
-3. Optioneel: `node scripts/solana/demo-aankopen.mjs --network devnet`.
-4. Vercel: omgevingsvariabelen `SOLANA_NETWORK=devnet`, `SALE_AUTHORITY_SECRET=<inhoud van .keys/devnet/authority.json>`, en voor de wachtlijst `SUPABASE_URL` en `SUPABASE_SECRET_KEY`.
+Die 14 tests dekken onder meer: een pass kopen zonder SOL, de prijsladder, twee kopers voor hetzelfde nummer, niet kunnen doorsturen, maximum per wallet, Agency, steun en badge, geld terug (en niet twee keer, niet door een ander, niet na 14 dagen), activeren, het kasboek tegenover het saldo, opnemen met buffer en een gewijzigde transactie. GitHub Actions draait ze bij elke push.
 
----
+De browsertest `scripts/e2e/ui-koop.mjs` doorloopt de echte site met een testwallet: inloggen, testgeld, pass claimen, activeren, steunen, alle pagina's (ook op gsm), controle in de browser en geld terug.
 
-## 8. Naar mainnet (pas na juridisch groen licht)
+## 8. Op het testnet zetten (devnet)
 
-- Betaalmunt EURC in plaats van tEUR (`paymentMint` in de deployment), testgeld uit.
-- Treasury als Squads-multisig (2 van 3, met een onafhankelijke derde).
-- Verkoop via een geaudit escrow-programma, zodat terugbetalen bij een gemist minimumdoel niet van één serversleutel afhangt.
-- KYC vóór de aankoop (bv. itsme), met de limiet per geverifieerde persoon.
-- Eigen RPC-provider (bv. Helius) en een snelheidslimiet op de API.
-- Externe audit, verified build, monitoring op elke uitgaande transactie.
+1. Stuur devnet-SOL (minstens 0,3) naar de serversleutel, via faucet.solana.com.
+2. `node scripts/solana/setup.mjs --network devnet`
+3. `node scripts/solana/demo-aankopen.mjs --network devnet` (optioneel, voor een levendige muur)
+4. Vercel: `SOLANA_NETWORK=devnet`, `SALE_AUTHORITY_SECRET=<inhoud van .keys/devnet/authority.json>`, optioneel `SOLANA_RPC_URL` (een eigen RPC, bv. Helius) en voor de wachtlijst `SUPABASE_URL` en `SUPABASE_SECRET_KEY`.
+5. `shared/deployments/devnet.json` committen en deployen.
+
+Geen database nodig: de blockchain is de bron van waarheid.
+
+## 9. Naar mainnet (pas na het advies van de boekhouder)
+
+1. `shared/bedrijf.json` invullen (een build voor mainnet faalt zonder).
+2. Een nieuwe serversleutel en een eigen RPC.
+3. `node scripts/solana/setup.mjs --network mainnet-beta --payment-mint <EURC-mint-adres> --ik-weet-wat-ik-doe`. Haal het mint-adres van EURC op Solana bij Circle zelf (developers.circle.com) en controleer het twee keer.
+4. `verkoopActief: true` in `shared/genesis.json`, en `legalReviewDone` en `verkoopActief` in `marketing/x/config.json`.
+5. Opnames naar een hardware-wallet of een Squads-multisig.

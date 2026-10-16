@@ -1,174 +1,135 @@
-# Marketing Scan: community-ronde op Solana
+# Marketing Scan Genesis: plan
 
-Status: werkende demo op het testnet, oktober 2026. Er wordt nog geen echt geld opgehaald.
-Dit is geen juridisch of fiscaal advies. Laat alles wat juridisch of fiscaal is bevestigen door een advocaat (financieel recht en vennootschapsrecht) en je boekhouder.
-
----
+> Status: **werkende demo op een lokale Solana-keten, klaar voor het testnet.** Er wordt niets verkocht voor je boekhouder de rechtsvorm en de btw heeft bekeken. Dit document is geen juridisch of fiscaal advies: neem het mee naar dat gesprek.
 
 ## In het kort
 
-- **Twee rondes, samen maximaal 49%.** Ronde 1: 9% voor maximaal €45.000. Ronde 2: 40% voor €500.000. De oprichter houdt 51%.
-- **Vanaf €1.** In ronde 1 kost een aandeel €0,005: voor €1 krijg je 200 aandelen.
-- **Je aandelen staan in je eigen wallet** als Solana-token (Token-2022). Er bestaan er exact 100.000.000, en dat is op de blockchain vastgelegd: niemand kan er nog bij maken.
-- **Inloggen met je wallet en je waarde zien.** In de portefeuille zie je je aantal aandelen, je percentage, de waarde volgens de laatste rondeprijs en al je aankopen, live van de blockchain.
-- **Betalen en ontvangen in één transactie.** Lukt één deel niet, dan gebeurt er niets. Het geld gaat naar een escrow die iedereen kan bekijken, niet naar een persoon.
-- **Minimumdoel niet gehaald? Iedereen krijgt alles terug.** Daar is een script voor, en elke terugbetaling is publiek.
-- **Jouw wallet** (`JPmY…8T6`) krijgt de 51% van de oprichter, vergrendeld. Zo is je wallet zichtbaar gekoppeld aan het bedrijf.
+Marketing Scan haalt geen geld op met aandelen. Je verkoopt vooraf **levenslange abonnementen** aan je eerste klanten. Juridisch is dat een gewone voorverkoop, geen investering.
+
+| Pakket | Wat je krijgt | Prijs | Aantal | Opbrengst als alles weg is |
+|---|---|---|---|---|
+| **Genesis Pass** | Levenslang Marketing Scan Pro voor 1 website | €99 tot €299, per 50 passes €50 duurder | 250 | €49.750 |
+| **Genesis Agency** | Levenslang Pro voor tot 10 websites, support bij de oprichter | €799 | 25 | €19.975 |
+| **Supporter** | Badge en naam op de Genesis-muur, geen abonnement | vanaf €1 | onbeperkt | vrij |
+
+**Doel: €50.000.** De passes alleen halen dat bijna; Agency en supporters maken het verschil.
+
+Alles staat in één bestand: `shared/genesis.json`. Prijzen, aantallen, voordelen en het doel pas je daar aan; site, server, tests en X-posts volgen automatisch.
 
 ---
 
-## 1. Waar je vandaag staat, eerlijk
+## 1. Waarom geen aandelen meer
 
-- Marketing Scan is nog **geen vennootschap**. Er is niets officieel.
-- Het product werkt: een gratis scan, Semrush-achtige analyse, **10 wekelijkse gebruikers**, nog geen betalende klanten.
-- Je wil alles **crypto-first** opstarten, en later ook **uitbetalen in crypto**.
+Een aanbod van aandelen valt onder de FSMA: documenten, een waardering, KYC, een vennootschap en reclameregels. Dat is zwaar voor €50.000, en "word mede-eigenaar via crypto" roept bij veel mensen meteen "scam" op.
 
-### Mijn advies: richt eerst een BV op, en doe al de rest in crypto
+Een voorverkoop van je eigen product is eenvoudiger en eerlijker:
 
-Crypto-first en een BV gaan perfect samen: de BV is de juridische schil, de blockchain is de motor. Zonder vennootschap loop je drie grote risico's:
+- **Je verkoopt wat je hebt.** Marketing Scan werkt vandaag al. Een pass geeft meteen toegang en later alles wat erbij komt.
+- **Geen rendement, geen doorverkoop.** De passes zijn *soulbound* (niet overdraagbaar). Niemand koopt er een om er winst mee te maken, dus het is geen belegging.
+- **Wat de boekhouder of advocaat best bevestigt:** onder MiCA (de Europese crypto-verordening) vallen unieke, niet-vervangbare tokens buiten de regels (art. 2.3), en een token die enkel toegang geeft tot een dienst die al bestaat, is vrijgesteld van een white paper (art. 4.3). Een token die niet overdraagbaar is, valt bovendien moeilijk onder de definitie van een crypto-activum. Elke Genesis Pass is een eigen token met voorraad 1, voor een dienst die al werkt, en kan je wallet niet verlaten.
 
-1. **Er is niets om een deel van te kopen.** "10% van Marketing Scan" moet ergens juridisch van zijn. Zonder BV koopt een investeerder hoogstens een belofte van jou persoonlijk.
-2. **Je bent persoonlijk aansprakelijk**, met je eigen vermogen.
-3. **Belastingen.** Geld dat je als privépersoon ophaalt, kan als inkomen belast worden, mogelijk tegen het hoogste tarief. In een BV is het een inbreng in het bedrijf.
-
-Daarnaast blijft het een aanbieding van beleggingsinstrumenten: of je in euro of in crypto werkt, de FSMA-regels gelden (zie 6). Een buitenlandse crypto-constructie (DAO, stichting in het buitenland) verandert dat niet als je Belgen aanspreekt, en kost meer vertrouwen dan ze oplevert.
-
-Een BV oprichten kost ongeveer €1.000 tot €2.000 bij de notaris en vraagt een financieel plan. Er is geen minimumkapitaal meer. Dat is klein tegenover een ronde van €45.000, en het is het sterkste vertrouwenssignaal dat je kan geven.
+Daarom bewaakt het X-systeem ook dat er nooit beleggingstaal in een post komt (zie `docs/x-promotie.md`).
 
 ---
 
-## 2. De rondes
+## 2. Waarom dit werkt op X
 
-| | Oprichter | Ronde 1 · Community | Ronde 2 · Groei |
-|---|---|---|---|
-| Deel van het bedrijf | 51% | 9% | 40% |
-| Aandelen | 51.000.000 | 9.000.000 | 40.000.000 |
-| Prijs per aandeel | - | €0,005 | €0,0125 |
-| Op te halen (max) | - | €45.000 | €500.000 |
-| Waardering van het hele bedrijf | - | €500.000 | €1.250.000 |
-| Voor €1 krijg je | - | 200 aandelen | 80 aandelen |
-| Minimumdoel | - | €5.000 | nog te bepalen |
-| Max per persoon | - | €5.000 | €5.000 (of geen, zie 6) |
-| Status | vergrendeld | open op testnet | gepland |
+Wat crypto-mensen op X overtuigt, is bewijs, schaarste en erbij horen. Zonder hype:
 
-Alle cijfers staan in één bestand: `shared/aanbod.json`. Wil je ronde 1 op €40.000 voor 9% (zoals je ook noemde), dan wordt de prijs €0,00444 per aandeel. Mijn voorstel blijft €45.000: dezelfde waardering als 10% voor €50.000, en een ronde prijs per aandeel.
-
-**Over de waardering:** €500.000 voor een product met 10 wekelijkse gebruikers en nog geen omzet is ambitieus. Investeerders, en de FSMA, letten op een evenwichtige voorstelling. Laat de waardering onafhankelijk bevestigen, en toon je cijfers eerlijk (de site doet dat al: "We zijn vroeg. Daarom is de instap laag, en het risico hoog.").
-
-**Ronde 2** start pas als de mijlpalen van ronde 1 gehaald zijn (voorstel: betalende klanten, terugkerende omzet en de eerste nieuwe modules live), publiek gerapporteerd.
+- **Een nummer.** "#007" in je wallet is iets om te tonen. Na elke aankoop staat er een knop "Deel op X" met een kant-en-klare post.
+- **Echte schaarste, eerlijk getoond.** 250 passes, de prijsladder ligt vast en staat op de site. Het nummer bepaalt de prijs, geen kortingscodes.
+- **Controleerbaar.** Elke pass, elke euro en elke terugbetaling staat publiek op Solana. De site rekent het live na, en met één knop rekent je eigen browser alles opnieuw uit.
+- **Geld terug met één klik.** Binnen 14 dagen verdwijnt je pass en staat je geld terug in je wallet, in dezelfde transactie. Dat neemt de grootste drempel weg.
+- **De Genesis-muur.** Iedereen die meedoet, komt erop met de naam die die zelf kiest (bv. een X-handle).
+- **Building in public.** De site toont je echte cijfers (10 wekelijkse gebruikers, 0 betalende klanten). Dat eerlijke vertrekpunt maakt het verhaal geloofwaardig.
 
 ---
 
-## 3. De token: je aandelen in je wallet
+## 3. Hoe het werkt
 
-- **Token-2022** (Solana Token Extensions), symbool `MSCAN`, 0 decimalen: 1 token = 1 aandeel.
-- **Vaste voorraad:** 100.000.000. Na het aanmaken is het muntrecht definitief ingetrokken.
-- **Vergrendeld:** aandelen zijn niet vrij overdraagbaar. Zo belanden ze niet op speculatieve markten en blijft het aandelenregister kloppen. Een overdracht kan via een gecontroleerde procedure.
-- **Oprichter:** 51.000.000 aandelen in jouw wallet `JPmYxhBGqt9GMe6kfozUce3EyQRAoQZD1hbLGWJR8T6`, vergrendeld (lock-up).
-- **Reserve ronde 2:** 40.000.000 aandelen achter een aparte, offline sleutel, ook vergrendeld.
-- **Herstelsleutel (offline):** kan aandelen van een verloren wallet na een identiteitscontrole overzetten. Elke inzet is publiek.
-- **In Phantom of Solflare** zie je "Marketing Scan Aandeel" met het logo en het aantal. Geen eurokoers, want er is bewust geen beursnotering.
+1. Iemand logt in met een Solana-wallet (Phantom, Solflare, Backpack) en kiest een pass.
+2. De server bereidt één transactie voor: de munt van het volgende nummer wordt aangemaakt, de pass gaat naar de koper, het muntrecht wordt ingetrokken (er kan nooit een tweede #007 bestaan) en de betaling gaat naar de kas. De koper ondertekent in de eigen wallet. Transactiekosten en opslag betaal jij: minder dan 0,01 SOL per pass.
+3. Op Mijn pass activeert de koper de pass met een gratis handtekening en krijgt een code (bv. `MSGEN-007-K7QD-2MXP`). Die code vul je later in Marketing Scan in om Pro te geven.
+4. Binnen 14 dagen kan de koper met één klik geld terugvragen.
 
----
-
-## 4. De geldstroom
-
-```
-Investeerder ──(EURC, of tEUR op testnet)──► escrow op de blockchain (publiek zichtbaar)
-     ▲                                              │
-     └──── aandelen uit de verkoopkluis ◄───────────┘   (in dezelfde transactie)
-
-Einde ronde:
-  minimumdoel gehaald     → escrow vrijgegeven aan de treasury   (scripts/solana/vrijgeven.mjs)
-  minimumdoel niet gehaald → iedereen terugbetaald, aandelen terug (scripts/solana/terugbetalen.mjs)
-```
-
-- De investeerder heeft **geen SOL** nodig: de transactiekosten betaalt het platform.
-- **Treasury:** voor de echte ronde een Squads-multisig (2 van 3 handtekeningen), met jouw wallet als een van de ondertekenaars en een onafhankelijke derde. Nooit je persoonlijke wallet.
-- **Betaalmunt:** EURC, de euro-stablecoin van Circle (1:1 inwisselbaar voor euro). Op het testnet: tEUR zonder waarde.
+Details: [technisch-ontwerp.md](technisch-ontwerp.md).
 
 ---
 
-## 5. Uitbetalen in crypto
+## 4. Het geld
 
-Als er winst is en de algemene vergadering beslist uit te keren:
-
-1. **Momentopname** van alle tokenhouders op een vaste datum (publiek, met de lijst als bestand).
-2. **Berekening** per houder: aandelen × bedrag per aandeel. Bij een BV wordt de roerende voorheffing (standaard 30%) ingehouden en afgedragen.
-3. **Uitbetaling** in EURC rechtstreeks naar elke wallet, in batches vanuit de treasury-multisig.
-4. **Bewijs:** elke uitbetaling heeft een publieke transactie. In de portefeuille verschijnt ze onder "Uitkeringen".
-
-Voorwaarde: de houders zijn geïdentificeerd (KYC), want uitkeringen en belastingen moeten aan een persoon gekoppeld kunnen worden.
+- **De kas** is een publieke rekening op Solana. Elke betaling komt daar binnen, met een vaste memo ("Marketing Scan Genesis Pass #007").
+- **Buffer voor terugbetalingen:** aankopen van de laatste 14 dagen blijven in de kas. Het script `scripts/solana/opnemen.mjs` stuurt enkel de rest naar je eigen wallet, ook met een memo. Zo is elke terugbetaling altijd gedekt, en ziet iedereen wanneer jij geld opneemt.
+- **Betaalmunt:** op het testnet test-euro (tEUR, zonder waarde), op mainnet EURC (de euro-stablecoin van Circle op Solana). Van EURC naar je bankrekening gaat via een exchange zoals Bitvavo of Kraken.
+- **Supporters** betalen ook in de kas. Steun is een gift en wordt niet terugbetaald.
 
 ---
 
-## 6. Juridisch kader (België)
+## 5. Met de boekhouder bespreken
 
-| Totaal over 12 maanden | Wat nodig is | Ronde |
-|---|---|---|
-| Max €500.000 **en** max €5.000 per belegger | De minimis: geen prospectus, geen informatienota. Totaalbedrag en maximum per persoon in elk document vermelden. | Ronde 1 (€45.000) |
-| Tot €12.000.000 | Informatienota (max 15 A4-pagina's), uiterlijk bij de start neergelegd bij de FSMA. | Ronde 2 (€500.000), tenzij ze meer dan 12 maanden na ronde 1 valt én max €5.000 per persoon vraagt |
-| Meer dan €12.000.000 | Prospectus | n.v.t. |
+Neem deze vragen mee. De antwoorden bepalen wanneer je `verkoopActief` op `true` mag zetten.
 
-- Ronde 2 brengt het totaal over 12 maanden boven €500.000 (€45.000 + €500.000). Dan is een informatienota nodig, maar mag het maximum per persoon weg.
-- **Tax shelter** (30 tot 45% belastingvermindering voor investeerders) vraagt rechtstreekse nieuwe aandelen in een BV, betaald in geld. Met betaling in crypto is dat waarschijnlijk uitgesloten. Laat je boekhouder dit bekijken.
-- **Reclame** (posts, site, mails) moet evenwichtig zijn en de risico's tonen. Het X-systeem dwingt dat af (zie `docs/x-promotie.md`).
-- **KYC:** voor de echte ronde moet je weten wie je aandeelhouders zijn (bv. via itsme). Dat is ook nodig om de limiet "per persoon" te handhaven en om uit te keren.
-- De FSMA heeft een gratis **FinTech-contactpunt**. Leg het project daar vóór de start voor.
+### Rechtsvorm
+- **Eenmanszaak of BV?** Voor de verkoop heb je sowieso een ondernemingsnummer nodig (inschrijving in de KBO via een ondernemingsloket) en een statuut als zelfstandige (in bijberoep of hoofdberoep).
+- Bij een eenmanszaak wordt de opbrengst belast als beroepsinkomen, progressief tot 50%. €50.000 in één jaar is dan duur. Vraag of de opbrengst gespreid kan worden (vooraf ontvangen inkomsten voor een dienst die jaren loopt), en of een BV daarom voordeliger is.
 
----
+### Btw
+- Software als dienst valt onder 21% btw.
+- De **vrijstellingsregeling voor kleine ondernemingen** geldt tot €25.000 omzet per jaar. Met een doel van €50.000 ga je daar waarschijnlijk over, dus reken op btw-plicht.
+- Btw is verschuldigd bij een **vooruitbetaling**, dus op het moment dat iemand een pass koopt, niet pas wanneer Pro gebruikt wordt.
+- De prijzen op de site zijn **eindprijzen**. Met 21% btw houd je van €99 ongeveer €81,82 over. Wil je €99 netto, verhoog dan de prijsladder in `shared/genesis.json`.
+- Klanten in andere EU-landen: bij bedrijven verlegging van btw, bij consumenten mogelijk btw van hun land (OSS-regeling). Vraag of je de verkoop eerst tot België wil beperken.
+- Betaling in EURC verandert niets aan de btw: die wordt berekend op de waarde in euro.
 
-## 7. Wat we bouwen met het geld
+### Consumentenrecht
+- **Herroepingsrecht:** consumenten mogen een online aankoop binnen 14 dagen herroepen. De geld-terug-knop doet dat automatisch, ook voor bedrijven.
+- **Informatieplicht:** naam, adres, ondernemingsnummer en e-mail moeten op de site staan vóór je verkoopt. Vul ze in `shared/bedrijf.json` in; een build voor mainnet of met verkoopActief faalt zolang ze ontbreken.
+- **Voorwaarden:** een concept staat op `/voorwaarden` (levenslang = zolang de dienst bestaat, normaal gebruik, geen investering, 6 maanden vooraf verwittigen als Marketing Scan stopt, aansprakelijkheid beperkt tot de prijs behalve bij bedrog of opzet). Laat het nalezen.
 
-| Module | Status |
-|---|---|
-| Marketingscan en SEO-analyse (30+ controlepunten, zichtbaarheid in Google en AI-assistenten) | live |
-| Volledige SEO-suite (zoekwoorden, posities, concurrenten, backlinks) | gepland |
-| E-mailmarketing (nieuwsbrieven, automatische mails) | gepland |
-| Social posting (plannen en publiceren op alle kanalen) | gepland |
-
-Publiceer vóór de start een bestedingsplan per ronde, en rapporteer elk kwartaal begroot versus werkelijk.
-
----
-
-## 8. Wat er al werkt
-
-- **Website** met overzicht, investeren, portefeuille, transparantie en privacy, in de huisstijl van Marketing Scan. Zie `web/`.
-- **Inloggen met je wallet** (Phantom, Solflare, Backpack, ...). Op gsm met een link om de site in de Phantom-app te openen.
-- **Portefeuille:** aantal aandelen, percentage, indicatieve waarde, status, aankopen met link naar de blockchain. Elk adres is ook alleen-lezen te bekijken.
-- **Investeren vanaf €1** met live controle van minimum, maximum per persoon, saldo en beschikbare aandelen.
-- **Transparantiepagina** die live controleert: vaste voorraad, ingetrokken muntrecht, vergrendelde oprichter en reserve, kluis, escrow, laatste aankopen en alle adressen.
-- **Getest:** 84 automatische tests, waarvan 7 op een echte Solana-keten, plus een browsertest die de volledige aankoop doorloopt.
+### Overige
+- **Facturen:** bedrijven willen een factuur. Leg vast hoe (bv. een formulier na de aankoop dat een factuur maakt in je boekhoudpakket).
+- **Steun als gift:** voor jou is het waarschijnlijk gewoon inkomen; voor de gever is het niet fiscaal aftrekbaar.
+- **Crypto in de boekhouding:** de kas is een publiek kasboek. Exporteer het per kwartaal uit de transparantiepagina.
 
 ---
 
-## 9. Risico's
+## 6. Wat er al werkt
 
-- **Ondernemingsrisico:** zonder betalende klanten kan het mislukken. Investeerders kunnen alles verliezen.
-- **Juridisch:** zonder BV en zonder de juiste documenten mag de echte ronde niet starten.
-- **Waardering:** ambitieus voor de huidige cijfers.
-- **Technisch:** de serversleutel betaalt kosten en beheert de verkoopkluis. Ze kan geen aandelen bijmaken en geen aandelen van investeerders wegnemen, maar ze moet goed beveiligd worden. Voor de echte ronde: een geaudit escrow-programma of een multisig, zodat terugbetalen niet van één sleutel afhangt.
-- **Reputatie:** crypto roept bij veel mensen "scam" op. Daarom de live controles en een toon zonder hype.
+- **Website** (`web/`): overzicht met live stand, de drie pakketten, prijsladder, uitleg, eerlijke cijfers, live controles, Genesis-muur en vragen; claimpagina; Mijn pass met activeren en geld terug; transparantie met kasboek en controle in de browser; voorwaarden; privacy. Werkt op gsm.
+- **Op de keten** (`server/genesis.js`): genummerde soulbound passes, prijs per nummer, maximum per wallet, steun met badge, geld terug in één transactie, activatiecodes, opnames met buffer.
+- **API** (`api/`): stand, kopen, geld terug, activeren (plus een controle-adres voor Marketing Scan), testgeld, wachtlijst.
+- **X-promotie** (`marketing/x/`): 14 concept-posts plus een wekelijkse update, met controles op beleggingstaal en een slot zolang de verkoop niet open is.
+- **Getest:** 165 automatische tests, waarvan 14 op een echte Solana-keten, en een browsertest die de volledige weg aflegt: inloggen, pass claimen, activeren, steunen, alles nakijken en geld terug.
 
 ---
 
-## 10. Volgende stappen
+## 7. Risico's, eerlijk
 
-1. **Testnet online zetten:** test-SOL naar de serversleutel, daarna zet ik de token op devnet en de site op Vercel.
-2. **BV oprichten** (notaris, financieel plan) en de bedrijfsgegevens invullen in `shared/bedrijf.json`.
-3. **Advocaat en boekhouder:** structuur, rechten van tokenhouders, uitkeringen, belastingen, de-minimisdocumenten.
-4. **Onafhankelijke waardering** voor de prijs van ronde 1.
-5. **KYC** kiezen (bv. itsme) en inbouwen.
-6. **Treasury** als Squads-multisig met een onafhankelijke medeondertekenaar.
-7. **Mainnet:** pas na groen licht van de advocaat, met EURC als betaalmunt.
+- **Levenslang is lang.** 275 klanten die nooit meer betalen, kosten je servers en support. Het maximum van 250 plus 25 houdt dat beheersbaar. Hou de kosten per gebruiker in het oog.
+- **Leveren.** Wie nu koopt, rekent op de SEO-suite, mailings en social posting. Publiceer een roadmap met data en rapporteer elke maand.
+- **De serversleutel** maakt passen aan en beheert de kas. Ze kan geen passen afpakken of bevriezen, maar wie ze steelt, kan de kas leeghalen. Daarom: de kas regelmatig opnemen naar je eigen wallet (enkel de buffer van 14 dagen blijft staan), de sleutel enkel in Vercel en je wachtwoordbeheerder.
+- **Je eigen wallet** ontvangt de opnames. Gebruik op mainnet een hardware-wallet of een Squads-multisig.
+- **Interpretatie.** Of iets "geen investering" is, beslist uiteindelijk de toezichthouder. Soulbound, geen rendement en geen beleggingstaal maken het sterk, maar laat het bevestigen.
+
+---
+
+## 8. Volgende stappen
+
+1. **Boekhouder:** rechtsvorm, btw, spreiding van de opbrengst (neem hoofdstuk 5 mee).
+2. **Ondernemingsnummer** aanvragen en `shared/bedrijf.json` invullen.
+3. **Voorwaarden** laten nalezen.
+4. **Testnet online:** stuur devnet-SOL naar de serversleutel `9ZLJxhmEDFiDJ8VkMU43QoWXrSY22ZusYnw5BhyL95M9` (via faucet.solana.com), daarna zet ik Genesis op devnet en de site op Vercel.
+5. **X opstarten** tijdens de testfase: posts goedkeuren, publiek opbouwen, wachtlijst laten groeien.
+6. **Marketing Scan:** een veld voor de activatiecode dat `GET /api/activeer?code=...` aanroept en Pro geeft.
+7. **Mainnet:** EURC als betaalmunt, verkoopActief en legalReviewDone op `true`, en starten.
 
 ---
 
 ## Bronnen
 
-- FSMA, [Wanneer een prospectus en wanneer een informatienota?](https://www.fsma.be/nl/faq/1-welke-gevallen-moet-er-een-prospectus-worden-gepubliceerd-en-welke-gevallen-een)
-- FSMA, [Vragen en antwoorden over aanbiedingen aan het publiek](https://www.fsma.be/nl/faq/vragen-en-antwoorden-regels-over-de-aanbiedingen-aan-het-publiek-van-beleggingsinstrumenten)
-- FSMA, [Nieuwe prospectusdrempel](https://www.fsma.be/en/news/new-prospectus-threshold-offers-securities-public) (27/05/2026)
-- FSMA, [FinTech-contactpunt](https://www.fsma.be/en/node/7520)
-- VLAIO, [Tax Shelter voor startende ondernemingen](https://www.vlaio.be/nl/subsidies-financiering/subsidiedatabank/tax-shelter-voor-startende-ondernemingen)
+- Verordening (EU) 2023/1114 betreffende markten in crypto-activa (MiCA), [EUR-Lex](https://eur-lex.europa.eu/eli/reg/2023/1114/oj)
+- Accountable, [Wanneer word je btw-plichtig: de drempel van €25.000](https://www.accountable.eu/nl-be/help-center/wanneer-wordt-een-zelfstandige-btw-plichtig-in-belgie-jouw-complete-gids-over-de-drempel-van-e25-000/)
+- Accountable, [De btw-vrijstelling voor kleine ondernemingen](https://www.accountable.eu/nl-be/help-center/alles-wat-je-moet-weten-over-de-status-van-btw-vrijstelling-voor-kleine-ondernemingen/)
+- Practicali, [Kleine ondernemingsregeling: nieuwe omzetmelding](https://www.practicali.be/blog/kleine-ondernemingsregeling-nieuwe-omzetmelding-via-de-klantenlisting-uiterlijk-op-31-maart-2026)
+- Unizo, [Wat is er nieuw in 2025](https://www.unizo.be/berichten/nieuws/nieuw-2025)
 - Circle, [EURC op Solana](https://circle.com/pressroom/eurc-launches-on-solana)

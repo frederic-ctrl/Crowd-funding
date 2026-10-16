@@ -1,0 +1,11 @@
+{
+  "name": "Marketing Scan Supporter",
+  "symbol": "MSFAN",
+  "description": "Supporter-badge van Marketing Scan Genesis: je steunde de bouw van Marketing Scan. Soulbound (niet overdraagbaar), zonder abonnement en zonder waarde.",
+  "image": "https://community.marketingscan.be/genesis/steun.png",
+  "external_url": "https://community.marketingscan.be/genesis?product=steun",
+  "attributes": [
+    { "trait_type": "Product", "value": "Supporter" },
+    { "trait_type": "Overdraagbaar", "value": "nee" }
+  ]
+}

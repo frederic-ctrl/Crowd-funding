@@ -52,10 +52,14 @@ jobs:
           done
           cat /tmp/validator.log
           exit 1
-      - name: Token en verkoop opzetten
+      - name: Genesis opzetten
         run: node scripts/solana/setup.mjs --network localnet --keys /tmp/keys --force
       - name: Testen op de keten
         run: node --test test/solana-e2e.test.js
         env:
           SOLANA_E2E_DEPLOYMENT: shared/deployments/localnet.json
           SOLANA_E2E_AUTHORITY: /tmp/keys/authority.json
+      - name: Demo-aankopen en opname-overzicht
+        run: |
+          node scripts/solana/demo-aankopen.mjs --network localnet --keys /tmp/keys --passen 2 --agency 1 --steun 1
+          node scripts/solana/opnemen.mjs --network localnet

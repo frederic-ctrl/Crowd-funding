@@ -93,3 +93,54 @@ test("plan toont de kalender met kostenraming", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("verkooppost: lint faalt tot verkoopActief en legalReviewDone allebei true zijn", () => {
+  const dir = workspace();
+  try {
+    const path = join(dir, "kalender.yaml");
+    const verkoop = [
+      "  - id: 2026-12-15-verkoop-open",
+      "    moment: 2026-12-15T10:00:00+01:00",
+      "    categorie: verkoop",
+      "    status: concept",
+      "    tekst: |-",
+      "      Claim je Genesis Pass: levenslang Marketing Scan Pro, 14 dagen geld terug met één klik.",
+      "",
+      "      Geen investering. {genesis} Voorwaarden: {voorwaarden}",
+      "",
+    ].join("\n");
+    writeFileSync(path, readFileSync(path, "utf8").replace("\n# Sjablonen", `\n${verkoop}\n# Sjablonen`));
+    const closed = run(dir, ["lint"]);
+    assert.equal(closed.code, 1);
+    assert.match(closed.out, /verkoop-gesloten/);
+    assert.match(closed.out, /koopoproep/);
+
+    const cfgPath = join(dir, "config.json");
+    const cfg = JSON.parse(readFileSync(cfgPath, "utf8"));
+    writeFileSync(cfgPath, JSON.stringify({ ...cfg, offer: { ...cfg.offer, verkoopActief: true } }));
+    assert.match(run(dir, ["lint"]).out, /verkoop-gesloten/);
+
+    writeFileSync(cfgPath, JSON.stringify({ ...cfg, offer: { ...cfg.offer, verkoopActief: true, legalReviewDone: true } }));
+    const open = run(dir, ["lint"]);
+    assert.equal(open.code, 0, open.out);
+    assert.match(open.out, /Verkoop: live/);
+    assert.match(open.out, /vermelding-verouderd/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("goedgekeurde Genesis-post wacht op juridisch nazicht", () => {
+  const dir = workspace();
+  try {
+    const approved = run(dir, ["approve", "2026-10-29-waarom-genesis", "--door", "test"]);
+    assert.equal(approved.code, 0, approved.out);
+    const res = run(dir, ["post", "--nu", "2026-10-29T10:05:00+01:00"]);
+    assert.equal(res.code, 0, res.out);
+    assert.doesNotMatch(res.out, /zou nu posten: 2026-10-29-waarom-genesis/);
+    const planned = run(dir, ["plan", "--nu", "2026-10-29T09:00:00+01:00", "--dagen", "2"]);
+    assert.match(planned.out, /wacht op juridisch nazicht\s+\$0\.200\s+2026-10-29-waarom-genesis/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

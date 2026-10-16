@@ -13,7 +13,7 @@ import { plan, STATE } from "./planner.js";
 import { createXClient, publish } from "./poster.js";
 import { fetchWaitlistCount } from "./metrics.js";
 import { weightedLength, MAX_WEIGHTED_LENGTH } from "./text.js";
-import { hasErrors } from "./compliance.js";
+import { hasErrors, saleLive } from "./compliance.js";
 
 const BASE = process.env.X_PROMO_DIR || fileURLToPath(new URL("..", import.meta.url));
 const PATHS = {
@@ -59,7 +59,11 @@ function cmdLint() {
   const reviewed = reviewCalendar(calendar, config);
   let errors = 0;
   let warnings = 0;
-  console.log(`Kalender: ${calendar.posts.length} posts, ${calendar.templates.length} sjabloon(en). Aanbod: ${config.offer.status}.\n`);
+  const offer = config.offer ?? {};
+  console.log(
+    `Kalender: ${calendar.posts.length} posts, ${calendar.templates.length} sjabloon(en). ` +
+      `Verkoop: ${saleLive(config) ? "live" : "nog niet live"} (verkoopActief: ${offer.verkoopActief === true}, legalReviewDone: ${offer.legalReviewDone === true}).\n`,
+  );
   for (const r of reviewed) {
     const len = weightedLength(r.tekst);
     const bad = hasErrors(r.issues);

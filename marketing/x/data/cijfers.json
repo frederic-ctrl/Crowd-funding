@@ -1,6 +1,10 @@
 {
-  "bijgewerkt": null,
-  "wachtlijst": null,
-  "juridisch": "",
-  "volgende_stap": ""
+  "bijgewerkt": "2026-10-16",
+  "wekelijkseGebruikers": 10,
+  "passesGeclaimd": 0,
+  "agencyGeclaimd": 0,
+  "supporters": 0,
+  "opgehaaldEur": 0,
+  "wachtlijst": 0,
+  "stand": "demo op het Solana-testnet, de boekhouder kiest de rechtsvorm"
 }

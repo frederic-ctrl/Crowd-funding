@@ -1,14 +1,17 @@
-# Contentkalender voor X (community-ronde en product).
+# Contentkalender voor X (Marketing Scan en Marketing Scan Genesis).
 #
 # Zo werkt het:
 # - Elke post heeft een id, een moment (met tijdzone), een categorie, een status en de tekst.
-# - Placeholders: {site} = community-site, {scan} = marketingscan.be, {docs} = documenten (pas als het aanbod live is).
+# - Placeholders: {site} = community-site, {scan} = marketingscan.be, {genesis} = {site}/genesis,
+#   {transparantie} = {site}/transparantie, {voorwaarden} = offer.voorwaardenUrl uit config.json.
 # - Categorieën:
-#     product        over het product. Mag niet over investeren gaan.
-#     ronde          over de community-ronde. Moet "Nog geen aanbod" en "Investeren houdt risico's in" bevatten.
-#     uitleg         hoe de ronde werkt. Moet "Nog geen aanbod" bevatten.
-#     transparantie  stand van zaken en cijfers. Moet "Nog geen aanbod" bevatten.
-#     aanbod         enkel als het aanbod live is (zie config.json).
+#     product        over de scan zelf. Mag niet over Genesis, passes, wallets of de voorverkoop gaan.
+#     genesis        over de Genesis Pass, de voorverkoop, de prijsladder en de Genesis-muur.
+#     uitleg         hoe het werkt: wallet, soulbound, geld terug, transparantie.
+#     transparantie  cijfers en stand van zaken.
+#     verkoop        directe koopoproepen. Kan pas als de verkoop live is (verkoopActief en legalReviewDone).
+# - Elke post in genesis, uitleg, transparantie en verkoop vermeldt letterlijk "Geen investering".
+#   Zolang de verkoop niet live is ook "Nog geen verkoop", en geen koopoproepen ("koop nu", "claim je pass", ...).
 # - Status "concept" wordt nooit gepost. Goedkeuren gebeurt via GitHub: Actions > "X: post goedkeuren".
 #   De goedkeuring is gekoppeld aan de exacte tekst: pas je de tekst nadien aan, dan vervalt ze.
 # - Lengte: max 280 tekens, een link telt als 23. Een post met link kost $0.20, zonder link $0.015.
@@ -23,26 +26,17 @@ posts:
 
       {scan}
 
-  - id: 2026-10-29-community-ronde
+  - id: 2026-10-29-waarom-genesis
     moment: 2026-10-29T10:00:00+01:00
-    categorie: ronde
+    categorie: genesis
     status: concept
     tekst: |-
-      We bouwen Marketing Scan voor kmo's, en we willen het ook samen met hen bouwen. Daarom werken we aan een community-ronde: mede-eigenaar worden vanaf €1, met je aandelen in je eigen wallet.
+      Eerlijk over waar we staan: Marketing Scan heeft een tiental wekelijkse gebruikers en nog geen betalende klant. Om sneller te bouwen, werken we aan Marketing Scan Genesis: 250 genummerde passes voor levenslang Pro.
 
-      Nog geen aanbod. Investeren houdt risico's in. Wachtlijst: {site}
+      Geen investering. Nog geen verkoop. {genesis}
 
-  - id: 2026-11-03-geld-geblokkeerd
+  - id: 2026-11-03-google-bedrijfsprofiel
     moment: 2026-11-03T10:00:00+01:00
-    categorie: uitleg
-    status: concept
-    tekst: |-
-      Hoe maak je crowdfunding écht transparant? Bij onze community-ronde staat je inleg in een escrow die iedereen live kan bekijken op de blockchain. Haalt een ronde haar minimumdoel niet, dan krijgt iedereen alles terug.
-
-      Nog geen aanbod. Meer uitleg volgt.
-
-  - id: 2026-11-05-google-bedrijfsprofiel
-    moment: 2026-11-05T10:00:00+01:00
     categorie: product
     status: concept
     tekst: |-
@@ -50,17 +44,35 @@ posts:
 
       {scan}
 
-  - id: 2026-11-10-token-is-aandeel
+  - id: 2026-11-05-prijsladder
+    moment: 2026-11-05T10:00:00+01:00
+    categorie: genesis
+    status: concept
+    tekst: |-
+      De Genesis Pass heeft een vaste prijsladder. De prijs stijgt per 50 verkochte passes: #001 tot #050 kost €99, daarna €149, €199, €249 en €299. Vroeger instappen is goedkoper, en je prijs ligt vast bij je nummer.
+
+      Geen investering. Nog geen verkoop. {genesis}
+
+  - id: 2026-11-10-soulbound
     moment: 2026-11-10T10:00:00+01:00
     categorie: uitleg
     status: concept
     tekst: |-
-      1 token = 1 aandeel. Bij onze community-ronde komen je aandelen als token in je eigen Solana-wallet. Er komt geen beursnotering: het officiële aandelenregister blijft juridisch leidend.
+      Je Genesis Pass is soulbound: een token op Solana dat vastzit aan je wallet. Je pass is van jou en niet verhandelbaar, dus geen speculatie. Het is gewoon je bewijs van levenslang Marketing Scan Pro.
 
-      Nog geen aanbod.
+      Geen investering. Nog geen verkoop.
 
-  - id: 2026-11-12-ai-zichtbaarheid
+  - id: 2026-11-12-correct-voor-snel
     moment: 2026-11-12T10:00:00+01:00
+    categorie: transparantie
+    status: concept
+    tekst: |-
+      Waarom de verkoop nog niet open is: de boekhouder beslist eerst of Marketing Scan een eenmanszaak blijft of een BV wordt. Liever correct dan snel. Tot dan draait Genesis enkel als demo op het Solana-testnet.
+
+      Geen investering. Nog geen verkoop.
+
+  - id: 2026-11-17-ai-zichtbaarheid
+    moment: 2026-11-17T10:00:00+01:00
     categorie: product
     status: concept
     tekst: |-
@@ -68,26 +80,35 @@ posts:
 
       {scan}
 
-  - id: 2026-11-17-wallet-kwijt
-    moment: 2026-11-17T10:00:00+01:00
+  - id: 2026-11-19-geld-terug
+    moment: 2026-11-19T10:00:00+01:00
     categorie: uitleg
     status: concept
     tekst: |-
-      Wat als je je wallet verliest? Dan ben je je aandelen niet kwijt. Het aandelenregister is leidend: na een nieuwe identiteitscontrole zetten we je aandelen over naar een nieuwe wallet, publiek gelogd.
+      Van gedacht veranderd? Tot 14 dagen na je Genesis Pass krijg je je geld terug met één klik. Je pass wordt verbrand en het geld gaat terug in dezelfde transactie, publiek zichtbaar op Solana.
 
-      Nog geen aanbod.
+      Geen investering. Nog geen verkoop.
 
-  - id: 2026-11-19-correct-voor-snel
-    moment: 2026-11-19T10:00:00+01:00
-    categorie: ronde
+  - id: 2026-11-24-elke-euro-zichtbaar
+    moment: 2026-11-24T10:00:00+01:00
+    categorie: transparantie
     status: concept
     tekst: |-
-      Ons plan voor de community-ronde: eerst een onafhankelijke waardering, een advocaat en contact met de FSMA. Pas daarna openen de inschrijvingen. Liever correct dan snel.
+      Elke euro van Marketing Scan Genesis staat publiek op Solana: elke pass, elke terugbetaling en elke opname uit de kas. Je hoeft ons niet op ons woord te geloven, je kan alles zelf nakijken.
 
-      Nog geen aanbod. Investeren houdt risico's in. {site}
+      Geen investering. Nog geen verkoop. {transparantie}
 
-  - id: 2026-11-24-snelle-website
-    moment: 2026-11-24T10:00:00+01:00
+  - id: 2026-11-26-genesis-agency
+    moment: 2026-11-26T10:00:00+01:00
+    categorie: genesis
+    status: concept
+    tekst: |-
+      Voor bureaus en freelancers met meerdere klanten: Genesis Agency geeft levenslang Marketing Scan Pro voor tot 10 websites. 25 genummerde passes, #01 tot #25, aan €799, met support rechtstreeks bij de oprichter.
+
+      Geen investering. Nog geen verkoop. {genesis}
+
+  - id: 2026-12-01-snelle-website
+    moment: 2026-12-01T10:00:00+01:00
     categorie: product
     status: concept
     tekst: |-
@@ -95,35 +116,36 @@ posts:
 
       {scan}
 
-  - id: 2026-11-26-waarom-49-procent
-    moment: 2026-11-26T10:00:00+01:00
-    categorie: uitleg
-    status: concept
-    tekst: |-
-      Waarom maximaal 49%? Zo blijft de oprichter verantwoordelijk voor de richting van het bedrijf, en weet iedereen vooraf hoe de verdeling eruitziet na beide rondes: 51% oprichter, max 49% community.
-
-      Nog geen aanbod.
-
-  - id: 2026-12-01-je-deel-live
-    moment: 2026-12-01T10:00:00+01:00
-    categorie: uitleg
-    status: concept
-    tekst: |-
-      Je deel altijd in beeld: log in met je wallet en je ziet live hoeveel aandelen je hebt, welk deel van Marketing Scan dat is en de waarde volgens de laatste rondeprijs. Geen verkoopprijs, wel eerlijk.
-
-      Nog geen aanbod.
-
-  - id: 2026-12-03-demo-op-testnet
+  - id: 2026-12-03-supporter-muur
     moment: 2026-12-03T10:00:00+01:00
-    categorie: ronde
+    categorie: genesis
     status: concept
     tekst: |-
-      Probeer onze community-ronde nu al uit op het Solana-testnet: inloggen met je wallet, test-euro ontvangen en instappen vanaf €1, zonder echt geld.
+      Mee bouwen kan ook zonder abonnement. Als Supporter steun je Marketing Scan vanaf €1: je krijgt een supporter-badge in je wallet en je naam op de Genesis-muur, naast iedereen met een pass.
 
-      Nog geen aanbod. Investeren houdt risico's in. {site}
+      Geen investering. Nog geen verkoop. {genesis}
+
+  - id: 2026-12-08-roadmap
+    moment: 2026-12-08T10:00:00+01:00
+    categorie: genesis
+    status: concept
+    tekst: |-
+      Wat er na de scan komt: een SEO-suite, mailings en social posting. Met een Genesis Pass krijg je elke nieuwe Pro-functie zonder meerprijs, en stem je mee over de volgorde waarin we ze bouwen.
+
+      Geen investering. Nog geen verkoop. {genesis}
+
+  - id: 2026-12-10-demo-testnet
+    moment: 2026-12-10T10:00:00+01:00
+    categorie: uitleg
+    status: concept
+    tekst: |-
+      Probeer Marketing Scan Genesis nu al uit op het Solana-testnet: verbind je wallet, haal test-euro op en maak een testpass aan. Zonder echt geld, zodat je precies ziet hoe het werkt.
+
+      Geen investering. Nog geen verkoop. {genesis}
 
 # Sjablonen worden elke week automatisch ingevuld met de cijfers uit data/cijfers.json.
 # Ze posten enkel als die cijfers de voorbije 8 dagen bijgewerkt zijn ("bijgewerkt" in cijfers.json).
+# Variabelen: {week}, {passes}, {agency}, {supporters}, {opgehaald}, {gebruikers}, {wachtlijst}, {stand}.
 sjablonen:
   - id: transparantie-wekelijks
     categorie: transparantie
@@ -131,6 +153,6 @@ sjablonen:
     om: "10:00"
     status: concept
     tekst: |-
-      Transparantie-update week {week}: {wachtlijst} mensen op de wachtlijst voor onze community-ronde. Juridisch: {juridisch}. Volgende stap: {volgende_stap}.
+      Genesis-update week {week}: {passes}/250 passes, {agency}/25 agency-passes, {supporters} supporters en €{opgehaald} van €50.000. Marketing Scan telt {gebruikers} wekelijkse gebruikers. Stand: {stand}.
 
-      Nog geen aanbod.
+      Geen investering. Nog geen verkoop. {transparantie}

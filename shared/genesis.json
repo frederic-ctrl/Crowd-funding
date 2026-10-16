@@ -1,0 +1,74 @@
+{
+  "project": "Marketing Scan",
+  "naam": "Marketing Scan Genesis",
+  "verkoopActief": false,
+  "opent": null,
+  "sluit": null,
+  "doelEur": 50000,
+  "bedenktijdDagen": 14,
+  "metadataBasis": "https://community.marketingscan.be/genesis",
+  "producten": [
+    {
+      "id": "pass",
+      "naam": "Genesis Pass",
+      "tokenNaam": "Marketing Scan Genesis",
+      "symbool": "MSGEN",
+      "beschrijving": "Levenslang Marketing Scan Pro voor één bedrijf.",
+      "max": 250,
+      "maxPerWallet": 3,
+      "websites": 1,
+      "prijsladder": [
+        { "tot": 50, "prijsEur": 99 },
+        { "tot": 100, "prijsEur": 149 },
+        { "tot": 150, "prijsEur": 199 },
+        { "tot": 200, "prijsEur": 249 },
+        { "tot": 250, "prijsEur": 299 }
+      ],
+      "voordelen": [
+        "Levenslang Marketing Scan Pro voor 1 website",
+        "Elke nieuwe Pro-functie zonder meerprijs: SEO-suite, mailings, social posting",
+        "Genummerde pass in je wallet, #001 tot #250",
+        "Je naam op de Genesis-muur",
+        "Mee stemmen over de volgorde van de roadmap",
+        "14 dagen geld terug, met één klik"
+      ]
+    },
+    {
+      "id": "agency",
+      "naam": "Genesis Agency",
+      "tokenNaam": "Marketing Scan Genesis Agency",
+      "symbool": "MSGENA",
+      "beschrijving": "Levenslang Marketing Scan Pro voor tot 10 websites.",
+      "max": 25,
+      "maxPerWallet": 1,
+      "websites": 10,
+      "prijsladder": [{ "tot": 25, "prijsEur": 799 }],
+      "voordelen": [
+        "Alles van de Genesis Pass, voor tot 10 websites",
+        "Voor bureaus en freelancers met meerdere klanten",
+        "Support rechtstreeks bij de oprichter",
+        "Genummerde agency-pass, #01 tot #25",
+        "14 dagen geld terug, met één klik"
+      ]
+    }
+  ],
+  "steun": {
+    "id": "steun",
+    "naam": "Supporter",
+    "tokenNaam": "Marketing Scan Supporter",
+    "symbool": "MSFAN",
+    "beschrijving": "Steun de bouw vanaf €1, zonder abonnement.",
+    "minimumEur": 1,
+    "maximumEur": 1000,
+    "voordelen": [
+      "Supporter-badge in je wallet",
+      "Je naam op de Genesis-muur",
+      "Telt mee voor het doel van €50.000"
+    ]
+  },
+  "betaalmunt": {
+    "symbool": "tEUR",
+    "naam": "Test-euro",
+    "decimalen": 6
+  }
+}

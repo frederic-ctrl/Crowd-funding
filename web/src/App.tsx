@@ -6,9 +6,10 @@ import { Layout } from "./components/Layout";
 import { WalletUiProvider } from "./components/Wallet";
 import { Home } from "./pages/Home";
 
-const Invest = lazy(() => import("./pages/Invest"));
-const Portfolio = lazy(() => import("./pages/Portfolio"));
+const Claim = lazy(() => import("./pages/Claim"));
+const MyPass = lazy(() => import("./pages/MyPass"));
 const Transparency = lazy(() => import("./pages/Transparency"));
+const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -22,9 +23,10 @@ export function App() {
               <Suspense fallback={<div className="container page-body" aria-busy="true" />}>
                 <Routes>
                   <Route path="/" element={<Home />} />
-                  <Route path="/investeren" element={<Invest />} />
-                  <Route path="/portefeuille" element={<Portfolio />} />
+                  <Route path="/genesis" element={<Claim />} />
+                  <Route path="/mijn-pass" element={<MyPass />} />
                   <Route path="/transparantie" element={<Transparency />} />
+                  <Route path="/voorwaarden" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

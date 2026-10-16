@@ -1,5 +1,5 @@
 // Beslist welke posts nu geplaatst mogen worden, en waarom de andere (nog) niet.
-import { hasErrors, aboutInvesting, ABOUT_INVESTING } from "./compliance.js";
+import { hasErrors, aboutGenesis, ABOUT_GENESIS } from "./compliance.js";
 import { hasLink } from "./text.js";
 import { minutesOfDay, localDateKey, parseClock } from "./time.js";
 
@@ -16,11 +16,11 @@ export const STATE = {
   dagmax: "daglimiet bereikt",
 };
 
-// Posts over de ronde gaan pas de deur uit als iemand bevestigt dat een advocaat ze nalas
-// (offer.legalReviewDone in config.json). Productposts kunnen meteen.
+// Posts over Genesis (de voorverkoop, passes, wallets) gaan pas de deur uit als iemand bevestigt
+// dat ze juridisch nagelezen zijn (offer.legalReviewDone in config.json). Productposts kunnen meteen.
 export function needsLegalReview(post, config) {
   if (config.offer?.legalReviewDone === true) return false;
-  return ABOUT_INVESTING.has(post.categorie) || aboutInvesting(post.tekst);
+  return ABOUT_GENESIS.has(post.categorie) || aboutGenesis(post.tekst);
 }
 
 export function estimateCostUsd(text, pricing) {

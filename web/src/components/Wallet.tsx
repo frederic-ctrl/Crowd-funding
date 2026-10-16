@@ -133,8 +133,8 @@ export function AccountButton({ compact = false }: { compact?: boolean }) {
       </button>
       {menu && (
         <div className="account-pop">
-          <Link to="/portefeuille" onClick={() => setMenu(false)}>Mijn portefeuille</Link>
-          <Link to="/investeren" onClick={() => setMenu(false)}>Investeren</Link>
+          <Link to="/mijn-pass" onClick={() => setMenu(false)}>Mijn pass</Link>
+          <Link to="/genesis" onClick={() => setMenu(false)}>Genesis Pass claimen</Link>
           <button type="button" onClick={() => { setMenu(false); void disconnect(); }}>Uitloggen</button>
         </div>
       )}

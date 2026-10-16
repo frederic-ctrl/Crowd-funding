@@ -1,4 +1,4 @@
-import { EUR } from "../../../shared/offering.js";
+import { EUR } from "../../../shared/genesis.js";
 
 const eur2 = new Intl.NumberFormat("nl-BE", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const eur0 = new Intl.NumberFormat("nl-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
