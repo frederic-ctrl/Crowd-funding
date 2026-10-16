@@ -5,7 +5,7 @@
   "defaultLang": "en",
   "offer": {
     "verkoopActief": false,
-    "legalReviewDone": false,
+    "legalReviewDone": true,
     "required": {
       "en": "Not an investment",
       "nl": "Geen investering"
