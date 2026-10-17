@@ -17,6 +17,14 @@
       "kostUsd": 0.2,
       "test": "steun-1",
       "variant": "info-kaart"
+    },
+    {
+      "id": "2026-10-17-security-check",
+      "hash": "dd93f6c9050d9e67",
+      "tweetId": "2111406947056677343",
+      "url": "https://x.com/i/web/status/2111406947056677343",
+      "geplaatstOp": "2026-10-17T10:40:18.664Z",
+      "kostUsd": 0.2
     }
   ]
 }
