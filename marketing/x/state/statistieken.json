@@ -1,5 +1,5 @@
 {
-  "bijgewerkt": "2026-10-16T23:54:51.392Z",
+  "bijgewerkt": "2026-10-17T23:27:25.720Z",
   "posts": [
     {
       "id": "2026-10-16-steun-a-info",
@@ -7,16 +7,33 @@
       "variant": "info-kaart",
       "afbeelding": null,
       "geplaatstOp": "2026-10-16T18:02:06.063Z",
-      "gemeten": "2026-10-16T23:54:51.392Z",
+      "gemeten": "2026-10-17T23:27:25.720Z",
       "tweetId": "2111155739590844729",
       "weergaven": 3,
+      "likes": 1,
+      "reposts": 1,
+      "reacties": 0,
+      "citaten": 0,
+      "bladwijzers": 0,
+      "linkklikken": 0,
+      "profielklikken": 1
+    },
+    {
+      "id": "2026-10-17-steun-b-opinion-image",
+      "test": "steun-1",
+      "variant": "mening-beeld",
+      "afbeelding": "steun-mening.png",
+      "geplaatstOp": "2026-10-17T14:12:32.318Z",
+      "gemeten": "2026-10-17T23:27:25.720Z",
+      "tweetId": "2111460358737072539",
+      "weergaven": 1,
       "likes": 0,
       "reposts": 0,
       "reacties": 0,
       "citaten": 0,
       "bladwijzers": 0,
       "linkklikken": 0,
-      "profielklikken": 1
+      "profielklikken": 0
     }
   ]
 }
