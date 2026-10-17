@@ -25,6 +25,17 @@
       "url": "https://x.com/i/web/status/2111406947056677343",
       "geplaatstOp": "2026-10-17T10:40:18.664Z",
       "kostUsd": 0.2
+    },
+    {
+      "id": "2026-10-17-steun-b-opinion-image",
+      "hash": "b1f8275fcf6b1a4c",
+      "tweetId": "2111460358737072539",
+      "url": "https://x.com/i/web/status/2111460358737072539",
+      "geplaatstOp": "2026-10-17T14:12:32.318Z",
+      "kostUsd": 0.2,
+      "afbeelding": "steun-mening.png",
+      "test": "steun-1",
+      "variant": "mening-beeld"
     }
   ]
 }
