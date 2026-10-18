@@ -112,6 +112,21 @@ posts:
       door: claude
       op: 2026-10-16T12:31:01.707Z
       hash: d31028bc771a4f9e
+  - id: 2026-10-18-reviews-check
+    moment: 2026-10-18T10:00:00+02:00
+    categorie: product
+    status: goedgekeurd
+    tekst: |-
+      Most customers read your Google reviews before they ever visit your website.
+
+      Marketing Scan shows how your reviews and reputation look from the outside, next to your site, tracking and email setup. Free, no account.
+
+      {scan}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-18T05:00:09.409Z
+      hash: dfb572c807c606ac
+
   - id: 2026-10-18-steun-d-info-image
     moment: 2026-10-18T15:00:00+02:00
     categorie: steun
