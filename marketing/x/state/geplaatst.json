@@ -44,6 +44,17 @@
       "url": "https://x.com/i/web/status/2111774630230815062",
       "geplaatstOp": "2026-10-18T11:01:21.157Z",
       "kostUsd": 0.2
+    },
+    {
+      "id": "2026-10-18-steun-d-info-image",
+      "hash": "d28aad15be21aa54",
+      "tweetId": "2111828089907163162",
+      "url": "https://x.com/i/web/status/2111828089907163162",
+      "geplaatstOp": "2026-10-18T14:33:46.359Z",
+      "kostUsd": 0.2,
+      "afbeelding": "steun-info.png",
+      "test": "steun-1",
+      "variant": "info-beeld"
     }
   ]
 }
