@@ -55,6 +55,16 @@
       "afbeelding": "steun-info.png",
       "test": "steun-1",
       "variant": "info-beeld"
+    },
+    {
+      "id": "2026-10-18-steun-e-opinion",
+      "hash": "b5019d1c6828e52b",
+      "tweetId": "2111881174192664989",
+      "url": "https://x.com/i/web/status/2111881174192664989",
+      "geplaatstOp": "2026-10-18T18:04:43.199Z",
+      "kostUsd": 0.2,
+      "test": "steun-1",
+      "variant": "mening-kaart"
     }
   ]
 }
