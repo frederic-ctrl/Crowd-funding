@@ -162,6 +162,21 @@ posts:
       door: claude
       op: 2026-10-16T12:31:02.012Z
       hash: b5019d1c6828e52b
+  - id: 2026-10-19-tracking-check
+    moment: 2026-10-19T10:00:00+02:00
+    categorie: product
+    status: goedgekeurd
+    tekst: |-
+      Is your website really counting your visitors, or is your tracking quietly broken?
+
+      Marketing Scan checks your analytics and tracking setup next to speed, reviews and security. Free, no account, results in 60 seconds.
+
+      {scan}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-19T05:00:45.091Z
+      hash: 9ee94c89c974d63e
+
   - id: 2026-10-19-steun-f-no-link
     moment: 2026-10-19T15:00:00+02:00
     categorie: steun
@@ -179,6 +194,20 @@ posts:
       door: claude
       op: 2026-10-16T12:31:02.142Z
       hash: a9aeb3a166cfd0e8
+
+  - id: 2026-10-19-roadmap-vote
+    moment: 2026-10-19T20:00:00+02:00
+    categorie: genesis
+    status: goedgekeurd
+    tekst: |-
+      Who decides what we build after the scan? Genesis Pass holders get a vote on the order of the roadmap.
+
+      One founder builds. The community helps choose. Not an investment. Not on sale yet. #buildinpublic
+      {genesis}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-19T05:00:45.220Z
+      hash: cb0d920e8b269de5
 
   - id: 2026-10-16-hard-cap
     moment: 2026-10-21T15:00:00+02:00
