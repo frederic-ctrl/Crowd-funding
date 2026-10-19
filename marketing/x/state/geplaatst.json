@@ -65,6 +65,14 @@
       "kostUsd": 0.2,
       "test": "steun-1",
       "variant": "mening-kaart"
+    },
+    {
+      "id": "2026-10-19-tracking-check",
+      "hash": "9ee94c89c974d63e",
+      "tweetId": "2112169108980539461",
+      "url": "https://x.com/i/web/status/2112169108980539461",
+      "geplaatstOp": "2026-10-19T13:08:52.205Z",
+      "kostUsd": 0.2
     }
   ]
 }
