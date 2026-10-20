@@ -209,6 +209,49 @@ posts:
       op: 2026-10-19T05:00:45.220Z
       hash: cb0d920e8b269de5
 
+  - id: 2026-10-20-weekly-dashboard
+    moment: 2026-10-20T10:00:00+02:00
+    categorie: product
+    status: goedgekeurd
+    tekst: |-
+      A scan shows where you stand today. But is your site getting better or slipping?
+
+      Marketing Scan also has a dashboard that measures your website again every week, so changes show up on their own. Start with the free scan.
+
+      {scan}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-20T05:00:48.705Z
+      hash: 4fd97bdf2190f69d
+
+  - id: 2026-10-20-pro-features
+    moment: 2026-10-20T15:00:00+02:00
+    categorie: genesis
+    status: goedgekeurd
+    tekst: |-
+      One Genesis Pass covers every new Pro feature we build: the SEO suite, mailings, social posting. No extra price per feature.
+
+      Not an investment. Not on sale yet.
+      {genesis}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-20T05:00:48.832Z
+      hash: 64647a9c0770e594
+
+  - id: 2026-10-20-try-the-demo
+    moment: 2026-10-20T20:00:00+02:00
+    categorie: uitleg
+    status: goedgekeurd
+    tekst: |-
+      Curious how Genesis works? The demo runs on Solana devnet with test money, so you can see the wallet flow without spending a cent.
+
+      Not an investment. Not on sale yet. #buildinpublic
+      {genesis}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-20T05:00:48.963Z
+      hash: f499b3fd0a6206e6
+
   - id: 2026-10-16-hard-cap
     moment: 2026-10-21T15:00:00+02:00
     categorie: genesis
