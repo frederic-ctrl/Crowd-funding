@@ -97,6 +97,14 @@
       "url": "https://x.com/i/web/status/2112872855058726986",
       "geplaatstOp": "2026-10-21T11:45:18.341Z",
       "kostUsd": 0.2
+    },
+    {
+      "id": "2026-10-16-hard-cap",
+      "hash": "66b21be4bfa17dfc",
+      "tweetId": "2112954609719251405",
+      "url": "https://x.com/i/web/status/2112954609719251405",
+      "geplaatstOp": "2026-10-21T17:10:10.110Z",
+      "kostUsd": 0.2
     }
   ]
 }
