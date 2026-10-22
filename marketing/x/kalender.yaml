@@ -297,6 +297,20 @@ posts:
       op: 2026-10-21T05:00:56.119Z
       hash: 6cc814d0ced345cf
 
+  - id: 2026-10-22-google-profile
+    moment: 2026-10-22T10:00:00+02:00
+    categorie: product
+    status: goedgekeurd
+    tekst: |-
+      When someone searches for your business, what does your Google profile show? Opening hours, photos, reviews, a link to your site?
+
+      Marketing Scan checks it next to your website, tracking and email setup. Free, no account, results in 60 seconds.
+
+      {scan}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-22T05:00:56.149Z
+      hash: 6d920de1be6a48a6
   - id: 2026-10-16-where-we-stand
     moment: 2026-10-22T15:00:00+02:00
     categorie: transparantie
@@ -313,6 +327,19 @@ posts:
       op: 2026-10-16T10:08:43.744Z
       hash: ce6f505cd853300d
 
+  - id: 2026-10-22-numbered-pass
+    moment: 2026-10-22T20:00:00+02:00
+    categorie: genesis
+    status: goedgekeurd
+    tekst: |-
+      Every Genesis Pass would be numbered, from #001 to #250, and sit in your own wallet. Your name can go on the Genesis wall.
+
+      Small on purpose. Not an investment. Not on sale yet.
+      {genesis}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-22T05:00:56.287Z
+      hash: 40d1d3b9f6efed33
   - id: 2026-10-17-pay-usdc-eurc
     moment: 2026-10-23T15:00:00+02:00
     categorie: genesis
