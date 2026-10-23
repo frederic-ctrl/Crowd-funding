@@ -340,6 +340,21 @@ posts:
       door: claude-routine
       op: 2026-10-22T05:00:56.287Z
       hash: 40d1d3b9f6efed33
+  - id: 2026-10-23-site-speed
+    moment: 2026-10-23T10:00:00+02:00
+    categorie: product
+    status: goedgekeurd
+    tekst: |-
+      Visitors rarely wait for a slow website. They just leave.
+
+      Marketing Scan measures your site speed next to security, reviews and email setup, and shows what to fix first. Free, no account, results in 60 seconds.
+
+      {scan}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-23T05:00:35.769Z
+      hash: 40cae929e17bb090
+
   - id: 2026-10-17-pay-usdc-eurc
     moment: 2026-10-23T15:00:00+02:00
     categorie: genesis
@@ -353,6 +368,20 @@ posts:
       door: claude-routine
       op: 2026-10-16T10:57:59.049Z
       hash: bc3fa29cb78c50ce
+
+  - id: 2026-10-23-fourteen-days
+    moment: 2026-10-23T20:00:00+02:00
+    categorie: genesis
+    status: goedgekeurd
+    tekst: |-
+      Our rule for Genesis: if you change your mind, you get 14 days to take your money back, with one click. No emails, no forms.
+
+      Not an investment. Not on sale yet. #buildinpublic
+      {genesis}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-23T05:00:35.891Z
+      hash: bebf5c8cddfc4aab
 
   - id: 2026-10-17-what-the-goal-is-for
     moment: 2026-10-24T15:00:00+02:00
