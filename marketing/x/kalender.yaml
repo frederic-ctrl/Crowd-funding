@@ -383,6 +383,21 @@ posts:
       op: 2026-10-23T05:00:35.891Z
       hash: bebf5c8cddfc4aab
 
+  - id: 2026-10-24-search-visibility
+    moment: 2026-10-24T10:00:00+02:00
+    categorie: product
+    status: goedgekeurd
+    tekst: |-
+      You can have a great website and still be hard to find on Google.
+
+      Marketing Scan checks your search visibility (SEO) next to site speed, reviews and email setup, and shows what to fix first. Free, results in 60 seconds.
+
+      {scan}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-24T05:00:19.562Z
+      hash: 9c6e624e95ed1a62
+
   - id: 2026-10-17-what-the-goal-is-for
     moment: 2026-10-24T15:00:00+02:00
     categorie: transparantie
@@ -398,6 +413,20 @@ posts:
       door: claude-routine
       op: 2026-10-16T10:57:59.176Z
       hash: 865d94ec443b7a87
+
+  - id: 2026-10-24-agency-ten-sites
+    moment: 2026-10-24T20:00:00+02:00
+    categorie: genesis
+    status: goedgekeurd
+    tekst: |-
+      Running marketing for several clients? Genesis Agency would cover up to 10 websites with one lifetime Pro pass. 25 exist, numbered #01 to #25.
+
+      Not an investment. Not on sale yet. #buildinpublic
+      {genesis}
+    goedkeuring:
+      door: claude-routine
+      op: 2026-10-24T05:00:19.688Z
+      hash: 0871373e2ff7482c
 
   - id: 2026-10-27-free-scan
     moment: 2026-10-27T15:00:00+01:00
